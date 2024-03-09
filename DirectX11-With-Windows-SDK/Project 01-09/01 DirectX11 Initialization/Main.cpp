@@ -20,7 +20,7 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE prevInstance,
         return 0;
 
     theApp.DrawScene();
-
+    
     return theApp.Run();
 }
 

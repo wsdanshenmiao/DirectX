@@ -16,6 +16,8 @@ bool GameApp::Init()
     if (!D3DApp::Init())
         return false;
 
+
+
     return true;
 }
 
