@@ -40,6 +40,15 @@ void GameApp::OnResize()
 
 void GameApp::UpdateScene(float dt)
 {
+    static float phi = 0.0f, theta = 0.0f;
+    phi += 0.00002f;
+    theta += 0.000025f;
+    m_CBuffer.world = XMMatrixTranspose(XMMatrixRotationX(phi) * XMMatrixRotationY(theta));
+
+    D3D11_MAPPED_SUBRESOURCE mappedData;
+    m_pd3dImmediateContext->Map(m_pConstantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedData);
+    memcpy_s(mappedData.pData, sizeof(m_CBuffer), &m_CBuffer, sizeof(m_CBuffer));
+    m_pd3dImmediateContext->Unmap(m_pConstantBuffer.Get(), 0);
 }
 
 void GameApp::DrawScene()
@@ -51,7 +60,10 @@ void GameApp::DrawScene()
     m_pd3dImmediateContext->ClearRenderTargetView(m_pRenderTargetView.Get(), reinterpret_cast<const float*>(&pink));
     m_pd3dImmediateContext->ClearDepthStencilView(m_pDepthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 
-    m_pd3dImmediateContext->DrawIndexed(36, 0, 0);
+    m_pd3dImmediateContext->DrawIndexed(18, 0, 0);
+
+    m_pd3dImmediateContext->DrawIndexed(36, 18, 5);
+
     HR(m_pSwapChain->Present(0, 0));
 }
 
@@ -80,6 +92,32 @@ bool GameApp::InitEffect()
 //初始化缓冲区和图元类型等
 bool GameApp::InitResource()
 {
+    //设置四棱锥 
+    //    / \4  
+    //   /   \
+    //  /     \
+    // /3_______\2
+    // \        \
+    // 0\________\1
+    //四棱锥顶点数据
+    VertexPosColor vertices2[] = {
+        {XMFLOAT3(-4.0f, -1.0f, -1.0f), XMFLOAT4(1.0f, 0.0f, 0.0f, 0.0f)},
+        {XMFLOAT3(-2.0f, -1.0f, -1.0f), XMFLOAT4(0.0f, 1.0f, 0.0f, 0.0f)},
+        {XMFLOAT3(-2.0f, -1.0f, 1.0f), XMFLOAT4(0.0f, 0.0f, 1.0f, 0.0f)},
+        {XMFLOAT3(-4.0f, -1.0f, 1.0f), XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f)},
+        {XMFLOAT3(-3.0f, 1.0f, 0.0f), XMFLOAT4(1.0f, 0.0f, 0.0f, 0.0f)},
+
+         { XMFLOAT3(2.0f, -1.0f, -1.0f), XMFLOAT4(1.0f, 0.0f, 0.0f, 0.0f) },
+        { XMFLOAT3(2.0f, 1.0f, -1.0f), XMFLOAT4(0.0f, 1.0f, 0.0f, 0.0f) },
+        { XMFLOAT3(4.0f, 1.0f, -1.0f), XMFLOAT4(0.0f, 0.0f, 1.0f, 0.0f) },
+        { XMFLOAT3(4.0f, -1.0f, -1.0f), XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f) },
+        { XMFLOAT3(2.0f, -1.0f, 1.0f), XMFLOAT4(1.0f, 0.0f, 0.0f, 0.0f) },
+        { XMFLOAT3(2.0f, 1.0f, 1.0f), XMFLOAT4(0.0f, 1.0f, 0.0f, 0.0f) },
+        { XMFLOAT3(4.0f, 1.0f, 1.0f), XMFLOAT4(0.0f, 0.0f, 1.0f, 0.0f) },
+        { XMFLOAT3(4.0f, -1.0f, 1.0f), XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f) }
+
+    };
+
     // 设置立方体顶点
     //    5________ 6
     //    /|      /|
@@ -89,16 +127,16 @@ bool GameApp::InitResource()
     //   |/______|/
     //  0       3
     //顶点数据
-    VertexPosColor vertices[] = {
-        { XMFLOAT3(-1.0f, -1.0f, -1.0f), XMFLOAT4(1.0f, 0.0f, 0.0f, 0.0f) },
-        { XMFLOAT3(-1.0f, 1.0f, -1.0f), XMFLOAT4(0.0f, 1.0f, 0.0f, 0.0f) },
-        { XMFLOAT3(1.0f, 1.0f, -1.0f), XMFLOAT4(0.0f, 0.0f, 1.0f, 0.0f) },
-        { XMFLOAT3(1.0f, -1.0f, -1.0f), XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f) },
-        { XMFLOAT3(-1.0f, -1.0f, 1.0f), XMFLOAT4(1.0f, 0.0f, 0.0f, 0.0f) },
-        { XMFLOAT3(-1.0f, 1.0f, 1.0f), XMFLOAT4(0.0f, 1.0f, 0.0f, 0.0f) },
-        { XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT4(0.0f, 0.0f, 1.0f, 0.0f) },
-        { XMFLOAT3(1.0f, -1.0f, 1.0f), XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f) }
-    };
+    //VertexPosColor vertices1[] = {
+    //    { XMFLOAT3(4.0f, -1.0f, -1.0f), XMFLOAT4(1.0f, 0.0f, 0.0f, 0.0f) },
+    //    { XMFLOAT3(4.0f, 1.0f, -1.0f), XMFLOAT4(0.0f, 1.0f, 0.0f, 0.0f) },
+    //    { XMFLOAT3(6.0f, 1.0f, -1.0f), XMFLOAT4(0.0f, 0.0f, 1.0f, 0.0f) },
+    //    { XMFLOAT3(6.0f, -1.0f, -1.0f), XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f) },
+    //    { XMFLOAT3(4.0f, -1.0f, 1.0f), XMFLOAT4(1.0f, 0.0f, 0.0f, 0.0f) },
+    //    { XMFLOAT3(4.0f, 1.0f, 1.0f), XMFLOAT4(0.0f, 1.0f, 0.0f, 0.0f) },
+    //    { XMFLOAT3(6.0f, 1.0f, 1.0f), XMFLOAT4(0.0f, 0.0f, 1.0f, 0.0f) },
+    //    { XMFLOAT3(6.0f, -1.0f, 1.0f), XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f) }
+    //};
 
     //VertexPosColor vertices[] =
     //{
@@ -112,7 +150,7 @@ bool GameApp::InitResource()
     //创建顶点缓冲区描述
     D3D11_BUFFER_DESC vbd;
     ZeroMemory(&vbd, sizeof(vbd));  //将缓冲区数据置零
-    vbd.ByteWidth = sizeof(vertices);
+    vbd.ByteWidth = sizeof(vertices2);
     vbd.Usage = D3D11_USAGE_IMMUTABLE;  //设置gpu只读权限
     vbd.BindFlags = D3D11_BIND_VERTEX_BUFFER;   //设置标志为顶点缓冲区
     vbd.CPUAccessFlags = 0;
@@ -120,10 +158,9 @@ bool GameApp::InitResource()
     //创建顶点子资源
     D3D11_SUBRESOURCE_DATA InitData;
     ZeroMemory(&InitData, sizeof(InitData));
-    InitData.pSysMem = vertices;
+    InitData.pSysMem = vertices2;
 
     //创建顶点缓冲区
-    m_pVertexBuffer = nullptr;
     HR(m_pd3dDevice->CreateBuffer(&vbd, &InitData, m_pVertexBuffer.GetAddressOf()));
 
     //在输入装配阶段绑定顶点缓冲区
@@ -134,7 +171,36 @@ bool GameApp::InitResource()
 
 
     //使用索引，减少重复的点，索引数组
-    DWORD indices[] = {
+    //DWORD indices1[] = {
+    //    // 正面
+    //    0, 1, 2,
+    //    2, 3, 0,
+    //    // 左面
+    //    4, 5, 1,
+    //    1, 0, 4,
+    //    // 顶面
+    //    1, 5, 6,
+    //    6, 2, 1,
+    //    // 背面
+    //    7, 6, 5,
+    //    5, 4, 7,
+    //    // 右面
+    //    3, 2, 6,
+    //    6, 7, 3,
+    //    // 底面
+    //    4, 0, 3,
+    //    3, 7, 4
+    //};
+
+    //设置四棱锥索引
+    DWORD indices2[] = {
+        0,2,3,
+        0,1,2,
+        0,4,1,
+        1,4,2,
+        3,4,0,
+        2,4,3,
+
         // 正面
         0, 1, 2,
         2, 3, 0,
@@ -153,18 +219,19 @@ bool GameApp::InitResource()
         // 底面
         4, 0, 3,
         3, 7, 4
+
     };
 
     //设置索引缓冲区的描述
     D3D11_BUFFER_DESC ibd;
     ZeroMemory(&ibd, sizeof(ibd));
     ibd.Usage = D3D11_USAGE_IMMUTABLE;
-    ibd.ByteWidth = sizeof(indices);
+    ibd.ByteWidth = sizeof(indices2);
     ibd.BindFlags = D3D11_BIND_INDEX_BUFFER;
     ibd.CPUAccessFlags = 0;
 
     //建立索引缓冲区
-    InitData.pSysMem = indices;
+    InitData.pSysMem = indices2;
     HR(m_pd3dDevice->CreateBuffer(&ibd, &InitData, m_pIndicesBuffer.GetAddressOf()));
 
     //绑定索引缓冲区
@@ -181,10 +248,19 @@ bool GameApp::InitResource()
     cbd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 
     //建立常量缓冲区
-    HR(m_pd3dDevice->CreateBuffer(&cbd, nullptr, m_pConstantbuffer.GetAddressOf()));
+    HR(m_pd3dDevice->CreateBuffer(&cbd, nullptr, m_pConstantBuffer.GetAddressOf()));
 
     //绑定常量缓冲区
-    m_pd3dImmediateContext->VSSetConstantBuffers(0, 1, m_pConstantbuffer.GetAddressOf());
+    m_pd3dImmediateContext->VSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
+
+    //初始化常量缓冲区
+    m_CBuffer.world = XMMatrixIdentity();    // 单位矩阵的转置是它本身
+    m_CBuffer.view = XMMatrixTranspose(XMMatrixLookAtLH(
+        XMVectorSet(0.0f, 0.0f, -5.0f, 0.0f),
+        XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f),
+        XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f)
+    ));
+    m_CBuffer.proj = XMMatrixTranspose(XMMatrixPerspectiveFovLH(XM_PIDIV2, AspectRatio(), 1.0f, 1000.0f));
 
 
 
@@ -198,6 +274,15 @@ bool GameApp::InitResource()
     //设置图元类型
     m_pd3dImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
+    // ******************
+    // 设置调试对象名
+    //
+    D3D11SetDebugObjectName(m_pVertexLayout.Get(), "VertexPosColorLayout");
+    D3D11SetDebugObjectName(m_pVertexBuffer.Get(), "VertexBuffer");
+    D3D11SetDebugObjectName(m_pIndicesBuffer.Get(), "IndicesBuffer");
+    D3D11SetDebugObjectName(m_pConstantBuffer.Get(), "ConstantBuffer");
+    D3D11SetDebugObjectName(m_pVertexShader.Get(), "Cube_VS");
+    D3D11SetDebugObjectName(m_pPixelShader.Get(), "Cube_PS");
 
     return true;
 }

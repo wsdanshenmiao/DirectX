@@ -29,8 +29,9 @@ private:
 
     ComPtr<ID3D11Buffer> m_pVertexBuffer;   //顶点缓冲区
     ComPtr<ID3D11Buffer> m_pIndicesBuffer;  //索引缓冲区
-    ComPtr<ID3D11Buffer> m_pConstantbuffer;    //常量缓冲区
+    ComPtr<ID3D11Buffer> m_pConstantBuffer;    //常量缓冲区
 
+    ConstantBuffer m_CBuffer;   //用于修改GPU常量缓冲区的变量
 
 public:
     GameApp(HINSTANCE hInstance, const std::wstring& windowName, int initWidth, int initHeight);
