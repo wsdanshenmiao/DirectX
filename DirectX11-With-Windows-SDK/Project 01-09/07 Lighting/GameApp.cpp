@@ -1,6 +1,7 @@
 #include "GameApp.h"
 #include "d3dUtil.h"
 #include "DXTrace.h"
+#include "Geometry.h"
 using namespace DirectX;
 
 GameApp::GameApp(HINSTANCE hInstance, const std::wstring& windowName, int initWidth, int initHeight)
@@ -245,7 +246,7 @@ bool GameApp::InitResource()
 
     // ******************
     // 初始化光栅化状态
-    //
+    //  
     D3D11_RASTERIZER_DESC rasterizerDesc;
     ZeroMemory(&rasterizerDesc, sizeof(rasterizerDesc));
     rasterizerDesc.FillMode = D3D11_FILL_WIREFRAME;

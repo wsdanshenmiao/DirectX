@@ -79,7 +79,7 @@ void GameApp::UpdateScene(float dt)
     if (m_CurrMode == ShowMode::WoodCrate)
     {
         static float phi = 0.0f, theta = 0.0f;
-        phi += 0.0001f, theta += 0.00015f;
+        phi += 0.00001f, theta += 0.000015f;
         XMMATRIX W = XMMatrixRotationX(phi) * XMMatrixRotationY(theta);
         m_VSConstantBuffer.world = XMMatrixTranspose(W);
         m_VSConstantBuffer.worldInvTranspose = XMMatrixTranspose(InverseTranspose(W));
