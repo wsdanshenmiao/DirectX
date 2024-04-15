@@ -6,13 +6,13 @@
 #include <DirectXMath.h>
 #include <d3d11.h>
 
-// ·½¿éÄ£ĞÍÀà
+// æ–¹å—æ¨¡å‹ç±»
 class BlockModel
 {
 public:
-	Model* GetBedRockModel(TextureManager& textureManager, ModelManager& modelManager);	// »ñÈ¡»ùÑÒ²ÄÖÊ
-	Model* GetDirtModel(TextureManager& textureManager, ModelManager& modelManager);	// »ñÈ¡ÄàÍÁ²ÄÖÊ
-	Model* GetStoneModel(TextureManager& textureManager, ModelManager& modelManager);	// »ñÈ¡Ê¯Í·²ÄÖÊ
+	Model* GetBedRockModel(TextureManager& textureManager, ModelManager& modelManager);	// è·å–åŸºå²©æè´¨
+	Model* GetDirtModel(TextureManager& textureManager, ModelManager& modelManager);	// è·å–æ³¥åœŸæè´¨
+	Model* GetStoneModel(TextureManager& textureManager, ModelManager& modelManager);	// è·å–çŸ³å¤´æè´¨
 
 };
 

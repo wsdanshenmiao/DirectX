@@ -4,7 +4,7 @@ using namespace DirectX;
 
 Model* BlockModel::GetBedRockModel(TextureManager& textureManager, ModelManager& modelManager)
 {
-    Model* pModel = modelManager.CreateFromGeometry("BedRock", Geometry::CreateBox());
+    Model* pModel = modelManager.CreateFromGeometry("BedRock", Geometry::CreateBox(1.0f, 1.0f, 1.0f));
     textureManager.CreateFromFile("..\\Texture\\block\\bedrock.jpg");
     pModel->SetDebugObjectName("BedRock");
     pModel->materials[0].Set<std::string>("$Diffuse", "..\\Texture\\block\\bedrock.jpg");
@@ -18,7 +18,7 @@ Model* BlockModel::GetBedRockModel(TextureManager& textureManager, ModelManager&
 
 Model* BlockModel::GetDirtModel(TextureManager& textureManager, ModelManager& modelManager)
 {
-    Model* pModel = modelManager.CreateFromGeometry("Dirt", Geometry::CreateBox());
+    Model* pModel = modelManager.CreateFromGeometry("Dirt", Geometry::CreateBox(1.0f, 1.0f, 1.0f));
     textureManager.CreateFromFile("..\\Texture\\block\\dirt.jpg");
     pModel->SetDebugObjectName("Dirt");
     pModel->materials[0].Set<std::string>("$Diffuse", "..\\Texture\\block\\dirt.jpg");
@@ -32,7 +32,7 @@ Model* BlockModel::GetDirtModel(TextureManager& textureManager, ModelManager& mo
 
 Model* BlockModel::GetStoneModel(TextureManager& textureManager, ModelManager& modelManager)
 {
-    Model* pModel = modelManager.CreateFromGeometry("Stone", Geometry::CreateBox());
+    Model* pModel = modelManager.CreateFromGeometry("Stone", Geometry::CreateBox(1.0f, 1.0f, 1.0f));
     textureManager.CreateFromFile("..\\Texture\\block\\stone.jpg");
     pModel->SetDebugObjectName("Stone");
     pModel->materials[0].Set<std::string>("$Diffuse", "..\\Texture\\block\\stone.jpg");

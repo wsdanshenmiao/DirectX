@@ -22,9 +22,9 @@ class Block
 {
 public:
 	Block() = default;
-	Block(const std::vector<GameObject>& blockData, const BlockId& id);
+	Block(const GameObject& blockData, const BlockId& id);
 
-	std::vector<GameObject>& GetBlock();
+	GameObject& GetBlock();
 	BlockModel& GetBlockModel();
 	BlockId& GetId();
 	void SetId(const BlockId& id);
@@ -32,7 +32,7 @@ public:
 
 private:
 	BlockId m_Id;								// 方块Id
-	std::vector<GameObject> m_BlockData;		// 方块数据
+	GameObject m_BlockData;						// 方块数据
 	BlockModel m_BlockModel;					// 获取方块模型与材质
 };
 

@@ -15,6 +15,7 @@
 #include <TextureManager.h>
 #include "Block.h"
 #include "BlockModel.h"
+#include "Chunk.h"
 
 class GameApp : public D3DApp
 {
@@ -48,8 +49,9 @@ private:
     FirstPersonCameraController m_CameraController;             // 摄像机控制器 
 
     GameObject m_Player;
+    Chunk m_Chunk;
     
-    Block m_Dirt;                                               // 泥土
+    std::vector<Block> m_Dirt;                                               // 泥土
 
 };
 

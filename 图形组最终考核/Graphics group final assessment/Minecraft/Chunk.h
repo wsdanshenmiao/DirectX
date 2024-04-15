@@ -1,27 +1,44 @@
 #ifndef __CHUNK__H__
 #define __CHUNK__H__
 
-#include <vector>
+#include <dcomp.h>
 #include <DirectXMath.h>
+#include <vector>
+#include <d3d11.h>
 #include "Block.h"
+#include "TextureManager.h"
+#include "ModelManager.h"
+
+#define CHUNKHIGHEST 256	// åŒºå—æœ€é«˜é«˜åº¦
+#define CHUNKSIZE 16		// åŒºå—é•¿åº¦
+#define SEALEVEL 64			// æµ·å¹³é¢
+
 
 
 class Chunk
 {
 public:
 	Chunk() = default;
-	Chunk(DirectX::XMFLOAT2 position);
+	Chunk(DirectX::XMINT2 position);
+	Chunk(int x, int y);
 
-	BlockId GetBlock();
+	DirectX::XMINT2 GetPositon();
+	void SetPosition(DirectX::XMINT2 position);
+	void SetPosition(int x, int y);
+	bool OutOfChunk(int x, int y, int z);
+	BlockId GetBlock(int x, int y, int z);
+	void SetBlock(int x, int y, int z, Block& block, TextureManager& tManager, ModelManager& mManager);
+	void LoadChunk(TextureManager& tManager, ModelManager& mManager);
+	void DrawChunk(ID3D11DeviceContext* deviceContext, IEffect& effect);
+
 
 private:
 
 
 private:
-	int m_Highest = 256;			// Çø¿é×î¸ß¸ß¶È
-	DirectX::XMFLOAT2 m_Positon;	// Çø¿é×ø±ê
-	bool m_Loading = false;			// Çø¿éÊÇ·ñÔÚ¼ÓÔØ
-	Block m_Block;					// Çø¿éÖĞµÄ·½¿é
+	DirectX::XMINT2 m_Positon;	// åŒºå—åæ ‡
+	bool m_Loading = false;			// åŒºå—æ˜¯å¦åœ¨åŠ è½½
+	std::vector<Block> m_Block;		// åŒºå—ä¸­çš„æ–¹å—
 };
 
 #endif // !__CHUNK__H__

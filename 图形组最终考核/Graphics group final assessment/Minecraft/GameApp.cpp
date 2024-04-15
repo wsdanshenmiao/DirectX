@@ -80,19 +80,18 @@ void GameApp::UpdateScene(float dt)
     if (ImGui::IsMouseClicked(ImGuiMouseButton_Right) && ImGui::IsKeyDown(ImGuiKey_LeftShift)) {
         bool Placing = true;
         GameObject tmpObject;
-        tmpObject.SetModel(m_Dirt.GetBlockModel().GetBedRockModel(m_TextureManager.Get(), m_ModelManager.Get()));
+        tmpObject.SetModel(BlockModel().GetBedRockModel(m_TextureManager.Get(), m_ModelManager.Get()));
         DirectX::XMFLOAT3 position = m_pCamera->GetPosition();
         DirectX::XMFLOAT3 lookAxis = m_pCamera->GetLookAxis();
         tmpObject.GetTransform().SetPosition(position.x + lookAxis.x * 5, position.y + lookAxis.y * 5, position.z + lookAxis.z * 5);
-        for (size_t i = 0; i < m_Dirt.GetBlock().size(); i++) {
-            if (m_Dirt.GetBlock()[i].GetModel() && m_Dirt.GetBlock()[i].GetBoundingBox().Intersects(tmpObject.GetBoundingBox())) {
+        for (size_t i = 0; i < m_Dirt.size(); i++) {
+            if (m_Dirt[i].GetBlock().GetModel() && m_Dirt[i].GetBlock().GetBoundingBox().Intersects(tmpObject.GetBoundingBox())) {
                 Placing = false;
                 break;
             }
         }
         if (Placing) {
-            m_Dirt.GetBlock().push_back(tmpObject);
-            m_Dirt.SetId(BlockId::Dirt);
+            m_Dirt.push_back(Block(tmpObject, BlockId::Dirt));
             create++;
         }
     }
@@ -127,11 +126,13 @@ void GameApp::DrawScene()
     m_BasicEffect.SetRenderDefault();
     m_BasicEffect.SetReflectionEnabled(false);
 
-    for (auto dirt : m_Dirt.GetBlock()) {
-        dirt.Draw(m_pd3dImmediateContext.Get(), m_BasicEffect);
+    for (auto dirt : m_Dirt) {
+        dirt.GetBlock().Draw(m_pd3dImmediateContext.Get(), m_BasicEffect);
     }
 
     m_Player.Draw(m_pd3dImmediateContext.Get(), m_BasicEffect);
+
+    //m_Chunk.DrawChunk(m_pd3dImmediateContext.Get(), m_BasicEffect);
 
     // 绘制天空盒
     m_SkyboxEffect.SetRenderDefault();
@@ -154,6 +155,11 @@ bool GameApp::InitResource()
     m_Player.GetTransform().SetScale(10.0f, 10.0f, 10.0f);
 
 
+    //m_Chunk.SetPosition(0.0f, 0.0f);
+    //m_Chunk.LoadChunk(m_TextureManager, m_ModelManager);
+
+
+
     m_BasicEffect.SetTextureCube(m_TextureManager.GetTexture("Daylight"));
 
     // ******************
@@ -165,6 +171,7 @@ bool GameApp::InitResource()
     camera->SetViewPort(0.0f, 0.0f, (float)m_ClientWidth, (float)m_ClientHeight);
     camera->SetFrustum(XM_PI / 3, AspectRatio(), 1.0f, 1000.0f);
     camera->LookTo(XMFLOAT3(0.0f, 0.0f, -10.0f), XMFLOAT3(0.0f, 0.0f, 1.0f), XMFLOAT3(0.0f, 1.0f, 0.0f));
+    camera->SetPosition(0.0f, 64.0f, 0.0f);
 
     m_BasicEffect.SetViewMatrix(camera->GetViewMatrixXM());
     m_BasicEffect.SetProjMatrix(camera->GetProjMatrixXM());

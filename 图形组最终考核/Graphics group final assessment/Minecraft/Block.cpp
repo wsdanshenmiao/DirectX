@@ -2,10 +2,10 @@
 
 using namespace DirectX;
 
-Block::Block(const std::vector<GameObject>& blockData, const BlockId& id)
+Block::Block(const GameObject& blockData, const BlockId& id)
 	:m_BlockData(blockData), m_Id(id) {}
 
-std::vector<GameObject>& Block::GetBlock()
+GameObject& Block::GetBlock()
 {
 	return m_BlockData;
 }
