@@ -49,7 +49,7 @@ private:
     FirstPersonCameraController m_CameraController;             // 摄像机控制器 
 
     GameObject m_Player;
-    Chunk m_Chunk;
+    std::vector<Chunk> m_Chunk;
     
     std::vector<Block> m_Dirt;                                               // 泥土
 

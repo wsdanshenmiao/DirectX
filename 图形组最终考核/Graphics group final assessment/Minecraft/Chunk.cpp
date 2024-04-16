@@ -25,13 +25,13 @@ void Chunk::SetPosition(int x, int y)
 // 判断是否在区块中
 bool Chunk::OutOfChunk(int x, int y, int z)
 {
-	if (z<0 || z>CHUNKHIGHEST) {
+	if (y<0 || y>CHUNKHIGHEST) {
 		return true;
 	}
 	if (x - GetPositon().x < 0) {
 		return true;
 	}
-	if (y - GetPositon().y < 0) {
+	if (z - GetPositon().y < 0) {
 		return true;
 	}
 	return false;
@@ -43,7 +43,18 @@ BlockId Chunk::GetBlock(int x, int y, int z)
 	if (OutOfChunk(x, y, z)) {
 		return BlockId::Air;
 	}
-	return (y < SEALEVEL) ? BlockId::Stone : BlockId::Air;
+	if (y < 3) {
+		return BlockId::BedRock;
+	}
+	else if (y < 24) {
+		return BlockId::Stone;
+	}
+	else if (y < 32) {
+		return BlockId::Dirt;
+	}
+	else {
+		return BlockId::Air;
+	}
 }
 
 // 设置方块种类
@@ -78,7 +89,7 @@ void Chunk::LoadChunk(TextureManager& tManager, ModelManager& mManager)
 			for (int x = 0; x < CHUNKSIZE; x++) {
 				int mx = m_Positon.x;
 				int mz = m_Positon.y;
-				int ly = y * CHUNKSIZE;
+				int ly = y * CHUNKSIZE * CHUNKSIZE;
 				int lz = z * CHUNKSIZE;
 				SetBlock(mx + x, y, mz + z, m_Block[ly + lz + x] , tManager, mManager);
 				m_Block[ly + lz + x].GetBlock().GetTransform().SetPosition(mx + x, y, mz + z);

@@ -1,17 +1,15 @@
 #ifndef __CHUNK__H__
 #define __CHUNK__H__
 
-#include <dcomp.h>
 #include <DirectXMath.h>
 #include <vector>
-#include <d3d11.h>
 #include "Block.h"
 #include "TextureManager.h"
 #include "ModelManager.h"
 
-#define CHUNKHIGHEST 256	// 区块最高高度
+#define CHUNKHIGHEST 64	// 区块最高高度
 #define CHUNKSIZE 16		// 区块长度
-#define SEALEVEL 64			// 海平面
+#define SEALEVEL 32			// 海平面
 
 
 
