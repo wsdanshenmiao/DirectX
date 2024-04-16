@@ -130,7 +130,7 @@ void GameApp::DrawScene()
         dirt.GetBlock().Draw(m_pd3dImmediateContext.Get(), m_BasicEffect);
     }
 
-    m_Chunk[0].DrawChunk(m_pd3dImmediateContext.Get(), m_BasicEffect);
+    m_Chunk[0].DrawChunk(m_pd3dImmediateContext.Get(), m_BasicEffect, m_pCamera);
 
     // 绘制天空盒
     m_SkyboxEffect.SetRenderDefault();

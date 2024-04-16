@@ -163,7 +163,7 @@ void Chunk::LoadChunk(TextureManager& tManager, ModelManager& mManager)
 	}
 }
 
-void Chunk::DrawChunk(ID3D11DeviceContext* deviceContext, BasicEffect& effect)
+void Chunk::DrawChunk(ID3D11DeviceContext* deviceContext, BasicEffect& effect, std::shared_ptr<FirstPersonCamera> camera)
 {
 	// 硬件实例化绘制
 	const auto& refData =  m_BlockInstancedData;

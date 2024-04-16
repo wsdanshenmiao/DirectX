@@ -35,7 +35,7 @@ public:
 	void LoadChunk(TextureManager& tManager, ModelManager& mManager);
 	
 	//void DrawChunk(ID3D11DeviceContext* deviceContext, IEffect& effect);
-	void DrawChunk(ID3D11DeviceContext* deviceContext, BasicEffect& effect);
+	void DrawChunk(ID3D11DeviceContext* deviceContext, BasicEffect& effect, std::shared_ptr<FirstPersonCamera> camera);
 
 
 private:
