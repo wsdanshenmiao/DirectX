@@ -23,7 +23,7 @@ Model* BlockModel::GetDirtModel(TextureManager& textureManager, ModelManager& mo
     pModel->SetDebugObjectName("Dirt");
     pModel->materials[0].Set<std::string>("$Diffuse", "..\\Texture\\block\\dirt.jpg");
     pModel->materials[0].Set<XMFLOAT4>("$AmbientColor", XMFLOAT4(0.2f, 0.2f, 0.2f, 1.0f));
-    pModel->materials[0].Set<XMFLOAT4>("$DiffuseColor", XMFLOAT4(0.6f, 0.6f, 0.6f, 1.0f));
+    pModel->materials[0].Set<XMFLOAT4>("$DiffuseColor", XMFLOAT4(0.3f, 0.3f, 0.3f, 1.0f));
     pModel->materials[0].Set<XMFLOAT4>("$SpecularColor", XMFLOAT4(0.2f, 0.2f, 0.2f, 1.0f));
     pModel->materials[0].Set<float>("$SpecularPower", 16.0f);
     pModel->materials[0].Set<XMFLOAT4>("$ReflectColor", XMFLOAT4());
@@ -37,7 +37,7 @@ Model* BlockModel::GetStoneModel(TextureManager& textureManager, ModelManager& m
     pModel->SetDebugObjectName("Stone");
     pModel->materials[0].Set<std::string>("$Diffuse", "..\\Texture\\block\\stone.jpg");
     pModel->materials[0].Set<XMFLOAT4>("$AmbientColor", XMFLOAT4(0.2f, 0.2f, 0.2f, 1.0f));
-    pModel->materials[0].Set<XMFLOAT4>("$DiffuseColor", XMFLOAT4(0.4f, 0.4f, 0.4f, 1.0f));
+    pModel->materials[0].Set<XMFLOAT4>("$DiffuseColor", XMFLOAT4(0.2f, 0.2f, 0.2f, 1.0f));
     pModel->materials[0].Set<XMFLOAT4>("$SpecularColor", XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f));
     pModel->materials[0].Set<float>("$SpecularPower", 16.0f);
     pModel->materials[0].Set<XMFLOAT4>("$ReflectColor", XMFLOAT4());

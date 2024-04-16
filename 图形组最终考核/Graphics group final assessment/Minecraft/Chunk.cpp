@@ -40,16 +40,24 @@ bool Chunk::OutOfChunk(int x, int y, int z)
 // 获取方块种类
 BlockId Chunk::GetBlock(int x, int y, int z)
 {
+	//创建随机数引擎
+	std::random_device rd;
+	std::mt19937 gen(rd());
+	//指定随机数的类型和范围
+	std::uniform_int_distribution<size_t> dis(0, 3);
+	FastNoiseLite noice;
+	noice.SetNoiseType(FastNoiseLite::NoiseType_Perlin);
+	noice.SetFrequency(1);
 	if (OutOfChunk(x, y, z)) {
 		return BlockId::Air;
 	}
-	if (y < 3) {
+	if (y < 1 + dis(gen)) {
 		return BlockId::BedRock;
 	}
-	else if (y < 24) {
+	else if (y < 8 + dis(gen)) {
 		return BlockId::Stone;
 	}
-	else if (y < 32) {
+	else if (y < 12 + 10 * noice.GetNoise((float)x, (float)z)) {
 		return BlockId::Dirt;
 	}
 	else {
@@ -101,9 +109,8 @@ void Chunk::LoadChunk(TextureManager& tManager, ModelManager& mManager)
 void Chunk::DrawChunk(ID3D11DeviceContext* deviceContext, IEffect& effect)
 {
 	for (auto block : m_Block) {
-		if (!block.GetBlock().GetModel()) {
-			break;
+		if (block.GetBlock().GetModel()) {
+			block.GetBlock().Draw(deviceContext, effect);
 		}
-		block.GetBlock().Draw(deviceContext, effect);
 	}
 }

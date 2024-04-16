@@ -3,13 +3,15 @@
 
 #include <DirectXMath.h>
 #include <vector>
+#include <random>
+#include "FastNoiseLite.h"
 #include "Block.h"
 #include "TextureManager.h"
 #include "ModelManager.h"
 
-#define CHUNKHIGHEST 64	// 区块最高高度
+#define CHUNKHIGHEST 32	// 区块最高高度
+#define SEALEVEL 16			// 海平面
 #define CHUNKSIZE 16		// 区块长度
-#define SEALEVEL 32			// 海平面
 
 
 

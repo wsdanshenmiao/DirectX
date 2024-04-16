@@ -1,7 +1,7 @@
 #include "Basic.hlsli"
 
 // 像素着色器(3D)
-float4 PS(VertexPosHWNormalTex pIn) : SV_Target
+float4 PS(VertexPosHWNormalColorTex pIn) : SV_Target
 {
     float4 texColor = g_DiffuseMap.Sample(g_Sam, pIn.tex);
     // 提前进行Alpha裁剪，对不符合要求的像素可以避免后续运算

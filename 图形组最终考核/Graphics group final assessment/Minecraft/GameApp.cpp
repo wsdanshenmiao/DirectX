@@ -130,9 +130,7 @@ void GameApp::DrawScene()
         dirt.GetBlock().Draw(m_pd3dImmediateContext.Get(), m_BasicEffect);
     }
 
-    for (int i = 0; i < 2; i++) {
-        m_Chunk[i].DrawChunk(m_pd3dImmediateContext.Get(), m_BasicEffect);
-    }
+    m_Chunk[0].DrawChunk(m_pd3dImmediateContext.Get(), m_BasicEffect);
 
     // 绘制天空盒
     m_SkyboxEffect.SetRenderDefault();
@@ -154,11 +152,9 @@ bool GameApp::InitResource()
     m_Player.GetTransform().SetPosition(0.0f, 0.0f, 0.0f);
     m_Player.GetTransform().SetScale(10.0f, 10.0f, 10.0f);
 
-    m_Chunk.resize(36);
+    m_Chunk.resize(1);
     m_Chunk[0].SetPosition(0.0f + 16.0f * 0, 0.0f + 16.0f * 0);
     m_Chunk[0].LoadChunk(m_TextureManager, m_ModelManager);
-    m_Chunk[1].SetPosition(0.0f + 16.0f * 1, 0.0f + 16.0f * 1);
-    m_Chunk[1].LoadChunk(m_TextureManager, m_ModelManager);
     //for (int i = 0; i < 6; i++) {
     //    for (int j = 0; j < 6; j++) {
     //        m_Chunk[i * 6 + j].SetPosition(0.0f + 16.0f * i, 0.0f + 16.0f * j);
@@ -179,7 +175,7 @@ bool GameApp::InitResource()
     camera->SetViewPort(0.0f, 0.0f, (float)m_ClientWidth, (float)m_ClientHeight);
     camera->SetFrustum(XM_PI / 3, AspectRatio(), 1.0f, 1000.0f);
     camera->LookTo(XMFLOAT3(0.0f, 0.0f, -10.0f), XMFLOAT3(0.0f, 0.0f, 1.0f), XMFLOAT3(0.0f, 1.0f, 0.0f));
-    camera->SetPosition(0.0f, 32.0f, 0.0f);
+    camera->SetPosition(0.0f, 34.0f, 0.0f);
 
     m_BasicEffect.SetViewMatrix(camera->GetViewMatrixXM());
     m_BasicEffect.SetProjMatrix(camera->GetProjMatrixXM());
