@@ -33,6 +33,8 @@ public:
     ComPtr<ID3D11InputLayout> m_pCurrInputLayout;
     D3D11_PRIMITIVE_TOPOLOGY m_CurrTopology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 
+    ComPtr<ID3D11InputLayout> m_pInstancePosNormalTexLayout;
+
     ComPtr<ID3D11InputLayout> m_pVertexPosNormalTexLayout;
 
     XMFLOAT4X4 m_World{}, m_View{}, m_Proj{};
@@ -89,10 +91,31 @@ bool BasicEffect::InitAll(ID3D11Device* device)
 
     pImpl->m_pEffectHelper = std::make_unique<EffectHelper>();
 
-    Microsoft::WRL::ComPtr<ID3DBlob> blob;
+    // 实例输入布局
+    D3D11_INPUT_ELEMENT_DESC basicInstLayout[] = {
+        { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+        { "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 1, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+        { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 2, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+        { "World", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 3, 0, D3D11_INPUT_PER_INSTANCE_DATA, 1},
+        { "World", 1, DXGI_FORMAT_R32G32B32A32_FLOAT, 3, 16, D3D11_INPUT_PER_INSTANCE_DATA, 1},
+        { "World", 2, DXGI_FORMAT_R32G32B32A32_FLOAT, 3, 32, D3D11_INPUT_PER_INSTANCE_DATA, 1},
+        { "World", 3, DXGI_FORMAT_R32G32B32A32_FLOAT, 3, 48, D3D11_INPUT_PER_INSTANCE_DATA, 1},
+        { "WorldInvTranspose", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 3, 64, D3D11_INPUT_PER_INSTANCE_DATA, 1},
+        { "WorldInvTranspose", 1, DXGI_FORMAT_R32G32B32A32_FLOAT, 3, 80, D3D11_INPUT_PER_INSTANCE_DATA, 1},
+        { "WorldInvTranspose", 2, DXGI_FORMAT_R32G32B32A32_FLOAT, 3, 96, D3D11_INPUT_PER_INSTANCE_DATA, 1},
+        { "WorldInvTranspose", 3, DXGI_FORMAT_R32G32B32A32_FLOAT, 3, 112, D3D11_INPUT_PER_INSTANCE_DATA, 1},
+        { "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 3, 128, D3D11_INPUT_PER_INSTANCE_DATA, 1}
+    };
 
+    Microsoft::WRL::ComPtr<ID3DBlob> blob;
     // 创建顶点着色器
-    pImpl->m_pEffectHelper->CreateShaderFromFile("BasicVS", L"Shaders/Basic_VS.cso", device,
+    pImpl->m_pEffectHelper->CreateShaderFromFile("BasicInstanceVS", L"Shaders/BasicInstance_VS.cso", device,
+        "VS", "vs_5_0", nullptr, blob.GetAddressOf());
+    // 创建顶点布局
+    HR(device->CreateInputLayout(basicInstLayout, ARRAYSIZE(basicInstLayout),
+        blob->GetBufferPointer(), blob->GetBufferSize(), pImpl->m_pInstancePosNormalTexLayout.GetAddressOf()));
+
+    pImpl->m_pEffectHelper->CreateShaderFromFile("BasicObjectVS", L"Shaders/BasicObject_VS.cso", device,
         "VS", "vs_5_0", nullptr, blob.GetAddressOf());
     // 创建顶点布局
     HR(device->CreateInputLayout(VertexPosNormalTex::GetInputLayout(), ARRAYSIZE(VertexPosNormalTex::GetInputLayout()),
@@ -104,15 +127,20 @@ bool BasicEffect::InitAll(ID3D11Device* device)
 
     // 创建通道
     EffectPassDesc passDesc;
-    passDesc.nameVS = "BasicVS";
+    passDesc.nameVS = "BasicInstanceVS";
     passDesc.namePS = "BasicPS";
-    HR(pImpl->m_pEffectHelper->AddEffectPass("Basic", device, &passDesc));
+    HR(pImpl->m_pEffectHelper->AddEffectPass("BasicInstance", device, &passDesc));
+
+    passDesc.nameVS = "BasicObjectVS";
+    HR(pImpl->m_pEffectHelper->AddEffectPass("BasicObject", device, &passDesc));
+
 
     pImpl->m_pEffectHelper->SetSamplerStateByName("g_Sam", RenderStates::SSLinearWrap.Get());
 
     // 设置调试对象名
 #if (defined(DEBUG) || defined(_DEBUG)) && (GRAPHICS_DEBUGGER_OBJECT_NAME)
     SetDebugObjectName(pImpl->m_pVertexPosNormalTexLayout.Get(), "BasicEffect.VertexPosNormalTexLayout");
+    SetDebugObjectName(pImpl->m_pInstancePosNormalTexLayout.Get(), "BasicEffect.InstancePosNormalTexLayout");
 #endif
     pImpl->m_pEffectHelper->SetDebugObjectName("BasicEffect");
 
@@ -162,8 +190,8 @@ MeshDataInput BasicEffect::GetInputData(const MeshData& meshData)
         meshData.m_pTexcoordArrays.empty() ? nullptr : meshData.m_pTexcoordArrays[0].Get(),
         nullptr
     };
-    input.strides = { 12, 12, 8 };
-    input.offsets = { 0, 0, 0 };
+    input.strides = { 12, 12, 8, 144 };
+    input.offsets = { 0, 0, 0, 0 };
 
     input.pIndexBuffer = meshData.m_pIndices.Get();
     input.indexCount = meshData.m_IndexCount;
@@ -216,6 +244,41 @@ void BasicEffect::SetRenderDefault()
 void BasicEffect::SetTextureCube(ID3D11ShaderResourceView* textureCube)
 {
     pImpl->m_pEffectHelper->SetShaderResourceByName("g_TexCube", textureCube);
+}
+
+void BasicEffect::SetDiffuseColor(const DirectX::XMFLOAT4& color)
+{
+    pImpl->m_pEffectHelper->GetConstantBufferVariable("g_ConstantDiffuseColor")->SetFloatVector(4, reinterpret_cast<const float*>(&color));
+}
+
+void BasicEffect::DrawInstanced(ID3D11DeviceContext* deviceContext, Buffer& instancedBuffer, const GameObject& object, uint32_t numObjects)
+{
+    deviceContext->IASetInputLayout(pImpl->m_pInstancePosNormalTexLayout.Get());
+    deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    auto pPass = pImpl->m_pEffectHelper->GetEffectPass("BasicInstance");
+
+    XMMATRIX V = XMLoadFloat4x4(&pImpl->m_View);
+    XMMATRIX P = XMLoadFloat4x4(&pImpl->m_Proj);
+
+    XMMATRIX VP = V * P;
+    VP = XMMatrixTranspose(VP);
+    pImpl->m_pEffectHelper->GetConstantBufferVariable("g_ViewProj")->SetFloatMatrix(4, 4, (FLOAT*)&VP);
+
+    const Model* pModel = object.GetModel();
+    size_t sz = pModel->meshdatas.size();
+    for (size_t i = 0; i < sz; ++i)
+    {
+        SetMaterial(pModel->materials[pModel->meshdatas[i].m_MaterialIndex]);
+        pPass->Apply(deviceContext);
+
+        MeshDataInput input = GetInputData(pModel->meshdatas[i]);
+        input.pVertexBuffers.back() = instancedBuffer.GetBuffer();
+        deviceContext->IASetVertexBuffers(0, (uint32_t)input.pVertexBuffers.size(),
+            input.pVertexBuffers.data(), input.strides.data(), input.offsets.data());
+        deviceContext->IASetIndexBuffer(input.pIndexBuffer, input.indexCount > 65535 ? DXGI_FORMAT_R32_UINT : DXGI_FORMAT_R16_UINT, 0);
+
+        deviceContext->DrawIndexedInstanced(input.indexCount, numObjects, 0, 0, 0);
+    }
 }
 
 void BasicEffect::Apply(ID3D11DeviceContext* deviceContext)

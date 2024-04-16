@@ -48,6 +48,10 @@ private:
     std::shared_ptr<FirstPersonCamera> m_pCamera;			    // 摄像机
     FirstPersonCameraController m_CameraController;             // 摄像机控制器 
 
+    bool m_EnableFrustumCulling = true;							        // 视锥体裁剪开启
+    bool m_EnableInstancing = true;								        // 硬件实例化开启
+
+
     GameObject m_Player;
     std::vector<Chunk> m_Chunk;
     

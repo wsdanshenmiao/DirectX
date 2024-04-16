@@ -9,6 +9,13 @@
 #ifndef EFFECTS_H
 #define EFFECTS_H
 
+#include <memory>
+#include <LightHelper.h>
+#include <RenderStates.h>
+
+#include <GameObject.h>
+
+#include <Buffer.h>
 #include <IEffect.h>
 #include <Material.h>
 #include <MeshData.h>
@@ -17,6 +24,15 @@
 class BasicEffect : public IEffect, public IEffectTransform,
     public IEffectMaterial, public IEffectMeshData
 {
+public:
+    struct InstancedData
+    {
+        DirectX::XMFLOAT4X4 world;
+        DirectX::XMFLOAT4X4 worldInvTranspose;
+        DirectX::XMFLOAT4 color;
+    };
+
+
 public:
     BasicEffect();
     virtual ~BasicEffect() override;
@@ -58,6 +74,9 @@ public:
     // 默认状态来绘制
     void SetRenderDefault();
 
+    // 绘制实例
+    void DrawInstanced(ID3D11DeviceContext* deviceContext, Buffer& buffer, const GameObject& object, uint32_t numObjects);
+
     void SetTextureCube(ID3D11ShaderResourceView* textureCube);
 
     // 各种类型灯光允许的最大数目
@@ -73,6 +92,9 @@ public:
     void SetRefractionEnabled(bool isEnable);
     void SetRefractionEta(float eta);	// 空气/介质折射比
 
+    void SetDiffuseColor(const DirectX::XMFLOAT4& color);
+
+
     // 应用常量缓冲区和纹理资源的变更
     void Apply(ID3D11DeviceContext* deviceContext) override;
 
@@ -80,6 +102,8 @@ private:
     class Impl;
     std::unique_ptr<Impl> pImpl;
 };
+
+
 
 class SkyboxEffect : public IEffect, public IEffectTransform,
     public IEffectMaterial, public IEffectMeshData
