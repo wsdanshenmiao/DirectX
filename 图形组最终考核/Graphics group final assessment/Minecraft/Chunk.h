@@ -15,7 +15,7 @@
 #define CHUNKHIGHEST 64		// 区块最高高度
 #define SEALEVEL 32			// 海平面
 #define CHUNKSIZE 16		// 区块长度
-#define CHUNKRANGE 10		// 柏林噪声应用的幅度
+#define CHUNKRANGE 15		// 柏林噪声应用的幅度
 
 
 class Chunk
@@ -37,19 +37,19 @@ public:
 	//void DrawChunk(ID3D11DeviceContext* deviceContext, IEffect& effect);
 	void DrawChunk(ID3D11Device* device, ID3D11DeviceContext* deviceContext, BasicEffect& effect, std::shared_ptr<FirstPersonCamera> camera);
 
+public:
+	static bool m_EnableFrustumCulling;				// 视锥体裁剪关闭
 
 private:
+	DirectX::XMINT2 m_Positon;				// 区块坐标
+	bool m_Loading = false;					// 区块是否在加载
+	//std::vector<Block> m_Block;			// 区块中的方块
+	Block m_Block[5];						// 分别为空气，泥土，石头，基岩, 草方块
 
-
-private:
-	DirectX::XMINT2 m_Positon;		// 区块坐标
-	bool m_Loading = false;			// 区块是否在加载
-	//std::vector<Block> m_Block;		// 区块中的方块
-	Block m_Block[4];				// 分别为空气，泥土，石头，基岩
-
-	std::vector<Transform> m_BlockTransforms[3];							// 方块的变换
-	std::vector<BasicEffect::InstancedData> m_BlockInstancedData[3];		// 方块的实例数据
-	std::unique_ptr<Buffer> m_pInstancedBuffer[3];                         // 实例缓冲区
+	std::vector<BasicEffect::InstancedData> m_AcceptedData[4];             // 上传到实例缓冲区的数据
+	std::vector<BasicEffect::InstancedData> m_BlockInstancedData[4];			// 方块的实例数据
+	std::vector<Transform> m_BlockTransforms[4];								// 方块的变换
+	std::unique_ptr<Buffer> m_pInstancedBuffer[4];							    // 实例缓冲区
 
 };
 

@@ -99,7 +99,7 @@ void GameApp::UpdateScene(float dt)
 
 
     if (ImGui::Begin("Static Cube Mapping")) {
-
+        ImGui::Checkbox("Enable Frustum Culling", &Chunk::m_EnableFrustumCulling);
     }
     ImGui::End();
     ImGui::Render();
@@ -138,7 +138,6 @@ void GameApp::DrawScene()
     m_SkyboxEffect.SetRenderDefault();
     m_Skybox.Draw(m_pd3dImmediateContext.Get(), m_SkyboxEffect);
 
-
     ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 
     HR(m_pSwapChain->Present(0, m_IsDxgiFlipModel ? DXGI_PRESENT_ALLOW_TEARING : 0));
@@ -161,7 +160,7 @@ bool GameApp::InitResource()
             m_Chunk[i * 6 + j].LoadChunk(m_TextureManager, m_ModelManager);
         }
     }
-
+    Chunk::m_EnableFrustumCulling = false;
 
 
     m_BasicEffect.SetTextureCube(m_TextureManager.GetTexture("Daylight"));
@@ -183,6 +182,17 @@ bool GameApp::InitResource()
     m_SkyboxEffect.SetProjMatrix(camera->GetProjMatrixXM());
 
 
+    // ******************
+    // 初始化光栅化状态
+    //  
+    D3D11_RASTERIZER_DESC rasterizerDesc;
+    ZeroMemory(&rasterizerDesc, sizeof(rasterizerDesc));
+    rasterizerDesc.FillMode = D3D11_FILL_SOLID;
+    rasterizerDesc.CullMode = D3D11_CULL_BACK;
+    rasterizerDesc.FrontCounterClockwise = false;
+    rasterizerDesc.DepthClipEnable = true;
+    HR(m_pd3dDevice->CreateRasterizerState(&rasterizerDesc, m_pRState.GetAddressOf()));
+    m_pd3dImmediateContext->RSSetState(m_pRState.Get());
 
     // ******************
     // 初始化不会变化的值

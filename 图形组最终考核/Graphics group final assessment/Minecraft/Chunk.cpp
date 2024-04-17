@@ -2,6 +2,8 @@
 
 using namespace DirectX;
 
+bool Chunk::m_EnableFrustumCulling = false;				// 视锥体裁剪关闭
+
 Chunk::Chunk(DirectX::XMINT2 position, ID3D11Device* device)
 	:m_Positon(position) {}
 
@@ -46,10 +48,10 @@ float Chunk::GetNoice(int x, int z)
 	noice1.SetFrequency(0.1);
 	FastNoiseLite noice2;
 	noice2.SetNoiseType(FastNoiseLite::NoiseType_Perlin);
-	noice2.SetFrequency(0.05);
+	noice2.SetFrequency(0.06);
 	FastNoiseLite noice3;
 	noice3.SetNoiseType(FastNoiseLite::NoiseType_Perlin);
-	noice3.SetFrequency(0.01);
+	noice3.SetFrequency(0.04);
 	float noice = (noice1.GetNoise((float)x, (float)z) + noice2.GetNoise((float)x, (float)z) + noice3.GetNoise((float)x, (float)z)) / 3;
 	return noice;
 }
@@ -70,13 +72,13 @@ BlockId Chunk::GetBlock(int x, int y, int z)
 	if (y < 1 + dis(gen)) {
 		return BlockId::BedRock;
 	}
-	else if (y < SEALEVEL - 10 + CHUNKRANGE * noice + dis(gen)) {
+	else if (y < SEALEVEL - 10 + (int)(CHUNKRANGE * noice) + dis(gen)) {
 		return BlockId::Stone;
 	}
-	else if (y < SEALEVEL + CHUNKRANGE * noice) {
+	else if (y < SEALEVEL + (int)(CHUNKRANGE * noice)) {
 		return BlockId::Dirt;
 	}
-	else if (y = SEALEVEL + CHUNKRANGE * noice){
+	else if (y == SEALEVEL + (int)(CHUNKRANGE * noice)){
 		return BlockId::Gress;
 	}
 	else {
@@ -150,9 +152,11 @@ void Chunk::LoadChunk(TextureManager& tManager, ModelManager& mManager)
 	m_Block[2].SetId(BlockId::Stone);
 	m_Block[3].GetBlock().SetModel(m_Block[3].GetBlockModel().GetBedRockModel(tManager, mManager));
 	m_Block[3].SetId(BlockId::BedRock);
+	m_Block[4].GetBlock().SetModel(m_Block[4].GetBlockModel().GetGressModel(tManager, mManager));
+	m_Block[4].SetId(BlockId::Gress);
 
 	// 生成方块
-	for (int i = 0; i < 3; i++) {
+	for (int i = 0; i < 4; i++) {
 		m_BlockInstancedData[i].reserve(256);
 		m_BlockTransforms[i].reserve(256);
 	}
@@ -183,6 +187,10 @@ void Chunk::LoadChunk(TextureManager& tManager, ModelManager& mManager)
 					m_BlockTransforms[2].push_back(transform);
 					m_BlockInstancedData[2].push_back(instanceData);
 					break;
+				case BlockId::Gress:
+					m_BlockTransforms[3].push_back(transform);
+					m_BlockInstancedData[3].push_back(instanceData);
+					break;
 				}
 			}
 		}
@@ -191,19 +199,39 @@ void Chunk::LoadChunk(TextureManager& tManager, ModelManager& mManager)
 
 void Chunk::DrawChunk(ID3D11Device* device, ID3D11DeviceContext* deviceContext, BasicEffect& effect, std::shared_ptr<FirstPersonCamera> camera)
 {
-	for (int i = 0; i < 3; i++) {
-		const auto& refData = m_BlockInstancedData[i];
+	for (int i = 0; i < 4; i++) {
+		if (m_EnableFrustumCulling) {
+			m_AcceptedData[i].clear();
+			BoundingFrustum frustum;
+			BoundingFrustum::CreateFromMatrix(frustum, camera->GetProjMatrixXM());
+			XMMATRIX V = camera->GetViewMatrixXM();
+			BoundingOrientedBox localOrientedBox, orientedBox;
+			BoundingOrientedBox::CreateFromBoundingBox(localOrientedBox, m_Block->GetBlock().GetBoundingBox());
+			for (size_t j = 0; j < m_BlockInstancedData[i].size(); ++j) {
+				// 将有向包围盒从局部坐标系变换到视锥体所在的局部坐标系(观察坐标系)中
+				localOrientedBox.Transform(orientedBox, m_BlockTransforms[i][j].GetLocalToWorldMatrixXM() * V);
+				// 相交检测
+				if (frustum.Intersects(orientedBox)) {
+					m_AcceptedData[i].push_back(m_BlockInstancedData[i][j]);
+				}
+			}
+		}
+	}
+	for (int i = 0; i < 4; i++) {
+		const auto& refData = m_EnableFrustumCulling ? m_AcceptedData[i] : m_BlockInstancedData[i];
 
 		m_pInstancedBuffer[i] = std::make_unique<Buffer>(device,
 			CD3D11_BUFFER_DESC(sizeof(BasicEffect::InstancedData) * refData.size(), D3D11_BIND_VERTEX_BUFFER,
 				D3D11_USAGE_DYNAMIC, D3D11_CPU_ACCESS_WRITE));
-		m_pInstancedBuffer[i]->SetDebugObjectName("InstancedBuffer");
-		// 硬件实例化绘制
-		// 上传实例数据
-		memcpy_s(m_pInstancedBuffer[i]->MapDiscard(deviceContext),
-			m_pInstancedBuffer[i]->GetByteWidth(), refData.data(), refData.size() * sizeof(BasicEffect::InstancedData));
-		m_pInstancedBuffer[i]->Unmap(deviceContext);
-		effect.DrawInstanced(deviceContext, *m_pInstancedBuffer[i], m_Block[i + 1].GetBlock(), (uint32_t)refData.size());
+		if (m_pInstancedBuffer[i]->GetBuffer()) {
+			m_pInstancedBuffer[i]->SetDebugObjectName("InstancedBuffer");
+			// 硬件实例化绘制
+			// 上传实例数据
+			memcpy_s(m_pInstancedBuffer[i]->MapDiscard(deviceContext),
+				m_pInstancedBuffer[i]->GetByteWidth(), refData.data(), refData.size() * sizeof(BasicEffect::InstancedData));
+			m_pInstancedBuffer[i]->Unmap(deviceContext);
+			effect.DrawInstanced(deviceContext, *m_pInstancedBuffer[i], m_Block[i + 1].GetBlock(), (uint32_t)refData.size());
+		}
 	}
 }
 

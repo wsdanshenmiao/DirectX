@@ -51,6 +51,8 @@ private:
     bool m_EnableFrustumCulling = true;							        // 视锥体裁剪开启
     bool m_EnableInstancing = true;								        // 硬件实例化开启
 
+    ComPtr<ID3D11RasterizerState> m_pRState;	            // 光栅化状态
+
 
     GameObject m_Player;
     std::vector<Chunk> m_Chunk;
