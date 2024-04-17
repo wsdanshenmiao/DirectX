@@ -29,7 +29,6 @@ public:
 	BlockId& GetId();
 	void SetId(const BlockId& id);
 
-
 private:
 	BlockId m_Id;								// 方块Id
 	GameObject m_BlockData;						// 方块数据

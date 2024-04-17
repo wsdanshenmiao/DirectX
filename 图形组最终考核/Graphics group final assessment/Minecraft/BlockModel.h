@@ -13,6 +13,7 @@ public:
 	Model* GetBedRockModel(TextureManager& textureManager, ModelManager& modelManager);	// 获取基岩材质
 	Model* GetDirtModel(TextureManager& textureManager, ModelManager& modelManager);	// 获取泥土材质
 	Model* GetStoneModel(TextureManager& textureManager, ModelManager& modelManager);	// 获取石头材质
+	Model* GetGressModel(TextureManager& textureManager, ModelManager& modelManager);	// 获取草方块材质
 
 };
 

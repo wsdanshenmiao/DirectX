@@ -8,16 +8,6 @@ Chunk::Chunk(DirectX::XMINT2 position, ID3D11Device* device)
 Chunk::Chunk(int x, int y, ID3D11Device* device)
 	:m_Positon(DirectX::XMINT2(x, y)) {}
 
-void Chunk::InitChunk(ID3D11Device* device)
-{
-	m_AcceptedData.reserve(16384);
-	m_AcceptedIndices.reserve(16384);
-	m_pInstancedBuffer = std::make_unique<Buffer>(device,
-		CD3D11_BUFFER_DESC(sizeof(BasicEffect::InstancedData) * 16384, D3D11_BIND_VERTEX_BUFFER,
-			D3D11_USAGE_DYNAMIC, D3D11_CPU_ACCESS_WRITE));
-	m_pInstancedBuffer->SetDebugObjectName("InstancedBuffer");
-}
-
 DirectX::XMINT2 Chunk::GetPositon()
 {
 	return m_Positon;
@@ -48,6 +38,22 @@ bool Chunk::OutOfChunk(int x, int y, int z)
 	return false;
 }
 
+// 生成不同频率的柏林噪声
+float Chunk::GetNoice(int x, int z)
+{
+	FastNoiseLite noice1;
+	noice1.SetNoiseType(FastNoiseLite::NoiseType_Perlin);
+	noice1.SetFrequency(0.1);
+	FastNoiseLite noice2;
+	noice2.SetNoiseType(FastNoiseLite::NoiseType_Perlin);
+	noice2.SetFrequency(0.05);
+	FastNoiseLite noice3;
+	noice3.SetNoiseType(FastNoiseLite::NoiseType_Perlin);
+	noice3.SetFrequency(0.01);
+	float noice = (noice1.GetNoise((float)x, (float)z) + noice2.GetNoise((float)x, (float)z) + noice3.GetNoise((float)x, (float)z)) / 3;
+	return noice;
+}
+
 // 获取方块种类
 BlockId Chunk::GetBlock(int x, int y, int z)
 {
@@ -58,25 +64,28 @@ BlockId Chunk::GetBlock(int x, int y, int z)
 	std::random_device rd;
 	std::mt19937 gen(rd());
 	//指定随机数的类型和范围
-	std::uniform_int_distribution<size_t> dis(0, 2);
-	// 生成柏林噪声
-	FastNoiseLite noice;
-	noice.SetNoiseType(FastNoiseLite::NoiseType_Perlin);
-	noice.SetFrequency(0.05);
+	std::uniform_int_distribution<size_t> dis(0, 3);
+	// 获取的柏林噪声
+	float noice = GetNoice(x, z);
 	if (y < 1 + dis(gen)) {
 		return BlockId::BedRock;
 	}
-	else if (y < SEALEVEL - 10 + 10 * noice.GetNoise((float)x, (float)z) + dis(gen)) {
+	else if (y < SEALEVEL - 10 + CHUNKRANGE * noice + dis(gen)) {
 		return BlockId::Stone;
 	}
-	else if (y < SEALEVEL + 10 * noice.GetNoise((float)x, (float)z)) {
+	else if (y < SEALEVEL + CHUNKRANGE * noice) {
 		return BlockId::Dirt;
+	}
+	else if (y = SEALEVEL + CHUNKRANGE * noice){
+		return BlockId::Gress;
 	}
 	else {
 		return BlockId::Air;
 	}
 }
 
+
+#if 0
 // 设置方块种类
 void Chunk::SetBlock(int x, int y, int z, Block& block, TextureManager& tManager, ModelManager& mManager)
 {
@@ -100,7 +109,6 @@ void Chunk::SetBlock(int x, int y, int z, Block& block, TextureManager& tManager
 	}
 }
 
-#if 0
 void Chunk::LoadChunk(TextureManager& tManager, ModelManager& mManager)
 {
 	m_Loading = true;
@@ -134,44 +142,69 @@ void Chunk::LoadChunk(TextureManager& tManager, ModelManager& mManager)
 {
 	m_Loading = true;
 	// 初始化方块
-	Model* pModel = m_Block.GetBlockModel().GetStoneModel(tManager, mManager);
-	m_Block.GetBlock().SetModel(pModel);
-	m_Block.SetId(BlockId::Stone);
-	pModel->SetDebugObjectName("Block");
+	m_Block[0].GetBlock().SetModel(nullptr);
+	m_Block[0].SetId(BlockId::Air);
+	m_Block[1].GetBlock().SetModel(m_Block[1].GetBlockModel().GetDirtModel(tManager, mManager));
+	m_Block[1].SetId(BlockId::Dirt);
+	m_Block[2].GetBlock().SetModel(m_Block[2].GetBlockModel().GetStoneModel(tManager, mManager));
+	m_Block[2].SetId(BlockId::Stone);
+	m_Block[3].GetBlock().SetModel(m_Block[3].GetBlockModel().GetBedRockModel(tManager, mManager));
+	m_Block[3].SetId(BlockId::BedRock);
 
-	// 生成16384个方块
-	m_BlockInstancedData.resize(16384);
-	m_BlockTransforms.resize(16384);
-
+	// 生成方块
+	for (int i = 0; i < 3; i++) {
+		m_BlockInstancedData[i].reserve(256);
+		m_BlockTransforms[i].reserve(256);
+	}
 	Transform transform;
 	size_t pos = 0;
-
 	for (int y = 0; y < CHUNKHIGHEST; y++) {	//每一层 16 * 16
 		for (int z = 0; z < CHUNKSIZE; z++) {
 			for (int x = 0; x < CHUNKSIZE; x++) {
 				int mx = m_Positon.x;
 				int mz = m_Positon.y;
 				transform.SetPosition(mx + x, y, mz + z);
-				m_BlockTransforms[pos] = transform;
+				BasicEffect::InstancedData instanceData;
 				XMMATRIX W = transform.GetLocalToWorldMatrixXM();
-				XMMATRIX WInvT = XMath::InverseTranspose(W);
-				XMStoreFloat4x4(&m_BlockInstancedData[pos].world, XMMatrixTranspose(W));
-				XMStoreFloat4x4(&m_BlockInstancedData[pos].worldInvTranspose, XMMatrixTranspose(WInvT));
-				m_BlockInstancedData[pos++].color = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+				XMStoreFloat4x4(&instanceData.world, XMMatrixTranspose(W));
+				XMStoreFloat4x4(&instanceData.worldInvTranspose, XMMatrixTranspose(XMath::InverseTranspose(W)));
+				instanceData.color = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+				switch (GetBlock(mx + x, y, mz + z)){
+				case BlockId::Air:break;
+				case BlockId::Dirt:
+					m_BlockTransforms[0].push_back(transform);
+					m_BlockInstancedData[0].push_back(instanceData);
+					break;
+				case BlockId::Stone:
+					m_BlockTransforms[1].push_back(transform);
+					m_BlockInstancedData[1].push_back(instanceData);
+					break;
+				case BlockId::BedRock:
+					m_BlockTransforms[2].push_back(transform);
+					m_BlockInstancedData[2].push_back(instanceData);
+					break;
+				}
 			}
 		}
 	}
 }
 
-void Chunk::DrawChunk(ID3D11DeviceContext* deviceContext, BasicEffect& effect, std::shared_ptr<FirstPersonCamera> camera)
+void Chunk::DrawChunk(ID3D11Device* device, ID3D11DeviceContext* deviceContext, BasicEffect& effect, std::shared_ptr<FirstPersonCamera> camera)
 {
-	// 硬件实例化绘制
-	const auto& refData =  m_BlockInstancedData;
-	// 上传实例数据
-	memcpy_s(m_pInstancedBuffer->MapDiscard(deviceContext),
-		m_pInstancedBuffer->GetByteWidth(), refData.data(), refData.size() * sizeof(BasicEffect::InstancedData));
-	m_pInstancedBuffer->Unmap(deviceContext);
-	effect.DrawInstanced(deviceContext, *m_pInstancedBuffer, m_Block.GetBlock(), (uint32_t)refData.size());
+	for (int i = 0; i < 3; i++) {
+		const auto& refData = m_BlockInstancedData[i];
+
+		m_pInstancedBuffer[i] = std::make_unique<Buffer>(device,
+			CD3D11_BUFFER_DESC(sizeof(BasicEffect::InstancedData) * refData.size(), D3D11_BIND_VERTEX_BUFFER,
+				D3D11_USAGE_DYNAMIC, D3D11_CPU_ACCESS_WRITE));
+		m_pInstancedBuffer[i]->SetDebugObjectName("InstancedBuffer");
+		// 硬件实例化绘制
+		// 上传实例数据
+		memcpy_s(m_pInstancedBuffer[i]->MapDiscard(deviceContext),
+			m_pInstancedBuffer[i]->GetByteWidth(), refData.data(), refData.size() * sizeof(BasicEffect::InstancedData));
+		m_pInstancedBuffer[i]->Unmap(deviceContext);
+		effect.DrawInstanced(deviceContext, *m_pInstancedBuffer[i], m_Block[i + 1].GetBlock(), (uint32_t)refData.size());
+	}
 }
 
 

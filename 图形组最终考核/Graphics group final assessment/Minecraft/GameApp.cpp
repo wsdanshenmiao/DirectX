@@ -130,7 +130,9 @@ void GameApp::DrawScene()
         dirt.GetBlock().Draw(m_pd3dImmediateContext.Get(), m_BasicEffect);
     }
 
-    m_Chunk[0].DrawChunk(m_pd3dImmediateContext.Get(), m_BasicEffect, m_pCamera);
+    for (int i = 0; i < 36; i++) {
+        m_Chunk[i].DrawChunk(m_pd3dDevice.Get(), m_pd3dImmediateContext.Get(), m_BasicEffect, m_pCamera);
+    }
 
     // 绘制天空盒
     m_SkyboxEffect.SetRenderDefault();
@@ -153,16 +155,12 @@ bool GameApp::InitResource()
     m_Player.GetTransform().SetScale(10.0f, 10.0f, 10.0f);
 
     m_Chunk.resize(36);
-    m_Chunk[0].InitChunk(m_pd3dDevice.Get());
-    m_Chunk[0].SetPosition(0.0f + 16.0f * 0, 0.0f + 16.0f * 0);
-    m_Chunk[0].LoadChunk(m_TextureManager, m_ModelManager);
-
-    //for (int i = 0; i < 6; i++) {
-    //    for (int j = 0; j < 6; j++) {
-    //        m_Chunk[i * 6 + j].SetPosition(0.0f + 16.0f * i, 0.0f + 16.0f * j);
-    //        m_Chunk[i * 6 + j].LoadChunk(m_TextureManager, m_ModelManager);
-    //    }
-    //}
+    for (int i = 0; i < 6; i++) {
+        for (int j = 0; j < 6; j++) {
+            m_Chunk[i * 6 + j].SetPosition(0.0f + 16.0f * i, 0.0f + 16.0f * j);
+            m_Chunk[i * 6 + j].LoadChunk(m_TextureManager, m_ModelManager);
+        }
+    }
 
 
 

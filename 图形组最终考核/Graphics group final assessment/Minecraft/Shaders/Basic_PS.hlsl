@@ -1,7 +1,7 @@
 #include "Basic.hlsli"
 
 // 像素着色器(3D)
-float4 PS(VertexPosHWNormalColorTex pIn) : SV_Target
+float4 PS(VertexPosHWNormalColorTex pIn, uint instanceId : SV_InstanceID) : SV_Target
 {
     float4 texColor = g_DiffuseMap.Sample(g_Sam, pIn.tex);
     // 提前进行Alpha裁剪，对不符合要求的像素可以避免后续运算
@@ -50,25 +50,94 @@ float4 PS(VertexPosHWNormalColorTex pIn) : SV_Target
     }
   
     float4 litColor = texColor * (ambient + diffuse) + spec;
-
-    // 反射
-    if (g_ReflectionEnabled)
+        
+    if (instanceId == 0)
     {
-        float3 incident = -toEyeW;
-        float3 reflectionVector = reflect(incident, pIn.normalW);
-        float4 reflectionColor = g_TexCube.Sample(g_Sam, reflectionVector);
+        // 反射
+        if (g_ReflectionEnabled)
+        {
+            float3 incident = -toEyeW;
+            float3 reflectionVector = reflect(incident, pIn.normalW);
+            float4 reflectionColor = g_TexCube[0].Sample(g_Sam, reflectionVector);
 
-        litColor += g_Material.reflect * reflectionColor;
-    }
+            litColor += g_Material.reflect * reflectionColor;
+        }
     
     // 折射
-    if (g_RefractionEnabled)
-    {
-        float3 incident = -toEyeW;
-        float3 refractionVector = refract(incident, pIn.normalW, g_Eta);
-        float4 refractionColor = g_TexCube.Sample(g_Sam, refractionVector);
+        if (g_RefractionEnabled)
+        {
+            float3 incident = -toEyeW;
+            float3 refractionVector = refract(incident, pIn.normalW, g_Eta);
+            float4 refractionColor = g_TexCube[0].Sample(g_Sam, refractionVector);
 
-        litColor += g_Material.reflect * refractionColor;
+            litColor += g_Material.reflect * refractionColor;
+        }
+    }
+    else if (instanceId == 1)
+    {
+        // 反射
+        if (g_ReflectionEnabled)
+        {
+            float3 incident = -toEyeW;
+            float3 reflectionVector = reflect(incident, pIn.normalW);
+            float4 reflectionColor = g_TexCube[1].Sample(g_Sam, reflectionVector);
+
+            litColor += g_Material.reflect * reflectionColor;
+        }
+    
+    // 折射
+        if (g_RefractionEnabled)
+        {
+            float3 incident = -toEyeW;
+            float3 refractionVector = refract(incident, pIn.normalW, g_Eta);
+            float4 refractionColor = g_TexCube[1].Sample(g_Sam, refractionVector);
+
+            litColor += g_Material.reflect * refractionColor;
+        }
+    }
+    else if (instanceId == 2)
+    {
+        // 反射
+        if (g_ReflectionEnabled)
+        {
+            float3 incident = -toEyeW;
+            float3 reflectionVector = reflect(incident, pIn.normalW);
+            float4 reflectionColor = g_TexCube[2].Sample(g_Sam, reflectionVector);
+
+            litColor += g_Material.reflect * reflectionColor;
+        }
+    
+    // 折射
+        if (g_RefractionEnabled)
+        {
+            float3 incident = -toEyeW;
+            float3 refractionVector = refract(incident, pIn.normalW, g_Eta);
+            float4 refractionColor = g_TexCube[2].Sample(g_Sam, refractionVector);
+
+            litColor += g_Material.reflect * refractionColor;
+        }
+    }
+    else if (instanceId == 3)
+    {
+        // 反射
+        if (g_ReflectionEnabled)
+        {
+            float3 incident = -toEyeW;
+            float3 reflectionVector = reflect(incident, pIn.normalW);
+            float4 reflectionColor = g_TexCube[3].Sample(g_Sam, reflectionVector);
+
+            litColor += g_Material.reflect * reflectionColor;
+        }
+    
+    // 折射
+        if (g_RefractionEnabled)
+        {
+            float3 incident = -toEyeW;
+            float3 refractionVector = refract(incident, pIn.normalW, g_Eta);
+            float4 refractionColor = g_TexCube[3].Sample(g_Sam, refractionVector);
+
+            litColor += g_Material.reflect * refractionColor;
+        }
     }
     
     litColor.a = texColor.a * g_Material.diffuse.a;
