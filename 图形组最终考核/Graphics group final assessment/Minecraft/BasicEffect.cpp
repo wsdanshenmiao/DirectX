@@ -219,11 +219,6 @@ void BasicEffect::SetEyePos(const DirectX::XMFLOAT3& eyePos)
     pImpl->m_pEffectHelper->GetConstantBufferVariable("g_EyePosW")->SetFloatVector(3, reinterpret_cast<const float*>(&eyePos));
 }
 
-void BasicEffect::SetReflectionEnabled(bool isEnable)
-{
-    pImpl->m_pEffectHelper->GetConstantBufferVariable("g_ReflectionEnabled")->SetSInt(isEnable);
-}
-
 void BasicEffect::SetRefractionEnabled(bool isEnable)
 {
     pImpl->m_pEffectHelper->GetConstantBufferVariable("g_RefractionEnabled")->SetSInt(isEnable);

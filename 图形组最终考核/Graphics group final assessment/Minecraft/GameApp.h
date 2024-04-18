@@ -16,6 +16,7 @@
 #include "Block.h"
 #include "BlockModel.h"
 #include "Chunk.h"
+#include "Player.h"
 
 class GameApp : public D3DApp
 {
@@ -32,9 +33,9 @@ private:
     bool InitResource();
 
     void InitSkybox();
+    void InitCamara();
 
 private:
-
     TextureManager m_TextureManager;
     ModelManager m_ModelManager;
 
@@ -43,19 +44,15 @@ private:
 
     std::unique_ptr<Depth2D> m_pDepthTexture;                   // 深度缓冲区
 
-    GameObject m_Skybox;                                        // 天空盒
-
     std::shared_ptr<FirstPersonCamera> m_pCamera;			    // 摄像机
     FirstPersonCameraController m_CameraController;             // 摄像机控制器 
 
-    bool m_EnableFrustumCulling = true;							        // 视锥体裁剪开启
-    bool m_EnableInstancing = true;								        // 硬件实例化开启
+    ComPtr<ID3D11RasterizerState> m_pRState;	               // 光栅化状态
 
-    ComPtr<ID3D11RasterizerState> m_pRState;	            // 光栅化状态
+    GameObject m_Skybox;                                        // 天空盒
+    std::vector<Chunk> m_Chunk;                                 // 区块
 
-
-    GameObject m_Player;
-    std::vector<Chunk> m_Chunk;
+    Player m_Player;                                            // 玩家
     
     std::vector<Block> m_Dirt;                                               // 泥土
 

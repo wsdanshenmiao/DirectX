@@ -13,7 +13,7 @@ DirectX::XMFLOAT3 Entity::GetSpeed()
 	return m_Speed;
 }
 
-void Entity:: SetSpeed(DirectX::XMFLOAT3 speed)
+void Entity::SetSpeed(DirectX::XMFLOAT3 speed)
 {
 	m_Speed = speed;
 }

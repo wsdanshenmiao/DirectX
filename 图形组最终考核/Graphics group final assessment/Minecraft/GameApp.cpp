@@ -54,7 +54,6 @@ void GameApp::UpdateScene(float dt)
 
     m_CameraController.Update(dt);
 
-
     // 更新观察矩阵
     m_BasicEffect.SetViewMatrix(m_pCamera->GetViewMatrixXM());
     m_BasicEffect.SetEyePos(m_pCamera->GetPosition());
@@ -72,9 +71,6 @@ void GameApp::UpdateScene(float dt)
 
     // 将射线设置在鼠标处
     Ray ray = Ray::ScreenToRay(*m_pCamera, mousePos.x, mousePos.y);
-
-    bool hitObject = false;
-    std::string pickedObjStr = "None";
 
     //放置方块
     if (ImGui::IsMouseClicked(ImGuiMouseButton_Right) && ImGui::IsKeyDown(ImGuiKey_LeftShift)) {
@@ -95,8 +91,6 @@ void GameApp::UpdateScene(float dt)
             create++;
         }
     }
-
-
 
     if (ImGui::Begin("Static Cube Mapping")) {
         ImGui::Checkbox("Enable Frustum Culling", &Chunk::m_EnableFrustumCulling);
@@ -124,7 +118,8 @@ void GameApp::DrawScene()
     m_pd3dImmediateContext->RSSetViewports(1, &viewport);
 
     m_BasicEffect.SetRenderDefault();
-    m_BasicEffect.SetReflectionEnabled(false);
+
+    //m_Player.GetEntity().Draw(m_pd3dImmediateContext.Get(), m_BasicEffect);
 
     for (auto dirt : m_Dirt) {
         dirt.GetBlock().Draw(m_pd3dImmediateContext.Get(), m_BasicEffect);
@@ -146,41 +141,17 @@ void GameApp::DrawScene()
 bool GameApp::InitResource()
 {
     InitSkybox();
+    InitCamara();
 
-    Model* pModel = m_ModelManager.CreateFromFile("..\\Model\\Player.obj");
-    m_Player.SetModel(pModel);
-    pModel->SetDebugObjectName("player");
-    m_Player.GetTransform().SetPosition(0.0f, 0.0f, 0.0f);
-    m_Player.GetTransform().SetScale(10.0f, 10.0f, 10.0f);
+    m_Player.SetModel(m_pCamera, m_ModelManager);
 
     m_Chunk.resize(36);
     for (int i = 0; i < 6; i++) {
         for (int j = 0; j < 6; j++) {
-            m_Chunk[i * 6 + j].SetPosition(0.0f + 16.0f * i, 0.0f + 16.0f * j);
+            m_Chunk[i * 6 + j].SetPosition(0 + 16 * i, 0 + 16 * j);
             m_Chunk[i * 6 + j].LoadChunk(m_TextureManager, m_ModelManager);
         }
     }
-    Chunk::m_EnableFrustumCulling = false;
-
-
-    m_BasicEffect.SetTextureCube(m_TextureManager.GetTexture("Daylight"));
-
-    // ******************
-    // 初始化摄像机
-    //
-    auto camera = std::make_shared<FirstPersonCamera>();
-    m_pCamera = camera;
-    m_CameraController.InitCamera(camera.get());
-    camera->SetViewPort(0.0f, 0.0f, (float)m_ClientWidth, (float)m_ClientHeight);
-    camera->SetFrustum(XM_PI / 3, AspectRatio(), 1.0f, 1000.0f);
-    camera->LookTo(XMFLOAT3(0.0f, 0.0f, -10.0f), XMFLOAT3(0.0f, 0.0f, 1.0f), XMFLOAT3(0.0f, 1.0f, 0.0f));
-    camera->SetPosition(0.0f, 34.0f, 0.0f);
-
-    m_BasicEffect.SetViewMatrix(camera->GetViewMatrixXM());
-    m_BasicEffect.SetProjMatrix(camera->GetProjMatrixXM());
-    m_SkyboxEffect.SetViewMatrix(camera->GetViewMatrixXM());
-    m_SkyboxEffect.SetProjMatrix(camera->GetProjMatrixXM());
-
 
     // ******************
     // 初始化光栅化状态
@@ -188,7 +159,7 @@ bool GameApp::InitResource()
     D3D11_RASTERIZER_DESC rasterizerDesc;
     ZeroMemory(&rasterizerDesc, sizeof(rasterizerDesc));
     rasterizerDesc.FillMode = D3D11_FILL_SOLID;
-    rasterizerDesc.CullMode = D3D11_CULL_BACK;
+    rasterizerDesc.CullMode = D3D11_CULL_FRONT;
     rasterizerDesc.FrontCounterClockwise = false;
     rasterizerDesc.DepthClipEnable = true;
     HR(m_pd3dDevice->CreateRasterizerState(&rasterizerDesc, m_pRState.GetAddressOf()));
@@ -214,6 +185,24 @@ bool GameApp::InitResource()
         m_BasicEffect.SetDirLight(i, dirLight[i]);
 
     return true;
+}
+
+void GameApp::InitCamara()
+{
+    // ******************
+    // 初始化摄像机
+    auto camera = std::make_shared<FirstPersonCamera>();
+    m_pCamera = camera;
+    m_CameraController.InitCamera(camera.get());
+    camera->SetViewPort(0.0f, 0.0f, (float)m_ClientWidth, (float)m_ClientHeight);
+    camera->SetFrustum(XM_PI / 3, AspectRatio(), 0.01f, 1000.0f);
+    camera->LookTo(XMFLOAT3(0.0f, 0.0f, -10.0f), XMFLOAT3(0.0f, 0.0f, 1.0f), XMFLOAT3(0.0f, 1.0f, 0.0f));
+    camera->SetPosition(48.0f, 36.0f, 48.0f);
+
+    m_BasicEffect.SetViewMatrix(camera->GetViewMatrixXM());
+    m_BasicEffect.SetProjMatrix(camera->GetProjMatrixXM());
+    m_SkyboxEffect.SetViewMatrix(camera->GetViewMatrixXM());
+    m_SkyboxEffect.SetProjMatrix(camera->GetProjMatrixXM());
 }
 
 void GameApp::InitSkybox()

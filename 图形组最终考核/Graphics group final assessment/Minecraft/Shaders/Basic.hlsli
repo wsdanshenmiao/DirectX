@@ -1,7 +1,7 @@
 #include "LightHelper.hlsli"
 
 Texture2D g_DiffuseMap : register(t0);
-TextureCube g_TexCube[4] : register(t1);
+//TextureCube g_TexCube[4] : register(t1);
 SamplerState g_Sam : register(s0);
 
 cbuffer CBChangesEveryInstanceDrawing : register(b0)
@@ -18,9 +18,9 @@ cbuffer CBChangesEveryObjectDrawing : register(b1)
 
 cbuffer CBDrawingStates : register(b2)
 {
-    int g_ReflectionEnabled;
-    int g_RefractionEnabled;
-    float g_Eta;  // 空气/介质折射比
+    //int g_ReflectionEnabled;
+    //int g_RefractionEnabled;
+    //float g_Eta;  // 空气/介质折射比
     float g_Pad;
 }
 

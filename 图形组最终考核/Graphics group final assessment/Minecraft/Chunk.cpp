@@ -40,6 +40,26 @@ bool Chunk::OutOfChunk(int x, int y, int z)
 	return false;
 }
 
+std::vector<BasicEffect::InstancedData>& Chunk::GetDirtInstancedData()
+{
+	return Chunk::m_EnableFrustumCulling ? m_AcceptedData[0] : m_BlockInstancedData[0];
+}
+
+std::vector<BasicEffect::InstancedData>& Chunk::GetStoneInstancedData()
+{
+	return Chunk::m_EnableFrustumCulling ? m_AcceptedData[1] : m_BlockInstancedData[1];
+}
+
+std::vector<BasicEffect::InstancedData>& Chunk::GetBedRockInstancedData()
+{
+	return Chunk::m_EnableFrustumCulling ? m_AcceptedData[2] : m_BlockInstancedData[2];
+}
+
+std::vector<BasicEffect::InstancedData>& Chunk::GetGressInstancedData()
+{
+	return Chunk::m_EnableFrustumCulling ? m_AcceptedData[3] : m_BlockInstancedData[3];
+}
+
 // 生成不同频率的柏林噪声
 float Chunk::GetNoice(int x, int z)
 {
@@ -172,7 +192,6 @@ void Chunk::LoadChunk(TextureManager& tManager, ModelManager& mManager)
 				XMMATRIX W = transform.GetLocalToWorldMatrixXM();
 				XMStoreFloat4x4(&instanceData.world, XMMatrixTranspose(W));
 				XMStoreFloat4x4(&instanceData.worldInvTranspose, XMMatrixTranspose(XMath::InverseTranspose(W)));
-				instanceData.color = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 				switch (GetBlock(mx + x, y, mz + z)){
 				case BlockId::Air:break;
 				case BlockId::Dirt:

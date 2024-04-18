@@ -29,8 +29,14 @@ public:
 	void SetPosition(DirectX::XMINT2 position);
 	void SetPosition(int x, int y);
 	bool OutOfChunk(int x, int y, int z);
+
+	std::vector<BasicEffect::InstancedData>& GetDirtInstancedData();
+	std::vector<BasicEffect::InstancedData>& GetStoneInstancedData();
+	std::vector<BasicEffect::InstancedData>& GetBedRockInstancedData();
+	std::vector<BasicEffect::InstancedData>& GetGressInstancedData();
 	float GetNoice(int x, int z);
 	BlockId GetBlock(int x, int y, int z);
+
 	void SetBlock(int x, int y, int z, Block& block, TextureManager& tManager, ModelManager& mManager);
 	void LoadChunk(TextureManager& tManager, ModelManager& mManager);
 	

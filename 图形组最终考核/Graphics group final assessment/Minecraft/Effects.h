@@ -88,7 +88,6 @@ public:
 
     void SetEyePos(const DirectX::XMFLOAT3& eyePos);
 
-    void SetReflectionEnabled(bool isEnable);
     void SetRefractionEnabled(bool isEnable);
     void SetRefractionEta(float eta);	// 空气/介质折射比
 
