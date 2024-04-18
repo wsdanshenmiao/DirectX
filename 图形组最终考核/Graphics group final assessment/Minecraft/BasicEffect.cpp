@@ -12,6 +12,7 @@ using namespace DirectX;
 
 # pragma warning(disable: 26812)
 
+
 //
 // BasicEffect::Impl 需要先于BasicEffect的定义
 //
@@ -33,9 +34,8 @@ public:
     ComPtr<ID3D11InputLayout> m_pCurrInputLayout;
     D3D11_PRIMITIVE_TOPOLOGY m_CurrTopology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 
-    ComPtr<ID3D11InputLayout> m_pInstancePosNormalTexLayout;
-
     ComPtr<ID3D11InputLayout> m_pVertexPosNormalTexLayout;
+    ComPtr<ID3D11InputLayout> m_pInstancePosNormalTexLayout;
 
     XMFLOAT4X4 m_World{}, m_View{}, m_Proj{};
 };
@@ -104,7 +104,6 @@ bool BasicEffect::InitAll(ID3D11Device* device)
         { "WorldInvTranspose", 1, DXGI_FORMAT_R32G32B32A32_FLOAT, 3, 80, D3D11_INPUT_PER_INSTANCE_DATA, 1},
         { "WorldInvTranspose", 2, DXGI_FORMAT_R32G32B32A32_FLOAT, 3, 96, D3D11_INPUT_PER_INSTANCE_DATA, 1},
         { "WorldInvTranspose", 3, DXGI_FORMAT_R32G32B32A32_FLOAT, 3, 112, D3D11_INPUT_PER_INSTANCE_DATA, 1},
-        { "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 3, 128, D3D11_INPUT_PER_INSTANCE_DATA, 1}
     };
 
     Microsoft::WRL::ComPtr<ID3DBlob> blob;
@@ -122,7 +121,7 @@ bool BasicEffect::InitAll(ID3D11Device* device)
         blob->GetBufferPointer(), blob->GetBufferSize(), pImpl->m_pVertexPosNormalTexLayout.GetAddressOf()));
 
     // 创建像素着色器
-    HR(pImpl->m_pEffectHelper->CreateShaderFromFile("BasicPS", L"Shaders/Basic_PS.cso", device));
+    pImpl->m_pEffectHelper->CreateShaderFromFile("BasicPS", L"Shaders/Basic_PS.cso", device);
 
 
     // 创建通道
@@ -172,7 +171,6 @@ void BasicEffect::SetMaterial(const Material& material)
     phongMat.diffuse.w = material.Get<float>("$Opacity");
     phongMat.specular = material.Get<XMFLOAT4>("$SpecularColor");
     phongMat.specular.w = material.Has<float>("$SpecularFactor") ? material.Get<float>("$SpecularFactor") : 1.0f;
-    phongMat.reflect = material.Get<XMFLOAT4>("$ReflectColor");
     pImpl->m_pEffectHelper->GetConstantBufferVariable("g_Material")->SetRaw(&phongMat);
 
     auto pStr = material.TryGet<std::string>("$Diffuse");
@@ -190,7 +188,7 @@ MeshDataInput BasicEffect::GetInputData(const MeshData& meshData)
         meshData.m_pTexcoordArrays.empty() ? nullptr : meshData.m_pTexcoordArrays[0].Get(),
         nullptr
     };
-    input.strides = { 12, 12, 8, 144 };
+    input.strides = { 12, 12, 8, 128 };
     input.offsets = { 0, 0, 0, 0 };
 
     input.pIndexBuffer = meshData.m_pIndices.Get();
@@ -219,31 +217,32 @@ void BasicEffect::SetEyePos(const DirectX::XMFLOAT3& eyePos)
     pImpl->m_pEffectHelper->GetConstantBufferVariable("g_EyePosW")->SetFloatVector(3, reinterpret_cast<const float*>(&eyePos));
 }
 
-void BasicEffect::SetRefractionEnabled(bool isEnable)
+void BasicEffect::SetFogState(bool isOn)
 {
-    pImpl->m_pEffectHelper->GetConstantBufferVariable("g_RefractionEnabled")->SetSInt(isEnable);
+    pImpl->m_pEffectHelper->GetConstantBufferVariable("g_FogEnabled")->SetSInt(isOn);
 }
 
-void BasicEffect::SetRefractionEta(float eta)
+void BasicEffect::SetFogStart(float fogStart)
 {
-    pImpl->m_pEffectHelper->GetConstantBufferVariable("g_Eta")->SetFloat(eta);
+    pImpl->m_pEffectHelper->GetConstantBufferVariable("g_FogStart")->SetFloat(fogStart);
 }
+
+void BasicEffect::SetFogColor(const DirectX::XMFLOAT4& fogColor)
+{
+    pImpl->m_pEffectHelper->GetConstantBufferVariable("g_FogColor")->SetFloatVector(4, reinterpret_cast<const float*>(&fogColor));
+}
+
+void BasicEffect::SetFogRange(float fogRange)
+{
+    pImpl->m_pEffectHelper->GetConstantBufferVariable("g_FogRange")->SetFloat(fogRange);
+}
+
 
 void BasicEffect::SetRenderDefault()
 {
-    pImpl->m_pCurrEffectPass = pImpl->m_pEffectHelper->GetEffectPass("Basic");
+    pImpl->m_pCurrEffectPass = pImpl->m_pEffectHelper->GetEffectPass("BasicObject");
     pImpl->m_pCurrInputLayout = pImpl->m_pVertexPosNormalTexLayout;
     pImpl->m_CurrTopology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-}
-
-void BasicEffect::SetTextureCube(ID3D11ShaderResourceView* textureCube)
-{
-    pImpl->m_pEffectHelper->SetShaderResourceByName("g_TexCube", textureCube);
-}
-
-void BasicEffect::SetDiffuseColor(const DirectX::XMFLOAT4& color)
-{
-    pImpl->m_pEffectHelper->GetConstantBufferVariable("g_ConstantDiffuseColor")->SetFloatVector(4, reinterpret_cast<const float*>(&color));
 }
 
 void BasicEffect::DrawInstanced(ID3D11DeviceContext* deviceContext, Buffer& instancedBuffer, const GameObject& object, uint32_t numObjects)
@@ -251,6 +250,7 @@ void BasicEffect::DrawInstanced(ID3D11DeviceContext* deviceContext, Buffer& inst
     deviceContext->IASetInputLayout(pImpl->m_pInstancePosNormalTexLayout.Get());
     deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     auto pPass = pImpl->m_pEffectHelper->GetEffectPass("BasicInstance");
+
 
     XMMATRIX V = XMLoadFloat4x4(&pImpl->m_View);
     XMMATRIX P = XMLoadFloat4x4(&pImpl->m_Proj);
@@ -296,7 +296,4 @@ void BasicEffect::Apply(ID3D11DeviceContext* deviceContext)
     if (pImpl->m_pCurrEffectPass)
         pImpl->m_pCurrEffectPass->Apply(deviceContext);
 }
-
-
-
 

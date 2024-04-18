@@ -52,7 +52,14 @@ void GameApp::UpdateScene(float dt)
 {
     static size_t create = 0;
 
+    // 获取相机子类
+    auto cam1st = std::dynamic_pointer_cast<FirstPersonCamera>(m_pCamera);
+    auto cam3rd = std::dynamic_pointer_cast<ThirdPersonCamera>(m_pCamera);
+    // 获取玩家变换
+    Transform& playerTransform = m_Player.GetEntity().GetTransform();
     m_CameraController.Update(dt);
+    m_Player.GetEntity().GetTransform().SetPosition(m_pCamera->GetPosition());
+    m_Player.GetEntity().GetTransform().SetRotation(0.0f, m_pCamera->GetRotationY() - XM_PI, 0.0f);
 
     // 更新观察矩阵
     m_BasicEffect.SetViewMatrix(m_pCamera->GetViewMatrixXM());
@@ -76,7 +83,7 @@ void GameApp::UpdateScene(float dt)
     if (ImGui::IsMouseClicked(ImGuiMouseButton_Right) && ImGui::IsKeyDown(ImGuiKey_LeftShift)) {
         bool Placing = true;
         GameObject tmpObject;
-        tmpObject.SetModel(BlockModel().GetBedRockModel(m_TextureManager.Get(), m_ModelManager.Get()));
+        tmpObject.SetModel(BlockModel().GetStoneModel(m_TextureManager.Get(), m_ModelManager.Get()));
         DirectX::XMFLOAT3 position = m_pCamera->GetPosition();
         DirectX::XMFLOAT3 lookAxis = m_pCamera->GetLookAxis();
         tmpObject.GetTransform().SetPosition(position.x + lookAxis.x * 5, position.y + lookAxis.y * 5, position.z + lookAxis.z * 5);
@@ -119,7 +126,7 @@ void GameApp::DrawScene()
 
     m_BasicEffect.SetRenderDefault();
 
-    //m_Player.GetEntity().Draw(m_pd3dImmediateContext.Get(), m_BasicEffect);
+    m_Player.GetEntity().Draw(m_pd3dImmediateContext.Get(), m_BasicEffect);
 
     for (auto dirt : m_Dirt) {
         dirt.GetBlock().Draw(m_pd3dImmediateContext.Get(), m_BasicEffect);
@@ -148,7 +155,7 @@ bool GameApp::InitResource()
     m_Chunk.resize(36);
     for (int i = 0; i < 6; i++) {
         for (int j = 0; j < 6; j++) {
-            m_Chunk[i * 6 + j].SetPosition(0 + 16 * i, 0 + 16 * j);
+            m_Chunk[i * 6 + j].SetPosition(0 + CHUNKSIZE * i, 0 + CHUNKSIZE * j);
             m_Chunk[i * 6 + j].LoadChunk(m_TextureManager, m_ModelManager);
         }
     }
@@ -195,9 +202,9 @@ void GameApp::InitCamara()
     m_pCamera = camera;
     m_CameraController.InitCamera(camera.get());
     camera->SetViewPort(0.0f, 0.0f, (float)m_ClientWidth, (float)m_ClientHeight);
-    camera->SetFrustum(XM_PI / 3, AspectRatio(), 0.01f, 1000.0f);
+    camera->SetFrustum(XM_PI / 3, AspectRatio(), 0.1f, 1000.0f);
     camera->LookTo(XMFLOAT3(0.0f, 0.0f, -10.0f), XMFLOAT3(0.0f, 0.0f, 1.0f), XMFLOAT3(0.0f, 1.0f, 0.0f));
-    camera->SetPosition(48.0f, 36.0f, 48.0f);
+    camera->SetPosition(48.0f, 35.3f, 48.0f);
 
     m_BasicEffect.SetViewMatrix(camera->GetViewMatrixXM());
     m_BasicEffect.SetProjMatrix(camera->GetProjMatrixXM());

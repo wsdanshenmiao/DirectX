@@ -21,6 +21,7 @@
 #include <MeshData.h>
 #include <LightHelper.h>
 
+
 class BasicEffect : public IEffect, public IEffectTransform,
     public IEffectMaterial, public IEffectMeshData
 {
@@ -29,9 +30,7 @@ public:
     {
         DirectX::XMFLOAT4X4 world;
         DirectX::XMFLOAT4X4 worldInvTranspose;
-        DirectX::XMFLOAT4 color;
     };
-
 
 public:
     BasicEffect();
@@ -54,6 +53,7 @@ public:
     void XM_CALLCONV SetViewMatrix(DirectX::FXMMATRIX V) override;
     void XM_CALLCONV SetProjMatrix(DirectX::FXMMATRIX P) override;
 
+
     //
     // IEffectMaterial
     //
@@ -66,7 +66,6 @@ public:
 
     MeshDataInput GetInputData(const MeshData& meshData) override;
 
-
     //
     // BasicEffect
     //
@@ -75,9 +74,7 @@ public:
     void SetRenderDefault();
 
     // 绘制实例
-    void DrawInstanced(ID3D11DeviceContext* deviceContext, Buffer& buffer, const GameObject& object, uint32_t numObjects);
-
-    void SetTextureCube(ID3D11ShaderResourceView* textureCube);
+    void DrawInstanced(ID3D11DeviceContext* deviceContext, Buffer& instancedBuffer, const GameObject& object, uint32_t numObjects);
 
     // 各种类型灯光允许的最大数目
     static const int maxLights = 5;
@@ -88,11 +85,10 @@ public:
 
     void SetEyePos(const DirectX::XMFLOAT3& eyePos);
 
-    void SetRefractionEnabled(bool isEnable);
-    void SetRefractionEta(float eta);	// 空气/介质折射比
-
-    void SetDiffuseColor(const DirectX::XMFLOAT4& color);
-
+    void SetFogState(bool isOn);
+    void SetFogStart(float fogStart);
+    void SetFogColor(const DirectX::XMFLOAT4& fogColor);
+    void SetFogRange(float fogRange);
 
     // 应用常量缓冲区和纹理资源的变更
     void Apply(ID3D11DeviceContext* deviceContext) override;
@@ -102,6 +98,45 @@ private:
     std::unique_ptr<Impl> pImpl;
 };
 
+class PostProcessEffect
+{
+public:
+    PostProcessEffect();
+    ~PostProcessEffect();
+
+    PostProcessEffect(PostProcessEffect&& moveFrom) noexcept;
+    PostProcessEffect& operator=(PostProcessEffect&& moveFrom) noexcept;
+
+    // 获取单例
+    static PostProcessEffect& Get();
+
+    bool InitAll(ID3D11Device* device);
+
+    // 渐变特效
+    void RenderScreenFade(
+        ID3D11DeviceContext* deviceContext,
+        ID3D11ShaderResourceView* input,
+        ID3D11RenderTargetView* output,
+        const D3D11_VIEWPORT& vp,
+        float fadeAmount);
+
+
+    // 小地图
+
+    void SetVisibleRange(float range);
+    void SetEyePos(const DirectX::XMFLOAT3& eyePos);
+    void SetMinimapRect(const DirectX::XMFLOAT4& rect); // (Left, Front, Right, Back)
+    void RenderMinimap(
+        ID3D11DeviceContext* deviceContext,
+        ID3D11ShaderResourceView* input,
+        ID3D11RenderTargetView* output,
+        const D3D11_VIEWPORT& vp
+    );
+
+private:
+    class Impl;
+    std::unique_ptr<Impl> pImpl;
+};
 
 
 class SkyboxEffect : public IEffect, public IEffectTransform,

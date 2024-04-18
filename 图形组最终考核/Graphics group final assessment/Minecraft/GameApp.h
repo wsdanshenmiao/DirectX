@@ -18,6 +18,9 @@
 #include "Chunk.h"
 #include "Player.h"
 
+// 摄像机模式
+enum class CameraMode { FirstPerson, ThirdPerson, Free };
+
 class GameApp : public D3DApp
 {
 public:
@@ -46,15 +49,15 @@ private:
 
     std::shared_ptr<FirstPersonCamera> m_pCamera;			    // 摄像机
     FirstPersonCameraController m_CameraController;             // 摄像机控制器 
+    CameraMode m_CameraMode;                                    // 摄像机模式
 
-    ComPtr<ID3D11RasterizerState> m_pRState;	               // 光栅化状态
+    ComPtr<ID3D11RasterizerState> m_pRState;	                // 光栅化状态
 
     GameObject m_Skybox;                                        // 天空盒
     std::vector<Chunk> m_Chunk;                                 // 区块
-
     Player m_Player;                                            // 玩家
     
-    std::vector<Block> m_Dirt;                                               // 泥土
+    std::vector<Block> m_Dirt;                                  // 泥土
 
 };
 

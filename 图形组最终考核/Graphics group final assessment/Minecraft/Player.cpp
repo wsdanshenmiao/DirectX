@@ -33,16 +33,11 @@ void Player::SetGroundState(bool grouneState)
 
 void Player::SetModel(std::shared_ptr<FirstPersonCamera> pCamera, ModelManager& modelManager)
 {
-	Model* pModel = modelManager.CreateFromFile("..\\Model\\house.obj");
-	pModel->SetDebugObjectName("house");
-	pModel->materials[0].Set<std::string>("$Diffuse", "..\\Texture\\block\\bedrock.jpg");
-	pModel->materials[0].Set<XMFLOAT4>("$AmbientColor", XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f));
-	pModel->materials[0].Set<XMFLOAT4>("$DiffuseColor", XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f));
-	pModel->materials[0].Set<XMFLOAT4>("$SpecularColor", XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f));
-	pModel->materials[0].Set<float>("$SpecularPower", 16.0f);
-	pModel->materials[0].Set<XMFLOAT4>("$ReflectColor", XMFLOAT4());
-	pModel->materials[0].Set<XMFLOAT4>("$ReflectColor", XMFLOAT4());
-
+	Model* pModel = modelManager.CreateFromFile("..\\Model\\Player.obj");
+	pModel->SetDebugObjectName("Player");
 	m_Entity.SetModel(pModel);
-
+	m_Entity.GetTransform().SetScale(0.125f, 0.125f, 0.125f);
+	XMFLOAT3 position = pCamera->GetPosition();
+	m_Entity.GetTransform().SetPosition(position.x, position.y - 1.8, position.z);
+	m_Entity.GetTransform().SetRotation(0.0f, pCamera->GetRotationY() - XM_PI, 0.0f);
 }

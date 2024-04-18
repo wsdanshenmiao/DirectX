@@ -14,7 +14,7 @@
 
 #define CHUNKHIGHEST 64		// 区块最高高度
 #define SEALEVEL 32			// 海平面
-#define CHUNKSIZE 16		// 区块长度
+#define CHUNKSIZE 8		// 区块长度
 #define CHUNKRANGE 15		// 柏林噪声应用的幅度
 
 

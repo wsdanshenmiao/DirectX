@@ -1,14 +1,13 @@
 #include "LightHelper.hlsli"
 
 Texture2D g_DiffuseMap : register(t0);
-//TextureCube g_TexCube[4] : register(t1);
 SamplerState g_Sam : register(s0);
+
 
 cbuffer CBChangesEveryInstanceDrawing : register(b0)
 {
     matrix g_World;
     matrix g_WorldInvTranspose;
-    float4 g_ConstantDiffuseColor;
 }
 
 cbuffer CBChangesEveryObjectDrawing : register(b1)
@@ -18,10 +17,11 @@ cbuffer CBChangesEveryObjectDrawing : register(b1)
 
 cbuffer CBDrawingStates : register(b2)
 {
-    //int g_ReflectionEnabled;
-    //int g_RefractionEnabled;
-    //float g_Eta;  // 空气/介质折射比
-    float g_Pad;
+    float4 g_FogColor;
+    int g_FogEnabled;
+    float g_FogStart;
+    float g_FogRange;
+    int g_Pad;
 }
 
 cbuffer CBChangesEveryFrame : register(b3)
@@ -45,7 +45,20 @@ struct VertexPosNormalTex
     float2 tex : TEXCOORD;
 };
 
-// 实例化对象
+struct VertexPosHWNormalTex
+{
+    float4 posH : SV_POSITION;
+    float3 posW : POSITION; // 在世界中的位置
+    float3 normalW : NORMAL; // 法向量在世界中的方向
+    float2 tex : TEXCOORD;
+};
+
+struct VertexPosHTex
+{
+    float4 posH : SV_POSITION;
+    float2 tex : TEXCOORD;
+};
+
 struct InstancePosNormalTex
 {
     float3 posL : POSITION;
@@ -53,16 +66,5 @@ struct InstancePosNormalTex
     float2 tex : TEXCOORD;
     matrix world : World;
     matrix worldInvTranspose : WorldInvTranspose;
-    float4 color : COLOR;
 };
-
-struct VertexPosHWNormalColorTex
-{
-    float4 posH : SV_POSITION;
-    float3 posW : POSITION;     // 在世界中的位置
-    float3 normalW : NORMAL;    // 法向量在世界中的方向
-    float4 color : COLOR;
-    float2 tex : TEXCOORD;
-};
-
 
