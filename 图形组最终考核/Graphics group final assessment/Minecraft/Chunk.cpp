@@ -2,6 +2,8 @@
 
 using namespace DirectX;
 
+namespace DSM {
+
 bool Chunk::m_EnableFrustumCulling = false;				// 视锥体裁剪关闭
 
 Chunk::Chunk(DirectX::XMINT2 position, ID3D11Device* device)
@@ -218,8 +220,8 @@ void Chunk::LoadChunk(TextureManager& tManager, ModelManager& mManager)
 
 void Chunk::DrawChunk(ID3D11Device* device, ID3D11DeviceContext* deviceContext, BasicEffect& effect, std::shared_ptr<FirstPersonCamera> camera)
 {
-	for (int i = 0; i < 4; i++) {
-		if (m_EnableFrustumCulling) {
+	if (m_EnableFrustumCulling) {
+		for (int i = 0; i < 4; i++) {
 			m_AcceptedData[i].clear();
 			BoundingFrustum frustum;
 			BoundingFrustum::CreateFromMatrix(frustum, camera->GetProjMatrixXM());
@@ -254,5 +256,6 @@ void Chunk::DrawChunk(ID3D11Device* device, ID3D11DeviceContext* deviceContext, 
 	}
 }
 
+}
 
 #endif

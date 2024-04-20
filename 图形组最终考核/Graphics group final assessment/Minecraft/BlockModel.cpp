@@ -2,6 +2,8 @@
 
 using namespace DirectX;
 
+namespace DSM {
+
 Model* BlockModel::GetBedRockModel(TextureManager& textureManager, ModelManager& modelManager)
 {
     Model* pModel = modelManager.CreateFromGeometry("BedRock", Geometry::CreateBox(1.0f, 1.0f, 1.0f));
@@ -49,7 +51,6 @@ Model* BlockModel::GetGressModel(TextureManager& textureManager, ModelManager& m
     Model* pModel = modelManager.CreateFromGeometry("Gress", Geometry::CreateBox(1.0f, 1.0f, 1.0f));
     textureManager.CreateFromFile("..\\Texture\\block\\gress0.png");
     pModel->SetDebugObjectName("Gress");
-    pModel->materials.resize(3);
     pModel->materials[0].Set<std::string>("$Diffuse", "..\\Texture\\block\\gress0.png");
     pModel->materials[0].Set<XMFLOAT4>("$AmbientColor", XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f));
     pModel->materials[0].Set<XMFLOAT4>("$DiffuseColor", XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f));
@@ -57,4 +58,17 @@ Model* BlockModel::GetGressModel(TextureManager& textureManager, ModelManager& m
     pModel->materials[0].Set<float>("$SpecularPower", 16.0f);
     pModel->materials[0].Set<XMFLOAT4>("$ReflectColor", XMFLOAT4());
     return pModel;
+}
+
+Model* BlockModel::GetSkyBoxModel(TextureManager& tManager, ModelManager& mManager, float skyCount)
+{
+    Model* pModel = mManager.CreateFromGeometry("SkyBox", Geometry::CreateBox());
+    pModel->materials[0].Set<std::string>("$Skybox", "Daylight");
+    pModel->materials[0].Set<XMFLOAT4>("$AmbientColor", XMFLOAT4(skyCount, skyCount, skyCount, 1.0f));
+    pModel->materials[0].Set<XMFLOAT4>("$DiffuseColor", XMFLOAT4(skyCount, skyCount, skyCount, 1.0f));
+    return pModel;
+}
+
+
+
 }

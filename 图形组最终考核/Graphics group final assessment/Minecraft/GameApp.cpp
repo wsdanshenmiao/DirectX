@@ -39,34 +39,22 @@ void GameApp::OnResize()
     m_pDepthTexture->SetDebugObjectName("DepthTexture");
 
     // 摄像机变更显示
-    if (m_pCamera != nullptr)
-    {
-        m_pCamera->SetFrustum(XM_PI / 3, AspectRatio(), 1.0f, 1000.0f);
-        m_pCamera->SetViewPort(0.0f, 0.0f, (float)m_ClientWidth, (float)m_ClientHeight);
-        m_BasicEffect.SetProjMatrix(m_pCamera->GetProjMatrixXM());
-        m_SkyboxEffect.SetProjMatrix(m_pCamera->GetProjMatrixXM());
+    if (!(m_CameraMode == CameraMode::ThirdPerson) && m_pFCamera != nullptr){
+        m_pFCamera->SetFrustum(XM_PI / 3, AspectRatio(), 1.0f, 1000.0f);
+        m_pFCamera->SetViewPort(0.0f, 0.0f, (float)m_ClientWidth, (float)m_ClientHeight);
+        m_BasicEffect.SetProjMatrix(m_pFCamera->GetProjMatrixXM());
+        m_SkyboxEffect.SetProjMatrix(m_pFCamera->GetProjMatrixXM());
+    }
+    else if(m_CameraMode == CameraMode::ThirdPerson && m_pTCamera != nullptr){
+        m_pTCamera->SetFrustum(XM_PI / 3, AspectRatio(), 1.0f, 1000.0f);
+        m_pTCamera->SetViewPort(0.0f, 0.0f, (float)m_ClientWidth, (float)m_ClientHeight);
+        m_BasicEffect.SetProjMatrix(m_pTCamera->GetProjMatrixXM());
+        m_SkyboxEffect.SetProjMatrix(m_pTCamera->GetProjMatrixXM());
     }
 }
 
 void GameApp::UpdateScene(float dt)
 {
-    static size_t create = 0;
-
-    // 获取相机子类
-    auto cam1st = std::dynamic_pointer_cast<FirstPersonCamera>(m_pCamera);
-    auto cam3rd = std::dynamic_pointer_cast<ThirdPersonCamera>(m_pCamera);
-    // 获取玩家变换
-    Transform& playerTransform = m_Player.GetEntity().GetTransform();
-    m_CameraController.Update(dt);
-    m_Player.GetEntity().GetTransform().SetPosition(m_pCamera->GetPosition());
-    m_Player.GetEntity().GetTransform().SetRotation(0.0f, m_pCamera->GetRotationY() - XM_PI, 0.0f);
-
-    // 更新观察矩阵
-    m_BasicEffect.SetViewMatrix(m_pCamera->GetViewMatrixXM());
-    m_BasicEffect.SetEyePos(m_pCamera->GetPosition());
-
-    m_SkyboxEffect.SetViewMatrix(m_pCamera->GetViewMatrixXM());
-
     //获取io
     ImGuiIO& io = ImGui::GetIO();
 
@@ -77,15 +65,16 @@ void GameApp::UpdateScene(float dt)
     mousePos.y = std::clamp(mousePos.y, 0.0f, m_ClientHeight - 1.0f);
 
     // 将射线设置在鼠标处
-    Ray ray = Ray::ScreenToRay(*m_pCamera, mousePos.x, mousePos.y);
+    Ray ray = Ray::ScreenToRay(*m_pFCamera, mousePos.x, mousePos.y);
 
+    static size_t create = 0;
     //放置方块
     if (ImGui::IsMouseClicked(ImGuiMouseButton_Right) && ImGui::IsKeyDown(ImGuiKey_LeftShift)) {
         bool Placing = true;
         GameObject tmpObject;
-        tmpObject.SetModel(BlockModel().GetStoneModel(m_TextureManager.Get(), m_ModelManager.Get()));
-        DirectX::XMFLOAT3 position = m_pCamera->GetPosition();
-        DirectX::XMFLOAT3 lookAxis = m_pCamera->GetLookAxis();
+        tmpObject.SetModel(DSM::BlockModel().GetStoneModel(m_TextureManager.Get(), m_ModelManager.Get()));
+        DirectX::XMFLOAT3 position = m_pFCamera->GetPosition();
+        DirectX::XMFLOAT3 lookAxis = m_pFCamera->GetLookAxis();
         tmpObject.GetTransform().SetPosition(position.x + lookAxis.x * 5, position.y + lookAxis.y * 5, position.z + lookAxis.z * 5);
         for (size_t i = 0; i < m_Dirt.size(); i++) {
             if (m_Dirt[i].GetBlock().GetModel() && m_Dirt[i].GetBlock().GetBoundingBox().Intersects(tmpObject.GetBoundingBox())) {
@@ -94,16 +83,79 @@ void GameApp::UpdateScene(float dt)
             }
         }
         if (Placing) {
-            m_Dirt.push_back(Block(tmpObject, BlockId::Dirt));
+            m_Dirt.push_back(DSM::Block(tmpObject, DSM::BlockId::Dirt));
             create++;
         }
     }
 
-    if (ImGui::Begin("Static Cube Mapping")) {
-        ImGui::Checkbox("Enable Frustum Culling", &Chunk::m_EnableFrustumCulling);
+    
+
+    static float playerSpeed = 1.0f;
+    static float thirdDistance = 3.5f;
+    static int cameraMode = 0;
+    static const char* cModes[] = {
+        "Free Camera",
+        "First Person",
+        "Third Person"
+    };
+    if (ImGui::Begin("Minecraft")) {
+        if (ImGui::Button("Exit")) {
+            m_FadeUsed = true;
+            m_FadeSign = -1.0f;
+        }
+        ImGui::Checkbox("Enable Frustum Culling", &DSM::Chunk::m_EnableFrustumCulling);
+        static int fogMode = 0;
+        static const char* fModes[] = {
+            "Daytime",
+            "Dark Night",
+        };
+        if (ImGui::Checkbox("Enable Fog", &m_FogEnabled)){
+            m_BasicEffect.SetFogState(m_FogEnabled);
+        }
+        if (m_FogEnabled){
+            if (ImGui::Combo("Fog Mode", &fogMode, fModes, ARRAYSIZE(fModes))){
+                m_IsNight = (fogMode == 1);
+                if (m_IsNight){ // 黑夜模式下变为逐渐黑暗
+                    m_BasicEffect.SetFogColor(XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f));
+                    m_BasicEffect.SetFogStart(5.0f);
+                }
+                else {  // 白天模式则对应雾效
+                    m_BasicEffect.SetFogColor(XMFLOAT4(0.75f, 0.75f, 0.75f, 1.0f));
+                    m_BasicEffect.SetFogStart(15.0f);
+                }
+            }
+            if (ImGui::SliderFloat("Fog Range", &m_FogRange, 15.0f, 175.0f, "%.0f")){
+                m_BasicEffect.SetFogRange(m_FogRange);
+            }
+            float fog_start = m_IsNight ? 5.0f : 15.0f;
+            ImGui::Text("Fog: %.0f-%.0f", fog_start, m_FogRange + fog_start);
+        }
+
+        ImGui::Combo("Camera Mode", &cameraMode, cModes, ARRAYSIZE(cModes));
+        if (0 == cameraMode) {
+            m_CameraMode = CameraMode::Free;
+        }
+        else if (1 == cameraMode) {
+            m_CameraMode = CameraMode::FirstPerson;
+        }
+        else if (2 == cameraMode) {
+            if (!(m_CameraMode == CameraMode::ThirdPerson)) {
+                m_pTCamera->SetRotationY(m_pFCamera->GetRotationY());
+            }
+            m_CameraMode = CameraMode::ThirdPerson;
+        }
+        ImGui::SliderFloat("Speed", &playerSpeed, 0.5f, 5.0f);
+        ImGui::SliderFloat("Third Person Distance", &thirdDistance, 2.0f, 6.0f);
+        ImGui::End();
     }
-    ImGui::End();
     ImGui::Render();
+
+    CameraTransform(dt);
+
+    m_pTCamera->SetDistance(thirdDistance);
+    m_FCameraControl.SetMoveSpeed(playerSpeed);
+    m_TCameraControl.SetMoveSpeed(playerSpeed);
+    m_FPCameraControl.SetMoveSpeed(playerSpeed);
 }
 
 void GameApp::DrawScene()
@@ -116,12 +168,11 @@ void GameApp::DrawScene()
         m_pd3dDevice->CreateRenderTargetView(pBackBuffer.Get(), &rtvDesc, m_pRenderTargetViews[m_FrameCount].ReleaseAndGetAddressOf());
     }
 
-    float black[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
-    m_pd3dImmediateContext->ClearRenderTargetView(GetBackBufferRTV(), black);
+    m_pd3dImmediateContext->ClearRenderTargetView(GetBackBufferRTV(), reinterpret_cast<const float*>(&Colors::Black));
     m_pd3dImmediateContext->ClearDepthStencilView(m_pDepthTexture->GetDepthStencil(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
     ID3D11RenderTargetView* pRTVs[1] = { GetBackBufferRTV() };
     m_pd3dImmediateContext->OMSetRenderTargets(1, pRTVs, m_pDepthTexture->GetDepthStencil());
-    D3D11_VIEWPORT viewport = m_pCamera->GetViewPort();
+    D3D11_VIEWPORT viewport = m_pFCamera->GetViewPort();
     m_pd3dImmediateContext->RSSetViewports(1, &viewport);
 
     m_BasicEffect.SetRenderDefault();
@@ -133,11 +184,18 @@ void GameApp::DrawScene()
     }
 
     for (int i = 0; i < 36; i++) {
-        m_Chunk[i].DrawChunk(m_pd3dDevice.Get(), m_pd3dImmediateContext.Get(), m_BasicEffect, m_pCamera);
+        m_Chunk[i].DrawChunk(m_pd3dDevice.Get(), m_pd3dImmediateContext.Get(), m_BasicEffect, m_pFCamera);
     }
 
     // 绘制天空盒
     m_SkyboxEffect.SetRenderDefault();
+    DSM::BlockModel bModel;
+    if (m_IsNight) {
+        m_Skybox.SetModel(bModel.GetSkyBoxModel(m_TextureManager.Get(), m_ModelManager.Get(), 0.0f));
+    }
+    else {
+        m_Skybox.SetModel(bModel.GetSkyBoxModel(m_TextureManager.Get(), m_ModelManager.Get(), 0.75f));
+    }
     m_Skybox.Draw(m_pd3dImmediateContext.Get(), m_SkyboxEffect);
 
     ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
@@ -150,8 +208,9 @@ bool GameApp::InitResource()
     InitSkybox();
     InitCamara();
 
-    m_Player.SetModel(m_pCamera, m_ModelManager);
+    m_Player.SetModel(m_pFCamera, m_ModelManager);
 
+    // 加载区块
     m_Chunk.resize(36);
     for (int i = 0; i < 6; i++) {
         for (int j = 0; j < 6; j++) {
@@ -159,6 +218,11 @@ bool GameApp::InitResource()
             m_Chunk[i * 6 + j].LoadChunk(m_TextureManager, m_ModelManager);
         }
     }
+
+    m_BasicEffect.SetFogState(m_FogEnabled);
+    m_BasicEffect.SetFogStart(m_FogStart);
+    m_BasicEffect.SetFogRange(m_FogRange);
+    m_BasicEffect.SetFogColor(XMFLOAT4(0.75f, 0.75f, 0.75f, 1.0f));
 
     // ******************
     // 初始化光栅化状态
@@ -198,18 +262,27 @@ void GameApp::InitCamara()
 {
     // ******************
     // 初始化摄像机
-    auto camera = std::make_shared<FirstPersonCamera>();
-    m_pCamera = camera;
-    m_CameraController.InitCamera(camera.get());
-    camera->SetViewPort(0.0f, 0.0f, (float)m_ClientWidth, (float)m_ClientHeight);
-    camera->SetFrustum(XM_PI / 3, AspectRatio(), 0.1f, 1000.0f);
-    camera->LookTo(XMFLOAT3(0.0f, 0.0f, -10.0f), XMFLOAT3(0.0f, 0.0f, 1.0f), XMFLOAT3(0.0f, 1.0f, 0.0f));
-    camera->SetPosition(48.0f, 35.3f, 48.0f);
+    auto fCamera = std::make_shared<FirstPersonCamera>();
+    auto tCamera = std::make_shared<ThirdPersonCamera>();
+    m_pFCamera = fCamera;
+    m_pTCamera = tCamera;
+    m_FCameraControl.InitCamera(fCamera.get());
+    m_FPCameraControl.InitCamera(fCamera.get());
+    m_TCameraControl.InitCamera(tCamera.get());
+    fCamera->SetViewPort(0.0f, 0.0f, (float)m_ClientWidth, (float)m_ClientHeight);
+    fCamera->SetFrustum(XM_PI / 3, AspectRatio(), 0.1f, 1000.0f);
+    fCamera->LookTo(XMFLOAT3(0.0f, 0.0f, -10.0f), XMFLOAT3(0.0f, 0.0f, 1.0f), XMFLOAT3(0.0f, 1.0f, 0.0f));
+    fCamera->SetPosition(48.0f, 35.3f, 48.0f);
+    tCamera->SetViewPort(0.0f, 0.0f, (float)m_ClientWidth, (float)m_ClientHeight);
+    tCamera->SetFrustum(XM_PI / 3, AspectRatio(), 0.1f, 1000.0f);
+    tCamera->SetTarget(XMFLOAT3(48.0f, 35.3f, 48.0f));
+    tCamera->SetDistanceMinMax(2.0f, 6.0f);
+    tCamera->SetDistance(3.5f);
 
-    m_BasicEffect.SetViewMatrix(camera->GetViewMatrixXM());
-    m_BasicEffect.SetProjMatrix(camera->GetProjMatrixXM());
-    m_SkyboxEffect.SetViewMatrix(camera->GetViewMatrixXM());
-    m_SkyboxEffect.SetProjMatrix(camera->GetProjMatrixXM());
+    m_BasicEffect.SetViewMatrix(fCamera->GetViewMatrixXM());
+    m_BasicEffect.SetProjMatrix(fCamera->GetProjMatrixXM());
+    m_SkyboxEffect.SetViewMatrix(fCamera->GetViewMatrixXM());
+    m_SkyboxEffect.SetProjMatrix(fCamera->GetProjMatrixXM());
 }
 
 void GameApp::InitSkybox()
@@ -241,4 +314,40 @@ void GameApp::InitSkybox()
     pModel->SetDebugObjectName("Skybox");
     pModel->materials[0].Set<std::string>("$Skybox", "Daylight");
     m_Skybox.SetModel(pModel);
+}
+
+
+void GameApp::CameraTransform(float dt)
+{
+    // 获取玩家变换
+    Transform& playerTransform = m_Player.GetEntity().GetTransform();
+
+    if (!(m_CameraMode == CameraMode::Free)) {
+        m_TCameraControl.Update(dt);
+        m_FPCameraControl.Update(dt);
+        XMFLOAT3 fPosition = m_pFCamera->GetPosition();
+        playerTransform.SetPosition(fPosition.x, fPosition.y - 1.8f, fPosition.z);
+        if (m_CameraMode == CameraMode::ThirdPerson) {
+            playerTransform.SetRotation(0.0f, m_pTCamera->GetRotationY() - XM_PI, 0.0f);
+            m_pTCamera->SetTarget(m_pFCamera->GetPosition());
+            // 更新观察矩阵
+            m_BasicEffect.SetViewMatrix(m_pTCamera->GetViewMatrixXM());
+            m_BasicEffect.SetEyePos(m_pTCamera->GetPosition());
+            m_SkyboxEffect.SetViewMatrix(m_pTCamera->GetViewMatrixXM());
+        }
+        else if (m_CameraMode == CameraMode::FirstPerson) {
+            playerTransform.SetRotation(0.0f, m_pFCamera->GetRotationY() - XM_PI, 0.0f);
+            // 更新观察矩阵
+            m_BasicEffect.SetViewMatrix(m_pFCamera->GetViewMatrixXM());
+            m_BasicEffect.SetEyePos(m_pFCamera->GetPosition());
+            m_SkyboxEffect.SetViewMatrix(m_pFCamera->GetViewMatrixXM());
+        }
+    }
+    else {
+        m_FCameraControl.Update(dt);
+        // 更新观察矩阵
+        m_BasicEffect.SetViewMatrix(m_pFCamera->GetViewMatrixXM());
+        m_BasicEffect.SetEyePos(m_pFCamera->GetPosition());
+        m_SkyboxEffect.SetViewMatrix(m_pFCamera->GetViewMatrixXM());
+    }
 }

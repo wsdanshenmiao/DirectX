@@ -6,6 +6,8 @@
 #include <DirectXMath.h>
 #include <d3d11.h>
 
+namespace DSM {
+
 // 方块模型类
 class BlockModel
 {
@@ -14,8 +16,10 @@ public:
 	Model* GetDirtModel(TextureManager& textureManager, ModelManager& modelManager);	// 获取泥土材质
 	Model* GetStoneModel(TextureManager& textureManager, ModelManager& modelManager);	// 获取石头材质
 	Model* GetGressModel(TextureManager& textureManager, ModelManager& modelManager);	// 获取草方块材质
-
+	Model* GetSkyBoxModel(TextureManager& tManager, ModelManager& mManager, float skyCount);
 };
+
+}
 
 #endif // !__BLOCKTEXTURE__H__
 

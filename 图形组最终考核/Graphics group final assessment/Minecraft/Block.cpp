@@ -2,6 +2,8 @@
 
 using namespace DirectX;
 
+namespace DSM {
+
 Block::Block(const GameObject& blockData, const BlockId& id)
 	:m_BlockData(blockData), m_Id(id) {}
 
@@ -23,4 +25,6 @@ BlockModel& Block::GetBlockModel()
 void Block::SetId(const BlockId& id)
 {
 	m_Id = id;
+}
+
 }

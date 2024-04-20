@@ -5,6 +5,8 @@
 #include "GameObject.h"
 #include "BlockModel.h"
 
+namespace DSM {
+
 // 物品Id枚举
 enum class BlockId
 {
@@ -34,5 +36,7 @@ private:
 	GameObject m_BlockData;						// 方块数据
 	BlockModel m_BlockModel;					// 获取方块模型与材质
 };
+
+}
 
 #endif // !__BLOCK__H__

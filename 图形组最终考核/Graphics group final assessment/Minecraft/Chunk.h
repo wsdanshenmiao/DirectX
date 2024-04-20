@@ -12,9 +12,11 @@
 #include "ModelManager.h"
 #include "Camera.h"
 
+namespace DSM {
+
 #define CHUNKHIGHEST 64		// 区块最高高度
 #define SEALEVEL 32			// 海平面
-#define CHUNKSIZE 8		// 区块长度
+#define CHUNKSIZE 12		// 区块长度
 #define CHUNKRANGE 15		// 柏林噪声应用的幅度
 
 
@@ -58,5 +60,7 @@ private:
 	std::unique_ptr<Buffer> m_pInstancedBuffer[4];							    // 实例缓冲区
 
 };
+
+}
 
 #endif // !__CHUNK__H__

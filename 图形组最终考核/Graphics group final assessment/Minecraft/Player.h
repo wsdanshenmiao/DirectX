@@ -3,6 +3,8 @@
 
 #include "Entity.h"
 
+namespace DSM {
+
 class Player :public Entity
 {
 public:
@@ -24,5 +26,7 @@ private:
     bool m_Flying = false;                 //飞行
     bool m_Sneak = false;                  //潜行
 };
+
+}
 
 #endif // !__PLAYER__H__

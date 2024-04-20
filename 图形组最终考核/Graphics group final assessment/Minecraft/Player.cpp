@@ -2,6 +2,8 @@
 
 using namespace DirectX;
 
+namespace DSM {
+
 bool Player::GetFlyState()
 {
 	return m_Flying;
@@ -40,4 +42,6 @@ void Player::SetModel(std::shared_ptr<FirstPersonCamera> pCamera, ModelManager& 
 	XMFLOAT3 position = pCamera->GetPosition();
 	m_Entity.GetTransform().SetPosition(position.x, position.y - 1.8, position.z);
 	m_Entity.GetTransform().SetRotation(0.0f, pCamera->GetRotationY() - XM_PI, 0.0f);
+}
+
 }
