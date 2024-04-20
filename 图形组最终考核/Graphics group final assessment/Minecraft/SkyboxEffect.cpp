@@ -182,3 +182,9 @@ void SkyboxEffect::Apply(ID3D11DeviceContext* deviceContext)
     pImpl->m_pCurrEffectPass->Apply(deviceContext);
 }
 
+void SkyboxEffect::SetSkyCount(ID3D11DeviceContext* deviceContext, float skyCount)
+{
+    auto pPass = pImpl->m_pEffectHelper->GetEffectPass("Skybox");
+    pPass->PSGetParamByName("skyCount")->SetFloat(skyCount);
+    pPass->Apply(deviceContext);
+}

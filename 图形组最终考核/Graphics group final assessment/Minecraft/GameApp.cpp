@@ -46,10 +46,10 @@ void GameApp::OnResize()
         m_SkyboxEffect.SetProjMatrix(m_pFCamera->GetProjMatrixXM());
     }
     else if(m_CameraMode == CameraMode::ThirdPerson && m_pTCamera != nullptr){
-        m_pTCamera->SetFrustum(XM_PI / 3, AspectRatio(), 1.0f, 1000.0f);
-        m_pTCamera->SetViewPort(0.0f, 0.0f, (float)m_ClientWidth, (float)m_ClientHeight);
-        m_BasicEffect.SetProjMatrix(m_pTCamera->GetProjMatrixXM());
-        m_SkyboxEffect.SetProjMatrix(m_pTCamera->GetProjMatrixXM());
+        m_pFCamera->SetFrustum(XM_PI / 3, AspectRatio(), 1.0f, 1000.0f);
+        m_pFCamera->SetViewPort(0.0f, 0.0f, (float)m_ClientWidth, (float)m_ClientHeight);
+        m_BasicEffect.SetProjMatrix(m_pFCamera->GetProjMatrixXM());
+        m_SkyboxEffect.SetProjMatrix(m_pFCamera->GetProjMatrixXM());
     }
 }
 
@@ -189,12 +189,11 @@ void GameApp::DrawScene()
 
     // 绘制天空盒
     m_SkyboxEffect.SetRenderDefault();
-    DSM::BlockModel bModel;
     if (m_IsNight) {
-        m_Skybox.SetModel(bModel.GetSkyBoxModel(m_TextureManager.Get(), m_ModelManager.Get(), 0.0f));
+        m_SkyboxEffect.SetSkyCount(m_pd3dImmediateContext.Get(), 0.01f);
     }
     else {
-        m_Skybox.SetModel(bModel.GetSkyBoxModel(m_TextureManager.Get(), m_ModelManager.Get(), 0.75f));
+        m_SkyboxEffect.SetSkyCount(m_pd3dImmediateContext.Get(), 1.0f);
     }
     m_Skybox.Draw(m_pd3dImmediateContext.Get(), m_SkyboxEffect);
 

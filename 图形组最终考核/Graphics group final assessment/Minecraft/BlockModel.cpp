@@ -60,15 +60,6 @@ Model* BlockModel::GetGressModel(TextureManager& textureManager, ModelManager& m
     return pModel;
 }
 
-Model* BlockModel::GetSkyBoxModel(TextureManager& tManager, ModelManager& mManager, float skyCount)
-{
-    Model* pModel = mManager.CreateFromGeometry("SkyBox", Geometry::CreateBox());
-    pModel->materials[0].Set<std::string>("$Skybox", "Daylight");
-    pModel->materials[0].Set<XMFLOAT4>("$AmbientColor", XMFLOAT4(skyCount, skyCount, skyCount, 1.0f));
-    pModel->materials[0].Set<XMFLOAT4>("$DiffuseColor", XMFLOAT4(skyCount, skyCount, skyCount, 1.0f));
-    return pModel;
-}
-
 
 
 }

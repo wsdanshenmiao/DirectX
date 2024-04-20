@@ -171,6 +171,8 @@ public:
 
     void SetMaterial(const Material& material) override;
 
+    void SetSkyCount(ID3D11DeviceContext* deviceContext, float skyCount);
+
     //
     // IEffectMeshData
     //
