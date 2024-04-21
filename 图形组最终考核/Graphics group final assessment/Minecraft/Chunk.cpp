@@ -5,6 +5,7 @@ using namespace DirectX;
 namespace DSM {
 
 bool Chunk::m_EnableFrustumCulling = false;				// 视锥体裁剪关闭
+int Chunk::m_Seed = 050113;								// 默认种子
 
 Chunk::Chunk(DirectX::XMINT2 position, ID3D11Device* device)
 	:m_Positon(position) {}
@@ -65,15 +66,15 @@ std::vector<BasicEffect::InstancedData>& Chunk::GetGressInstancedData()
 // 生成不同频率的柏林噪声
 float Chunk::GetNoice(int x, int z)
 {
-	FastNoiseLite noice1;
+	FastNoiseLite noice1(m_Seed);
 	noice1.SetNoiseType(FastNoiseLite::NoiseType_Perlin);
-	noice1.SetFrequency(0.1);
-	FastNoiseLite noice2;
+	noice1.SetFrequency(0.1f);
+	FastNoiseLite noice2(m_Seed);
 	noice2.SetNoiseType(FastNoiseLite::NoiseType_Perlin);
-	noice2.SetFrequency(0.06);
-	FastNoiseLite noice3;
+	noice2.SetFrequency(0.06f);
+	FastNoiseLite noice3(m_Seed);
 	noice3.SetNoiseType(FastNoiseLite::NoiseType_Perlin);
-	noice3.SetFrequency(0.04);
+	noice3.SetFrequency(0.04f);
 	float noice = (noice1.GetNoise((float)x, (float)z) + noice2.GetNoise((float)x, (float)z) + noice3.GetNoise((float)x, (float)z)) / 3;
 	return noice;
 }
@@ -178,10 +179,15 @@ void Chunk::LoadChunk(TextureManager& tManager, ModelManager& mManager)
 	m_Block[4].SetId(BlockId::Gress);
 
 	// 生成方块
-	for (int i = 0; i < 4; i++) {
-		m_BlockInstancedData[i].reserve(256);
-		m_BlockTransforms[i].reserve(256);
-	}
+	m_BlockInstancedData[0].reserve(2200);
+	m_BlockTransforms[0].reserve(2200);
+	m_BlockInstancedData[0].reserve(5400);
+	m_BlockTransforms[0].reserve(5400);
+	m_BlockInstancedData[0].reserve(650);
+	m_BlockTransforms[0].reserve(650);
+	m_BlockInstancedData[0].reserve(256);
+	m_BlockTransforms[0].reserve(256);
+
 	Transform transform;
 	size_t pos = 0;
 	for (int y = 0; y < CHUNKHIGHEST; y++) {	//每一层 16 * 16

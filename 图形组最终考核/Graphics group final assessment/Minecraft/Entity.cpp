@@ -1,6 +1,6 @@
 #include "Entity.h"
 
-Entity::Entity(GameObject entity, DirectX::XMFLOAT3 speed)
+Entity::Entity(GameObject entity, float speed)
 	:m_Entity(entity), m_Speed(speed) {}
 
 GameObject& Entity::GetEntity()
@@ -8,12 +8,12 @@ GameObject& Entity::GetEntity()
 	return m_Entity;
 }
 
-DirectX::XMFLOAT3 Entity::GetSpeed()
+float& Entity::GetSpeed()
 {
 	return m_Speed;
 }
 
-void Entity::SetSpeed(DirectX::XMFLOAT3 speed)
+void Entity::SetSpeed(float speed)
 {
 	m_Speed = speed;
 }

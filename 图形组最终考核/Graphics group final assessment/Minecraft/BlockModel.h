@@ -16,6 +16,8 @@ public:
 	Model* GetDirtModel(TextureManager& textureManager, ModelManager& modelManager);	// 获取泥土材质
 	Model* GetStoneModel(TextureManager& textureManager, ModelManager& modelManager);	// 获取石头材质
 	Model* GetGressModel(TextureManager& textureManager, ModelManager& modelManager);	// 获取草方块材质
+	Model* GetCherryBlossomLogModel(TextureManager& tManager, ModelManager& mManager);	// 获取樱花木材质
+	Model* GetCherryBlossomLeavesModel(TextureManager& tManager, ModelManager& mManager);// 获取樱花树叶材质
 };
 
 }

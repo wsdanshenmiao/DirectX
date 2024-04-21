@@ -17,6 +17,12 @@ cbuffer CBChangesEveryObjectDrawing : register(b1)
 
 cbuffer CBDrawingStates : register(b2)
 {
+    int g_IsReflection;
+    int g_IsShadow;
+}
+
+cbuffer CBDrawingStates : register(b3)
+{
     float4 g_FogColor;
     int g_FogEnabled;
     float g_FogStart;
@@ -24,15 +30,23 @@ cbuffer CBDrawingStates : register(b2)
     int g_Pad;
 }
 
-cbuffer CBChangesEveryFrame : register(b3)
+cbuffer CBChangesEveryFrame : register(b4)
 {
     matrix g_ViewProj;
     float3 g_EyePosW;
     float g_Pad2;
 }
 
-cbuffer CBChangesRarely : register(b4)
+cbuffer CBChangesOnResize : register(b5)
 {
+    matrix g_Proj;
+}
+
+cbuffer CBChangesRarely : register(b6)
+{
+    matrix g_Reflection;
+    matrix g_Shadow;
+    matrix g_RefShadow;
     DirectionalLight g_DirLight[5];
     PointLight g_PointLight[5];
     SpotLight g_SpotLight[5];

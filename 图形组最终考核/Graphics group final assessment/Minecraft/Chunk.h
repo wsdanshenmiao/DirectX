@@ -14,9 +14,9 @@
 
 namespace DSM {
 
-#define CHUNKHIGHEST 64		// 区块最高高度
-#define SEALEVEL 32			// 海平面
-#define CHUNKSIZE 12		// 区块长度
+#define CHUNKHIGHEST 256		// 区块最高高度
+#define SEALEVEL 64			// 海平面
+#define CHUNKSIZE 16		// 区块长度
 #define CHUNKRANGE 15		// 柏林噪声应用的幅度
 
 
@@ -36,7 +36,7 @@ public:
 	std::vector<BasicEffect::InstancedData>& GetStoneInstancedData();
 	std::vector<BasicEffect::InstancedData>& GetBedRockInstancedData();
 	std::vector<BasicEffect::InstancedData>& GetGressInstancedData();
-	float GetNoice(int x, int z);
+	static float GetNoice(int x, int z);
 	BlockId GetBlock(int x, int y, int z);
 
 	void SetBlock(int x, int y, int z, Block& block, TextureManager& tManager, ModelManager& mManager);
@@ -47,6 +47,7 @@ public:
 
 public:
 	static bool m_EnableFrustumCulling;				// 视锥体裁剪关闭
+	static int m_Seed;
 
 private:
 	DirectX::XMINT2 m_Positon;				// 区块坐标
@@ -54,7 +55,7 @@ private:
 	//std::vector<Block> m_Block;			// 区块中的方块
 	Block m_Block[5];						// 分别为空气，泥土，石头，基岩, 草方块
 
-	std::vector<BasicEffect::InstancedData> m_AcceptedData[4];             // 上传到实例缓冲区的数据
+	std::vector<BasicEffect::InstancedData> m_AcceptedData[4];					// 上传到实例缓冲区的数据
 	std::vector<BasicEffect::InstancedData> m_BlockInstancedData[4];			// 方块的实例数据
 	std::vector<Transform> m_BlockTransforms[4];								// 方块的变换
 	std::unique_ptr<Buffer> m_pInstancedBuffer[4];							    // 实例缓冲区

@@ -14,11 +14,14 @@
 #include <ModelManager.h>
 #include <TextureManager.h>
 #include <DirectXColors.h>
+#include <wincodec.h> // 使用ScreenGrab11.h需要
+#include <ScreenGrab11.h>
 #include "Block.h"
 #include "BlockModel.h"
 #include "Chunk.h"
 #include "Player.h"
 #include "MyCameraControl.h"
+#include "CherryTree.h"
 
 // 摄像机模式
 enum class CameraMode { FirstPerson, ThirdPerson, Free };
@@ -39,7 +42,12 @@ private:
 
     void InitSkybox();
     void InitCamara();
+    void InitMiniMap();
     void CameraTransform(float dt);
+    void ImGuiOperations(float dt);
+    void PlaceDestroyBlocks();
+    void DrawScene(ID3D11RenderTargetView* pRTV, ID3D11DepthStencilView* pDSV, const D3D11_VIEWPORT& viewport);
+
 
 private:
     TextureManager m_TextureManager;
@@ -47,33 +55,37 @@ private:
 
     BasicEffect m_BasicEffect;		            			    // 对象渲染特效管理
     SkyboxEffect m_SkyboxEffect;							    // 天空盒特效管理
+    PostProcessEffect m_PostProcessEffect;						// 后处理特效管理
 
     std::unique_ptr<Depth2D> m_pDepthTexture;                   // 深度缓冲区
+    std::unique_ptr<Texture2D> m_pMinimapTexture;               // 小地图纹理
+    std::unique_ptr<Texture2D> m_pLitTexture;                   // 中间场景缓冲区
 
     std::shared_ptr<FirstPersonCamera> m_pFCamera;			    // 第一人称摄像机
     std::shared_ptr<ThirdPersonCamera> m_pTCamera;              // 第三人称摄像机
     DSM::FreeCameraController m_FCameraControl;                 // 摄像机控制器 
-    DSM::FirstPersonCameraController m_FPCameraControl;
-    DSM::ThirdCameraController m_TCameraControl;
-    CameraMode m_CameraMode = CameraMode::Free;                                    // 摄像机模式
+    DSM::FirstPersonCameraController m_FPCameraControl;         // 第一人称控制器
+    DSM::ThirdCameraController m_TCameraControl;                // 第三人称控制器
+    CameraMode m_CameraMode = CameraMode::Free;                 // 摄像机模式
 
     ComPtr<ID3D11RasterizerState> m_pRState;	                // 光栅化状态
 
     GameObject m_Skybox;                                        // 天空盒
-    std::vector<DSM::Chunk> m_Chunk;                                 // 区块
-    DSM::Player m_Player;                                            // 玩家
+    std::vector<DSM::Chunk> m_Chunk;                            // 区块
+    DSM::Player m_Player;                                       // 玩家
+    DSM::CherryTree m_CherryTree;                               // 树
     
-    bool m_IsNight = false;
-    bool m_FogEnabled = false;                                  //  雾效
-    float m_FogStart = 5.0f;
-    float m_FogRange = 75.0f;                                    // 雾效范围
+    bool m_IsNight = false;                                     // 是否为黑夜
+    bool m_FogEnabled = false;                                  // 雾效
+    float m_FogStart = 5.0f;                                    // 雾效起点    
+    float m_FogRange = 75.0f;                                   // 雾效范围
 
     bool m_FadeUsed = true;                                     // 淡入淡出
     bool m_PrintScreenStarted = false;                          // 截取当前帧
-    float m_FadeCount = 0.0f;                                   
-    float m_FadeSign = 1.0f;
+    float m_FadeCount = 0.0f;                                   // 淡出系数
+    float m_FadeSign = 1.0f;                                    
 
-    std::vector<DSM::Block> m_Dirt;                                  // 泥土
+    std::vector<DSM::Block> m_Dirt;                              // 泥土
 
 };
 

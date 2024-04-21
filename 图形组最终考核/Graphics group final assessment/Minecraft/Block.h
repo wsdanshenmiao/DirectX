@@ -15,8 +15,8 @@ enum class BlockId
 	Dirt = 2,
 	Stone = 3,
 	BedRock = 4,
-	Wood = 5,
-	Leaf = 6,
+	CherryBlossomLog = 5,
+	CherryBlossomLeaves = 6,
 };
 
 // 方块类
