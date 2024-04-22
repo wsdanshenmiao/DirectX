@@ -80,6 +80,8 @@ void GameApp::UpdateScene(float dt)
         }
     }
 
+    DayAndNightChange(dt);
+    
     PlaceDestroyBlocks();
 
     CameraTransform(dt);    // 相机变换
@@ -114,13 +116,7 @@ void GameApp::DrawScene()
         minimapViewport);
 
     if (m_FadeUsed) {   // 绘制渐变过程
-        m_PostProcessEffect.RenderScreenFade(
-            m_pd3dImmediateContext.Get(),
-            m_pLitTexture->GetShaderResource(),
-            GetBackBufferRTV(),
-            m_pFCamera->GetViewPort(),
-            m_FadeCount
-        );
+        m_PostProcessEffect.RenderScreenFade(m_pd3dImmediateContext.Get(), m_pLitTexture->GetShaderResource(), GetBackBufferRTV(), m_pFCamera->GetViewPort(), m_FadeCount);
     }
 
     // 保存到output.dds和output.png中
@@ -164,7 +160,6 @@ bool GameApp::InitResource()
     XMINT4 treeRange(-radius * CHUNKSIZE, radius * CHUNKSIZE, -radius * CHUNKSIZE, radius * CHUNKSIZE);
     m_CherryTree.CreateRandomTree(treeRange, m_ModelManager, m_TextureManager);
 
-
     m_BasicEffect.SetFogState(m_FogEnabled);
     m_BasicEffect.SetFogStart(m_FogStart);
     m_BasicEffect.SetFogRange(m_FogRange);
@@ -173,14 +168,14 @@ bool GameApp::InitResource()
     // ******************
     // 初始化光栅化状态
     //  
-    D3D11_RASTERIZER_DESC rasterizerDesc;
-    ZeroMemory(&rasterizerDesc, sizeof(rasterizerDesc));
-    rasterizerDesc.FillMode = D3D11_FILL_SOLID;
-    rasterizerDesc.CullMode = D3D11_CULL_FRONT;
-    rasterizerDesc.FrontCounterClockwise = false;
-    rasterizerDesc.DepthClipEnable = true;
-    HR(m_pd3dDevice->CreateRasterizerState(&rasterizerDesc, m_pRState.GetAddressOf()));
-    m_pd3dImmediateContext->RSSetState(m_pRState.Get());
+    //D3D11_RASTERIZER_DESC rasterizerDesc;
+    //ZeroMemory(&rasterizerDesc, sizeof(rasterizerDesc));
+    //rasterizerDesc.FillMode = D3D11_FILL_SOLID;
+    //rasterizerDesc.CullMode = D3D11_CULL_FRONT;
+    //rasterizerDesc.FrontCounterClockwise = false;
+    //rasterizerDesc.DepthClipEnable = true;
+    //HR(m_pd3dDevice->CreateRasterizerState(&rasterizerDesc, m_pRState.GetAddressOf()));
+    //m_pd3dImmediateContext->RSSetState(m_pRState.Get());
 
     // 方向光
     DirectionalLight dirLight[4]{};
@@ -290,6 +285,38 @@ void GameApp::InitMiniMap()
 
 void GameApp::PlaceDestroyBlocks()
 {
+    //// 获取人物可能触及的物块
+    //XMINT2 inChunk;
+    //std::vector<Transform> blockTransform1;
+    //std::vector<Transform> blockTransform2;
+    //std::vector<Transform> blockTransform3;
+    //for (auto& chunk : m_Chunk) {
+    //    XMFLOAT3 cameraPosition = m_pFCamera->GetPosition();
+    //    XMINT2 chunkPosition = chunk.GetPositon();
+    //    if (chunkPosition.x < cameraPosition.x && cameraPosition.x < chunkPosition.x + CHUNKSIZE &&
+    //        chunkPosition.y < cameraPosition.z && cameraPosition.z < chunkPosition.y + CHUNKSIZE) {
+    //        inChunk = chunkPosition;
+    //        if (1 + BLOCKRANDOM + RAYRANGE < cameraPosition.y &&
+    //            cameraPosition.y < SEALEVEL - CHUNKRANGE - RAYRANGE - BLOCKRANDOM) {
+    //            blockTransform1 = chunk.GetStoneTranform();
+    //        }
+    //        else if (cameraPosition.y < 1) {
+    //            blockTransform1 = chunk.GetBedRockTranform();
+    //        }
+    //        else if (cameraPosition.y < SEALEVEL - CHUNKRANGE - RAYRANGE - BLOCKRANDOM) {
+    //            blockTransform1 = chunk.GetStoneTranform();
+    //            blockTransform2 = chunk.GetBedRockTranform();
+    //        }
+    //        else {
+    //            blockTransform1 = chunk.GetStoneTranform();
+    //            blockTransform2 = chunk.GetDirtTranform();
+    //            blockTransform3 = chunk.GetGressTranform();
+    //        }
+    //        break;
+    //    }
+    //}
+
+
     static size_t create = 0;
     //放置方块
     if (ImGui::IsMouseClicked(ImGuiMouseButton_Right) && ImGui::IsKeyDown(ImGuiKey_LeftShift)) {
@@ -437,15 +464,30 @@ void GameApp::DrawScene(ID3D11RenderTargetView* pRTV, ID3D11DepthStencilView* pD
 
     // 绘制天空盒
     m_SkyboxEffect.SetRenderDefault();
-    if (m_IsNight) {
-        m_SkyboxEffect.SetSkyCount(m_pd3dImmediateContext.Get(), 0.01f);
-    }
-    else {
-        m_SkyboxEffect.SetSkyCount(m_pd3dImmediateContext.Get(), 1.0f);
-    }
+    m_SkyboxEffect.SetSkyCount(m_pd3dImmediateContext.Get(), m_SkyColor);
     m_Skybox.Draw(m_pd3dImmediateContext.Get(), m_SkyboxEffect);
 
     pRTV = nullptr;
     m_pd3dImmediateContext->OMSetRenderTargets(1, &pRTV, nullptr);
 }
 
+void GameApp::DayAndNightChange(float dt)
+{
+
+    // 天空盒的昼夜更替
+    if (m_SkyColor > 0.1) {
+        m_SkyColor += m_SkySign * 0.1f * dt;
+    }
+    else if (m_SkyColor > 0.04) {
+        m_SkyColor += m_SkySign * 0.01f * dt;
+    }
+    else {
+        m_SkyColor += m_SkySign * 0.004f * dt;
+    }
+    if (m_SkyColor > 1.0f) {
+        m_SkySign = -1.0f;
+    }
+    else if (m_SkyColor < -0.05f) {
+        m_SkySign = 1.0f;
+    }
+}

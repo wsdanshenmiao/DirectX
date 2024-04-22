@@ -19,6 +19,7 @@ public:
 
 	void CreateRandomTree(const DirectX::XMINT4& range, ModelManager& mManager, TextureManager& tManager);
 	void CreateRandomTree(const int& minx, const int& maxx, const int& minz, const int& maxz, ModelManager& mManager, TextureManager& tManager);
+	void FrustumCulling(std::shared_ptr<FirstPersonCamera> camera);
 	void DrawTree(ID3D11Device* device, ID3D11DeviceContext* deviceContext, BasicEffect& effect, std::shared_ptr<FirstPersonCamera> camera);
 
 public:

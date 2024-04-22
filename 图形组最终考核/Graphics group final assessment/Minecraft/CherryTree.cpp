@@ -51,35 +51,39 @@ void CherryTree::CreateRandomTree(const int& minx, const int& maxx, const int& m
 	}
 }
 
+void CherryTree::FrustumCulling(std::shared_ptr<FirstPersonCamera> camera)
+{
+	m_WoodAcceptedData.clear();
+	m_LeaveAcceptedData.clear();
+	BoundingFrustum frustum;
+	BoundingFrustum::CreateFromMatrix(frustum, camera->GetProjMatrixXM());
+	XMMATRIX V = camera->GetViewMatrixXM();
+	BoundingOrientedBox localOrientedBox, orientedBox;
+	BoundingOrientedBox::CreateFromBoundingBox(localOrientedBox, m_CherryTreeWood.GetBlock().GetBoundingBox());
+	for (size_t i = 0; i < m_WoodInstancedData.size(); ++i) {
+		// 将有向包围盒从局部坐标系变换到视锥体所在的局部坐标系(观察坐标系)中
+		localOrientedBox.Transform(orientedBox, m_CherryTreeWoodTransforms[i].GetLocalToWorldMatrixXM() * V);
+		// 相交检测
+		if (frustum.Intersects(orientedBox)) {
+			m_WoodAcceptedData.push_back(m_WoodInstancedData[i]);
+		}
+	}
+	BoundingOrientedBox::CreateFromBoundingBox(localOrientedBox, m_CherryTreeLeave.GetBlock().GetBoundingBox());
+	for (size_t i = 0; i < m_LeaveInstancedData.size(); ++i) {
+		// 将有向包围盒从局部坐标系变换到视锥体所在的局部坐标系(观察坐标系)中
+		localOrientedBox.Transform(orientedBox, m_CherryTreeLeaveTransforms[i].GetLocalToWorldMatrixXM() * V);
+		// 相交检测
+		if (frustum.Intersects(orientedBox)) {
+			m_LeaveAcceptedData.push_back(m_LeaveInstancedData[i]);
+		}
+	}
+}
+
 void CherryTree::DrawTree(ID3D11Device* device, ID3D11DeviceContext* deviceContext, BasicEffect& effect, std::shared_ptr<FirstPersonCamera> camera)
 {
 	if (m_EnableTreeFC) {
-		m_WoodAcceptedData.clear();
-		m_LeaveAcceptedData.clear();
-		BoundingFrustum frustum;
-		BoundingFrustum::CreateFromMatrix(frustum, camera->GetProjMatrixXM());
-		XMMATRIX V = camera->GetViewMatrixXM();
-		BoundingOrientedBox localOrientedBox, orientedBox;
-		BoundingOrientedBox::CreateFromBoundingBox(localOrientedBox, m_CherryTreeWood.GetBlock().GetBoundingBox());
-		for (size_t i = 0; i < m_WoodInstancedData.size(); ++i) {
-			// 将有向包围盒从局部坐标系变换到视锥体所在的局部坐标系(观察坐标系)中
-			localOrientedBox.Transform(orientedBox, m_CherryTreeWoodTransforms[i].GetLocalToWorldMatrixXM() * V);
-			// 相交检测
-			if (frustum.Intersects(orientedBox)) {
-				m_WoodAcceptedData.push_back(m_WoodInstancedData[i]);
-			}
-		}
-		BoundingOrientedBox::CreateFromBoundingBox(localOrientedBox, m_CherryTreeLeave.GetBlock().GetBoundingBox());
-		for (size_t i = 0; i < m_LeaveInstancedData.size(); ++i) {
-			// 将有向包围盒从局部坐标系变换到视锥体所在的局部坐标系(观察坐标系)中
-			localOrientedBox.Transform(orientedBox, m_CherryTreeLeaveTransforms[i].GetLocalToWorldMatrixXM() * V);
-			// 相交检测
-			if (frustum.Intersects(orientedBox)) {
-				m_LeaveAcceptedData.push_back(m_LeaveInstancedData[i]);
-			}
-		}
+		FrustumCulling(camera);
 	}
-	
 	const auto& refData1 = m_EnableTreeFC ? m_WoodAcceptedData : m_WoodInstancedData;
 	m_pWoodInstancedBuffer = std::make_unique<Buffer>(device,
 		CD3D11_BUFFER_DESC(sizeof(BasicEffect::InstancedData) * refData1.size(), D3D11_BIND_VERTEX_BUFFER,

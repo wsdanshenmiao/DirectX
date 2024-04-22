@@ -23,6 +23,8 @@
 #include "MyCameraControl.h"
 #include "CherryTree.h"
 
+#define RAYRANGE 4
+
 // 摄像机模式
 enum class CameraMode { FirstPerson, ThirdPerson, Free };
 
@@ -47,6 +49,7 @@ private:
     void ImGuiOperations(float dt);
     void PlaceDestroyBlocks();
     void DrawScene(ID3D11RenderTargetView* pRTV, ID3D11DepthStencilView* pDSV, const D3D11_VIEWPORT& viewport);
+    void DayAndNightChange(float dt);
 
 
 private:
@@ -71,6 +74,9 @@ private:
     ComPtr<ID3D11RasterizerState> m_pRState;	                // 光栅化状态
 
     GameObject m_Skybox;                                        // 天空盒
+    float m_SkyColor = 1.0f;                                    // 天空的颜色，模拟时间天空昼夜
+    float m_SkySign = 1.0f;                                     // 天空颜色增减标志
+
     std::vector<DSM::Chunk> m_Chunk;                            // 区块
     DSM::Player m_Player;                                       // 玩家
     DSM::CherryTree m_CherryTree;                               // 树

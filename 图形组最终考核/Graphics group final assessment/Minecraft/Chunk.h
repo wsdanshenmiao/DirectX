@@ -14,10 +14,12 @@
 
 namespace DSM {
 
-#define CHUNKHIGHEST 256		// 区块最高高度
-#define SEALEVEL 64			// 海平面
+#define CHUNKHIGHEST 64		// 区块最高高度
+#define SEALEVEL 32			// 海平面
 #define CHUNKSIZE 16		// 区块长度
 #define CHUNKRANGE 15		// 柏林噪声应用的幅度
+#define DIRTTHICKNESS 10	// 泥土层的厚度
+#define BLOCKRANDOM 3		// 区块随机值
 
 
 class Chunk
@@ -36,11 +38,16 @@ public:
 	std::vector<BasicEffect::InstancedData>& GetStoneInstancedData();
 	std::vector<BasicEffect::InstancedData>& GetBedRockInstancedData();
 	std::vector<BasicEffect::InstancedData>& GetGressInstancedData();
+	std::vector<Transform>& GetDirtTranform();
+	std::vector<Transform>& GetStoneTranform();
+	std::vector<Transform>& GetBedRockTranform();
+	std::vector<Transform>& GetGressTranform();
 	static float GetNoice(int x, int z);
 	BlockId GetBlock(int x, int y, int z);
 
 	void SetBlock(int x, int y, int z, Block& block, TextureManager& tManager, ModelManager& mManager);
 	void LoadChunk(TextureManager& tManager, ModelManager& mManager);
+	void FrustumCulling(std::shared_ptr<FirstPersonCamera> camera);
 	
 	//void DrawChunk(ID3D11DeviceContext* deviceContext, IEffect& effect);
 	void DrawChunk(ID3D11Device* device, ID3D11DeviceContext* deviceContext, BasicEffect& effect, std::shared_ptr<FirstPersonCamera> camera);

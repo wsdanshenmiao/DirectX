@@ -63,6 +63,27 @@ std::vector<BasicEffect::InstancedData>& Chunk::GetGressInstancedData()
 	return Chunk::m_EnableFrustumCulling ? m_AcceptedData[3] : m_BlockInstancedData[3];
 }
 
+std::vector<Transform>& Chunk::GetDirtTranform()
+{
+	return m_BlockTransforms[0];
+}
+
+std::vector<Transform>& Chunk::GetStoneTranform()
+{
+	return m_BlockTransforms[1];
+}
+
+std::vector<Transform>& Chunk::GetBedRockTranform()
+{
+	return m_BlockTransforms[2];
+}
+
+std::vector<Transform>& Chunk:: GetGressTranform()
+{
+	return m_BlockTransforms[3];
+}
+
+
 // 生成不同频率的柏林噪声
 float Chunk::GetNoice(int x, int z)
 {
@@ -89,13 +110,13 @@ BlockId Chunk::GetBlock(int x, int y, int z)
 	std::random_device rd;
 	std::mt19937 gen(rd());
 	//指定随机数的类型和范围
-	std::uniform_int_distribution<size_t> dis(0, 3);
+	std::uniform_int_distribution<size_t> dis(0, BLOCKRANDOM);
 	// 获取的柏林噪声
 	float noice = GetNoice(x, z);
 	if (y < 1 + dis(gen)) {
 		return BlockId::BedRock;
 	}
-	else if (y < SEALEVEL - 10 + (int)(CHUNKRANGE * noice) + dis(gen)) {
+	else if (y < SEALEVEL - DIRTTHICKNESS + (int)(CHUNKRANGE * noice) + dis(gen)) {
 		return BlockId::Stone;
 	}
 	else if (y < SEALEVEL + (int)(CHUNKRANGE * noice)) {
@@ -224,25 +245,30 @@ void Chunk::LoadChunk(TextureManager& tManager, ModelManager& mManager)
 	}
 }
 
+void Chunk::FrustumCulling(std::shared_ptr<FirstPersonCamera> camera)
+{
+	for (int i = 0; i < 4; i++) {
+		m_AcceptedData[i].clear();
+		BoundingFrustum frustum;
+		BoundingFrustum::CreateFromMatrix(frustum, camera->GetProjMatrixXM());
+		XMMATRIX V = camera->GetViewMatrixXM();
+		BoundingOrientedBox localOrientedBox, orientedBox;
+		BoundingOrientedBox::CreateFromBoundingBox(localOrientedBox, m_Block->GetBlock().GetBoundingBox());
+		for (size_t j = 0; j < m_BlockInstancedData[i].size(); ++j) {
+			// 将有向包围盒从局部坐标系变换到视锥体所在的局部坐标系(观察坐标系)中
+			localOrientedBox.Transform(orientedBox, m_BlockTransforms[i][j].GetLocalToWorldMatrixXM() * V);
+			// 相交检测
+			if (frustum.Intersects(orientedBox)) {
+				m_AcceptedData[i].push_back(m_BlockInstancedData[i][j]);
+			}
+		}
+	}
+}
+
 void Chunk::DrawChunk(ID3D11Device* device, ID3D11DeviceContext* deviceContext, BasicEffect& effect, std::shared_ptr<FirstPersonCamera> camera)
 {
 	if (m_EnableFrustumCulling) {
-		for (int i = 0; i < 4; i++) {
-			m_AcceptedData[i].clear();
-			BoundingFrustum frustum;
-			BoundingFrustum::CreateFromMatrix(frustum, camera->GetProjMatrixXM());
-			XMMATRIX V = camera->GetViewMatrixXM();
-			BoundingOrientedBox localOrientedBox, orientedBox;
-			BoundingOrientedBox::CreateFromBoundingBox(localOrientedBox, m_Block->GetBlock().GetBoundingBox());
-			for (size_t j = 0; j < m_BlockInstancedData[i].size(); ++j) {
-				// 将有向包围盒从局部坐标系变换到视锥体所在的局部坐标系(观察坐标系)中
-				localOrientedBox.Transform(orientedBox, m_BlockTransforms[i][j].GetLocalToWorldMatrixXM() * V);
-				// 相交检测
-				if (frustum.Intersects(orientedBox)) {
-					m_AcceptedData[i].push_back(m_BlockInstancedData[i][j]);
-				}
-			}
-		}
+		FrustumCulling(camera);
 	}
 	for (int i = 0; i < 4; i++) {
 		const auto& refData = m_EnableFrustumCulling ? m_AcceptedData[i] : m_BlockInstancedData[i];
