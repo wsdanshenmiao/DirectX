@@ -2,6 +2,8 @@
 #define __MYCAMERACONTROL__H__
 
 #include "Camera.h"
+#include "Chunk.h"
+#include <vector>
 
 namespace DSM {
 
@@ -53,7 +55,8 @@ class FirstPersonCameraController : public CameraController
 {
 public:
     ~FirstPersonCameraController() override {};
-    void Update(float deltaTime) override;
+    void Update(float deltaTime) override {};
+    void Update(float deltaTime, std::vector<DSM::BlockId> containBlock);
 
     void InitCamera(FirstPersonCamera* pCamera);
 

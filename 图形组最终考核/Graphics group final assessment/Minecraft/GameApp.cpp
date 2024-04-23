@@ -77,6 +77,8 @@ void GameApp::UpdateScene(float dt)
         }
     }
 
+    XMFLOAT3 cameraPosition = m_pFCamera->GetPosition();
+
     // 获取人物可能触及的物块
     XMINT2 inChunk;
     std::vector<DSM::BlockId> containBlock;
@@ -87,10 +89,9 @@ void GameApp::UpdateScene(float dt)
     std::vector<BasicEffect::InstancedData> blockData2;
     std::vector<BasicEffect::InstancedData> blockData3;
     for (auto& chunk : m_Chunk) {
-        XMFLOAT3 cameraPosition = m_pFCamera->GetPosition();
         XMINT2 chunkPosition = chunk.GetPositon();
-        if (chunkPosition.x < cameraPosition.x && cameraPosition.x < chunkPosition.x + CHUNKSIZE &&
-            chunkPosition.y < cameraPosition.z && cameraPosition.z < chunkPosition.y + CHUNKSIZE) {
+        if (chunkPosition.x <= cameraPosition.x && cameraPosition.x <= chunkPosition.x + CHUNKSIZE &&
+            chunkPosition.y <= cameraPosition.z && cameraPosition.z <= chunkPosition.y + CHUNKSIZE) {
             inChunk = chunkPosition;
             containBlock = chunk.GetContainBlock();
             if (1 + BLOCKRANDOM + RAYRANGE < cameraPosition.y &&
@@ -120,11 +121,13 @@ void GameApp::UpdateScene(float dt)
         }
     }
 
+    
+
+    CameraTransform(dt, containBlock);
+
     DayAndNightChange(dt);
     
     PlaceDestroyBlocks();
-
-    CameraTransform(dt);    // 相机变换
 
     ImGuiOperations(dt);    // ImGui操作
 }
@@ -142,6 +145,7 @@ void GameApp::DrawScene()
     DrawScene(m_FadeUsed ? m_pLitTexture->GetRenderTarget() : GetBackBufferRTV(),
         m_pDepthTexture->GetDepthStencil(),
          m_pFCamera->GetViewPort());
+
 
     // 绘制小地图到场景
     CD3D11_VIEWPORT minimapViewport(
@@ -349,15 +353,23 @@ void GameApp::PlaceDestroyBlocks()
     }
 }
 
-void GameApp::CameraTransform(float dt)
+// 相机变换
+void GameApp::CameraTransform(float dt, std::vector<DSM::BlockId> containBlock)
 {
+    if (containBlock[(((int)m_pFCamera->GetPosition().y) - 2) * CHUNKSIZE * CHUNKSIZE +
+        (int)m_pFCamera->GetPosition().z * CHUNKSIZE + (int)m_pFCamera->GetPosition().x] != DSM::BlockId::Air) {
+        underType = "Ground";
+    }
+    else {
+        underType = "Air";
+    }
     // 获取玩家变换
     Transform& playerTransform = m_Player.GetEntity().GetTransform();
     XMFLOAT3 FCPosition = m_pFCamera->GetPosition();
     
     if (!(m_CameraMode == CameraMode::Free)) {
         m_TCameraControl.Update(dt);
-        m_FPCameraControl.Update(dt);
+        m_FPCameraControl.Update(dt, containBlock);
         XMFLOAT3 fPosition = m_pFCamera->GetPosition();
         playerTransform.SetPosition(fPosition.x, fPosition.y - 1.8f, fPosition.z);
         if (m_CameraMode == CameraMode::ThirdPerson) {
@@ -449,6 +461,12 @@ void GameApp::ImGuiOperations(float dt)
         }
         ImGui::SliderFloat("Speed", &m_Player.GetSpeed(), 0.5f, 5.0f);
         ImGui::SliderFloat("Third Person Distance", &thirdDistance, 2.0f, 6.0f);
+
+        ImGui::Text("X: %f",m_pFCamera->GetPosition().x);
+        ImGui::Text("Y: %f", m_pFCamera->GetPosition().y);
+        ImGui::Text("Z: %f", m_pFCamera->GetPosition().z);
+        ImGui::Text("underType: %s", underType);
+
         ImGui::End();
     }
     ImGui::Render();
@@ -470,6 +488,7 @@ void GameApp::DrawScene(ID3D11RenderTargetView* pRTV, ID3D11DepthStencilView* pD
     for (auto& chunk : m_Chunk) {
         chunk.DrawChunk(m_pd3dDevice.Get(), m_pd3dImmediateContext.Get(), m_BasicEffect, m_pFCamera);
     }
+    m_Player.GetEntity().Draw(m_pd3dImmediateContext.Get(), m_BasicEffect.Get());
 
     m_CherryTree.DrawTree(m_pd3dDevice.Get(), m_pd3dImmediateContext.Get(), m_BasicEffect, m_pFCamera);
 

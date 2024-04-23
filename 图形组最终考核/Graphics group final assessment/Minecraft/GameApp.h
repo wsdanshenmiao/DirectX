@@ -45,7 +45,7 @@ private:
     void InitSkybox();
     void InitCamara();
     void InitMiniMap();
-    void CameraTransform(float dt);
+    void CameraTransform(float dt, std::vector<DSM::BlockId> containBlock);
     void ImGuiOperations(float dt);
     void PlaceDestroyBlocks();
     void DrawScene(ID3D11RenderTargetView* pRTV, ID3D11DepthStencilView* pDSV, const D3D11_VIEWPORT& viewport);
@@ -77,12 +77,14 @@ private:
     float m_SkyColor = 1.0f;                                    // 天空的颜色，模拟时间天空昼夜
     float m_SkySign = 1.0f;                                     // 天空颜色增减标志
     DirectionalLight m_DirLight[4];                             // 方向光
-    float m_DiffuseSign = -1.0f;                                     // 天空颜色增减标志
+    float m_DiffuseSign = -1.0f;                                // 天空颜色增减标志
     float m_Diffuse = 0.5f;                                     // 方向光漫反射的系数
 
     std::vector<DSM::Chunk> m_Chunk;                            // 区块
-    DSM::Player m_Player;                                       // 玩家
     DSM::CherryTree m_CherryTree;                               // 树
+
+    DSM::Player m_Player;                                       // 玩家
+    float m_GAcceleration = 9.8;                                // 重力加速度
     
     bool m_IsNight = false;                                     // 是否为黑夜
     bool m_FogEnabled = false;                                  // 雾效
@@ -95,6 +97,11 @@ private:
     float m_FadeSign = 1.0f;                                    
 
     std::vector<DSM::Block> m_Dirt;                              // 泥土
+
+
+    const char* underType;
+
+
 
 };
 

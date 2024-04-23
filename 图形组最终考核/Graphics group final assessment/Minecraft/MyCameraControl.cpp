@@ -66,8 +66,20 @@ void FreeCameraController::SetMoveSpeed(float speed)
 
 
 
-void FirstPersonCameraController::Update(float deltaTime)
+void FirstPersonCameraController::Update(float deltaTime, std::vector<DSM::BlockId> containBlock)
 {
+    bool isHit = false;
+    bool onGround = false;
+    XMFLOAT3 cameraPosition = m_pCamera->GetPosition();
+    if (containBlock.empty() || 0 > cameraPosition.y || cameraPosition.y > CHUNKHIGHEST || 
+        containBlock[(int)cameraPosition.y * CHUNKSIZE * CHUNKSIZE +
+        (int)cameraPosition.z * CHUNKSIZE + (int)cameraPosition.x] != DSM::BlockId::Air) {
+        isHit = true;
+    }
+    if (containBlock[((int)cameraPosition.y - 2) * CHUNKSIZE * CHUNKSIZE +
+        (int)cameraPosition.z * CHUNKSIZE + (int)cameraPosition.x] != DSM::BlockId::Air) {
+        onGround = true;
+    }
     ImGuiIO& io = ImGui::GetIO();
     float yaw = 0.0f, pitch = 0.0f;
     if (ImGui::IsMouseDragging(ImGuiMouseButton_Right)){
@@ -84,9 +96,10 @@ void FirstPersonCameraController::Update(float deltaTime)
         (ImGui::IsKeyDown(ImGuiKey_A) ? -1 : 0) +
         (ImGui::IsKeyDown(ImGuiKey_D) ? 1 : 0)
         );
-    if (forward || strafe){
-        m_pCamera->Walk(forward * m_MoveSpeed * 0.016);
-        m_pCamera->Strafe(strafe * m_MoveSpeed * 0.016);
+    m_pCamera->Walk(forward * m_MoveSpeed * 0.016);
+    m_pCamera->Strafe(strafe * m_MoveSpeed * 0.016);
+    if (!onGround) {
+        m_pCamera->Translate(XMFLOAT3(0.0f, -1.0f, 0.0f), 0.04f);
     }
 }
 
