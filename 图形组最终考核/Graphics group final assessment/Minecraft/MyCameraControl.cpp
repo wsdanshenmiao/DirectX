@@ -76,7 +76,23 @@ void FirstPersonCameraController::Update(float deltaTime, std::vector<DSM::Block
         (int)cameraPosition.z * CHUNKSIZE + (int)cameraPosition.x] != DSM::BlockId::Air) {
         isHit = true;
     }
-    if (containBlock[((int)cameraPosition.y - 2) * CHUNKSIZE * CHUNKSIZE +
+    if (containBlock[(int)(cameraPosition.y - 1.8f) * CHUNKSIZE * CHUNKSIZE +
+        ((int)cameraPosition.z + 1) * CHUNKSIZE + (int)cameraPosition.x] != DSM::BlockId::Air ||
+        containBlock[(int)(cameraPosition.y - 1.8f) * CHUNKSIZE * CHUNKSIZE +
+        ((int)cameraPosition.z - 1) * CHUNKSIZE + (int)cameraPosition.x] != DSM::BlockId::Air ||
+        containBlock[(int)(cameraPosition.y - 1.8f) * CHUNKSIZE * CHUNKSIZE +
+        (int)cameraPosition.z * CHUNKSIZE + ((int)cameraPosition.x + 1)] != DSM::BlockId::Air ||
+        containBlock[(int)(cameraPosition.y - 1.8f) * CHUNKSIZE * CHUNKSIZE +
+        (int)cameraPosition.z * CHUNKSIZE + ((int)cameraPosition.x - 1)] != DSM::BlockId::Air ||
+        containBlock[(int)(cameraPosition.y - 1.8f) * CHUNKSIZE * CHUNKSIZE +
+        ((int)cameraPosition.z + 1) * CHUNKSIZE + ((int)cameraPosition.x + 1)] != DSM::BlockId::Air ||
+        containBlock[(int)(cameraPosition.y - 1.8f) * CHUNKSIZE * CHUNKSIZE +
+        ((int)cameraPosition.z - 1) * CHUNKSIZE + ((int)cameraPosition.x - 1)] != DSM::BlockId::Air ||
+        containBlock[(int)(cameraPosition.y - 1.8f) * CHUNKSIZE * CHUNKSIZE +
+        ((int)cameraPosition.z - 1) * CHUNKSIZE + ((int)cameraPosition.x + 1)] != DSM::BlockId::Air ||
+        containBlock[(int)(cameraPosition.y - 1.8f) * CHUNKSIZE * CHUNKSIZE +
+        ((int)cameraPosition.z + 1) * CHUNKSIZE + ((int)cameraPosition.x - 1)] != DSM::BlockId::Air ||
+        containBlock[(int)(cameraPosition.y - 1.8f) * CHUNKSIZE * CHUNKSIZE +
         (int)cameraPosition.z * CHUNKSIZE + (int)cameraPosition.x] != DSM::BlockId::Air) {
         onGround = true;
     }
