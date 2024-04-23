@@ -83,6 +83,10 @@ std::vector<Transform>& Chunk:: GetGressTranform()
 	return m_BlockTransforms[3];
 }
 
+std::vector<BlockId>& Chunk::GetContainBlock()
+{
+	return m_ContainBlock;
+}
 
 // 生成不同频率的柏林噪声
 float Chunk::GetNoice(int x, int z)
@@ -209,6 +213,8 @@ void Chunk::LoadChunk(TextureManager& tManager, ModelManager& mManager)
 	m_BlockInstancedData[0].reserve(256);
 	m_BlockTransforms[0].reserve(256);
 
+	m_ContainBlock.resize(CHUNKSIZE * CHUNKSIZE * CHUNKHIGHEST);
+
 	Transform transform;
 	size_t pos = 0;
 	for (int y = 0; y < CHUNKHIGHEST; y++) {	//每一层 16 * 16
@@ -222,22 +228,28 @@ void Chunk::LoadChunk(TextureManager& tManager, ModelManager& mManager)
 				XMStoreFloat4x4(&instanceData.world, XMMatrixTranspose(W));
 				XMStoreFloat4x4(&instanceData.worldInvTranspose, XMMatrixTranspose(XMath::InverseTranspose(W)));
 				switch (GetBlock(mx + x, y, mz + z)){
-				case BlockId::Air:break;
+				case BlockId::Air:
+					m_ContainBlock[y * CHUNKSIZE * CHUNKSIZE + z * CHUNKSIZE + x] = BlockId::Air;
+					break;
 				case BlockId::Dirt:
 					m_BlockTransforms[0].push_back(transform);
 					m_BlockInstancedData[0].push_back(instanceData);
+					m_ContainBlock[y * CHUNKSIZE * CHUNKSIZE + z * CHUNKSIZE + x] = BlockId::Dirt;
 					break;
 				case BlockId::Stone:
 					m_BlockTransforms[1].push_back(transform);
 					m_BlockInstancedData[1].push_back(instanceData);
+					m_ContainBlock[y * CHUNKSIZE * CHUNKSIZE + z * CHUNKSIZE + x] = BlockId::Stone;
 					break;
 				case BlockId::BedRock:
 					m_BlockTransforms[2].push_back(transform);
 					m_BlockInstancedData[2].push_back(instanceData);
+					m_ContainBlock[y * CHUNKSIZE * CHUNKSIZE + z * CHUNKSIZE + x] = BlockId::BedRock;
 					break;
 				case BlockId::Gress:
 					m_BlockTransforms[3].push_back(transform);
 					m_BlockInstancedData[3].push_back(instanceData);
+					m_ContainBlock[y * CHUNKSIZE * CHUNKSIZE + z * CHUNKSIZE + x] = BlockId::Gress;
 					break;
 				}
 			}

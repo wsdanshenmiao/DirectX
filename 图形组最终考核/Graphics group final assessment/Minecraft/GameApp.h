@@ -76,6 +76,9 @@ private:
     GameObject m_Skybox;                                        // 天空盒
     float m_SkyColor = 1.0f;                                    // 天空的颜色，模拟时间天空昼夜
     float m_SkySign = 1.0f;                                     // 天空颜色增减标志
+    DirectionalLight m_DirLight[4];                             // 方向光
+    float m_DiffuseSign = -1.0f;                                     // 天空颜色增减标志
+    float m_Diffuse = 0.5f;                                     // 方向光漫反射的系数
 
     std::vector<DSM::Chunk> m_Chunk;                            // 区块
     DSM::Player m_Player;                                       // 玩家

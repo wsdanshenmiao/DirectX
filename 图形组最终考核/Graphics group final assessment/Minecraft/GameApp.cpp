@@ -60,9 +60,6 @@ void GameApp::UpdateScene(float dt)
 
     //获取鼠标
     ImVec2 mousePos = ImGui::GetMousePos();
-    // std::clamp 用于将给定值限制在一定范围内
-    mousePos.x = std::clamp(mousePos.x, 0.0f, m_ClientWidth - 1.0f);
-    mousePos.y = std::clamp(mousePos.y, 0.0f, m_ClientHeight - 1.0f);
 
     // 将射线设置在鼠标处
     Ray ray = Ray::ScreenToRay(*m_pFCamera, mousePos.x, mousePos.y);
@@ -77,6 +74,49 @@ void GameApp::UpdateScene(float dt)
             m_FadeCount = 0.0f;
             SendMessage(MainWnd(), WM_DESTROY, 0, 0);	// 关闭程序
             // 这里不结束淡出是因为发送关闭窗口的消息还要过一会才真正关闭
+        }
+    }
+
+    // 获取人物可能触及的物块
+    XMINT2 inChunk;
+    std::vector<DSM::BlockId> containBlock;
+    std::vector<Transform> blockTransform1;
+    std::vector<Transform> blockTransform2;
+    std::vector<Transform> blockTransform3;
+    std::vector<BasicEffect::InstancedData> blockData1;
+    std::vector<BasicEffect::InstancedData> blockData2;
+    std::vector<BasicEffect::InstancedData> blockData3;
+    for (auto& chunk : m_Chunk) {
+        XMFLOAT3 cameraPosition = m_pFCamera->GetPosition();
+        XMINT2 chunkPosition = chunk.GetPositon();
+        if (chunkPosition.x < cameraPosition.x && cameraPosition.x < chunkPosition.x + CHUNKSIZE &&
+            chunkPosition.y < cameraPosition.z && cameraPosition.z < chunkPosition.y + CHUNKSIZE) {
+            inChunk = chunkPosition;
+            containBlock = chunk.GetContainBlock();
+            if (1 + BLOCKRANDOM + RAYRANGE < cameraPosition.y &&
+                cameraPosition.y < SEALEVEL - CHUNKRANGE - RAYRANGE - BLOCKRANDOM) {
+                blockTransform1 = chunk.GetStoneTranform();
+                blockData1 = chunk.GetStoneInstancedData();
+            }
+            else if (cameraPosition.y < 1) {
+                blockTransform1 = chunk.GetBedRockTranform();
+                blockData1 = chunk.GetBedRockInstancedData();
+            }
+            else if (cameraPosition.y < SEALEVEL - CHUNKRANGE - RAYRANGE - BLOCKRANDOM) {
+                blockTransform1 = chunk.GetStoneTranform();
+                blockTransform2 = chunk.GetBedRockTranform();
+                blockData1 = chunk.GetStoneInstancedData();
+                blockData1 = chunk.GetBedRockInstancedData();
+            }
+            else {
+                blockTransform1 = chunk.GetStoneTranform();
+                blockTransform2 = chunk.GetDirtTranform();
+                blockTransform3 = chunk.GetGressTranform();
+                blockData1 = chunk.GetStoneInstancedData();
+                blockData2 = chunk.GetDirtInstancedData();
+                blockData3 = chunk.GetDirtInstancedData();
+            }
+            break;
         }
     }
 
@@ -148,7 +188,7 @@ bool GameApp::InitResource()
     m_Player.SetModel(m_pFCamera, m_ModelManager);
 
     // 加载区块
-    int radius = 4;
+    int radius = 5;
     m_Chunk.resize(pow(radius * 2, 2));
     for (int i = -radius, pos = 0; i < radius; ++i) {
         for (int j = -radius; j < radius; ++j , ++pos) {
@@ -178,19 +218,18 @@ bool GameApp::InitResource()
     //m_pd3dImmediateContext->RSSetState(m_pRState.Get());
 
     // 方向光
-    DirectionalLight dirLight[4]{};
-    dirLight[0].ambient = XMFLOAT4(0.15f, 0.15f, 0.15f, 1.0f);
-    dirLight[0].diffuse = XMFLOAT4(0.5f, 0.5f, 0.5f, 1.0f);
-    dirLight[0].specular = XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);
-    dirLight[0].direction = XMFLOAT3(-0.577f, -0.577f, 0.577f);
-    dirLight[1] = dirLight[0];
-    dirLight[1].direction = XMFLOAT3(0.577f, -0.577f, 0.577f);
-    dirLight[2] = dirLight[0];
-    dirLight[2].direction = XMFLOAT3(0.577f, -0.577f, -0.577f);
-    dirLight[3] = dirLight[0];
-    dirLight[3].direction = XMFLOAT3(-0.577f, -0.577f, -0.577f);
+    m_DirLight[0].ambient = XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);
+    m_DirLight[0].diffuse = XMFLOAT4(m_Diffuse, m_Diffuse, m_Diffuse, 1.0f);
+    m_DirLight[0].specular = XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);
+    m_DirLight[0].direction = XMFLOAT3(-0.577f, -0.577f, 0.577f);
+    m_DirLight[1] = m_DirLight[0];
+    m_DirLight[1].direction = XMFLOAT3(0.577f, -0.577f, 0.577f);
+    m_DirLight[2] = m_DirLight[0];
+    m_DirLight[2].direction = XMFLOAT3(0.577f, -0.577f, -0.577f);
+    m_DirLight[3] = m_DirLight[0];
+    m_DirLight[3].direction = XMFLOAT3(-0.577f, -0.577f, -0.577f);
     for (int i = 0; i < 4; ++i)
-        m_BasicEffect.SetDirLight(i, dirLight[i]);
+        m_BasicEffect.SetDirLight(i, m_DirLight[i]);
 
     // 要最后初始化小地图
     InitMiniMap();
@@ -285,36 +324,7 @@ void GameApp::InitMiniMap()
 
 void GameApp::PlaceDestroyBlocks()
 {
-    //// 获取人物可能触及的物块
-    //XMINT2 inChunk;
-    //std::vector<Transform> blockTransform1;
-    //std::vector<Transform> blockTransform2;
-    //std::vector<Transform> blockTransform3;
-    //for (auto& chunk : m_Chunk) {
-    //    XMFLOAT3 cameraPosition = m_pFCamera->GetPosition();
-    //    XMINT2 chunkPosition = chunk.GetPositon();
-    //    if (chunkPosition.x < cameraPosition.x && cameraPosition.x < chunkPosition.x + CHUNKSIZE &&
-    //        chunkPosition.y < cameraPosition.z && cameraPosition.z < chunkPosition.y + CHUNKSIZE) {
-    //        inChunk = chunkPosition;
-    //        if (1 + BLOCKRANDOM + RAYRANGE < cameraPosition.y &&
-    //            cameraPosition.y < SEALEVEL - CHUNKRANGE - RAYRANGE - BLOCKRANDOM) {
-    //            blockTransform1 = chunk.GetStoneTranform();
-    //        }
-    //        else if (cameraPosition.y < 1) {
-    //            blockTransform1 = chunk.GetBedRockTranform();
-    //        }
-    //        else if (cameraPosition.y < SEALEVEL - CHUNKRANGE - RAYRANGE - BLOCKRANDOM) {
-    //            blockTransform1 = chunk.GetStoneTranform();
-    //            blockTransform2 = chunk.GetBedRockTranform();
-    //        }
-    //        else {
-    //            blockTransform1 = chunk.GetStoneTranform();
-    //            blockTransform2 = chunk.GetDirtTranform();
-    //            blockTransform3 = chunk.GetGressTranform();
-    //        }
-    //        break;
-    //    }
-    //}
+
 
 
     static size_t create = 0;
@@ -343,7 +353,8 @@ void GameApp::CameraTransform(float dt)
 {
     // 获取玩家变换
     Transform& playerTransform = m_Player.GetEntity().GetTransform();
-
+    XMFLOAT3 FCPosition = m_pFCamera->GetPosition();
+    
     if (!(m_CameraMode == CameraMode::Free)) {
         m_TCameraControl.Update(dt);
         m_FPCameraControl.Update(dt);
@@ -473,10 +484,24 @@ void GameApp::DrawScene(ID3D11RenderTargetView* pRTV, ID3D11DepthStencilView* pD
 
 void GameApp::DayAndNightChange(float dt)
 {
+    // 漫反射光的昼夜更替
+    m_Diffuse += m_DiffuseSign * 0.014 * dt;
+    if (m_Diffuse > 0.5f) {
+        m_DiffuseSign = -1.0f;
+    }
+    else if (m_Diffuse < 0.0f) {
+        m_DiffuseSign = 1.0f;
+    }
+    m_DirLight[0].diffuse = XMFLOAT4(m_Diffuse, m_Diffuse, m_Diffuse, 1.0f);
+    m_DirLight[1].diffuse = XMFLOAT4(m_Diffuse, m_Diffuse, m_Diffuse, 1.0f);
+    m_DirLight[2].diffuse = XMFLOAT4(m_Diffuse, m_Diffuse, m_Diffuse, 1.0f);
+    m_DirLight[3].diffuse = XMFLOAT4(m_Diffuse, m_Diffuse, m_Diffuse, 1.0f);
+    for (int i = 0; i < 4; ++i)
+        m_BasicEffect.SetDirLight(i, m_DirLight[i]);
 
     // 天空盒的昼夜更替
     if (m_SkyColor > 0.1) {
-        m_SkyColor += m_SkySign * 0.1f * dt;
+        m_SkyColor += m_SkySign * 0.06f * dt;
     }
     else if (m_SkyColor > 0.04) {
         m_SkyColor += m_SkySign * 0.01f * dt;
@@ -487,7 +512,7 @@ void GameApp::DayAndNightChange(float dt)
     if (m_SkyColor > 1.0f) {
         m_SkySign = -1.0f;
     }
-    else if (m_SkyColor < -0.05f) {
+    else if (m_SkyColor < -0.02f) {
         m_SkySign = 1.0f;
     }
 }

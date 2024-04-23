@@ -42,6 +42,7 @@ public:
 	std::vector<Transform>& GetStoneTranform();
 	std::vector<Transform>& GetBedRockTranform();
 	std::vector<Transform>& GetGressTranform();
+	std::vector<BlockId>& GetContainBlock();
 	static float GetNoice(int x, int z);
 	BlockId GetBlock(int x, int y, int z);
 
@@ -59,14 +60,15 @@ public:
 private:
 	DirectX::XMINT2 m_Positon;				// 区块坐标
 	bool m_Loading = false;					// 区块是否在加载
-	//std::vector<Block> m_Block;			// 区块中的方块
 	Block m_Block[5];						// 分别为空气，泥土，石头，基岩, 草方块
+	//std::vector<Block> m_Block;			// 区块中的方块
 
 	std::vector<BasicEffect::InstancedData> m_AcceptedData[4];					// 上传到实例缓冲区的数据
 	std::vector<BasicEffect::InstancedData> m_BlockInstancedData[4];			// 方块的实例数据
 	std::vector<Transform> m_BlockTransforms[4];								// 方块的变换
 	std::unique_ptr<Buffer> m_pInstancedBuffer[4];							    // 实例缓冲区
 
+	std::vector<BlockId> m_ContainBlock;										// 记录方块位置
 };
 
 }
