@@ -83,9 +83,9 @@ std::vector<Transform>& Chunk:: GetGressTranform()
 	return m_BlockTransforms[3];
 }
 
-std::vector<BlockId>& Chunk::GetContainBlock()
+std::vector<BlockId>& Chunk::GetBlockId()
 {
-	return m_ContainBlock;
+	return m_BlockId;
 }
 
 // 生成不同频率的柏林噪声
@@ -213,7 +213,7 @@ void Chunk::LoadChunk(TextureManager& tManager, ModelManager& mManager)
 	m_BlockInstancedData[0].reserve(256);
 	m_BlockTransforms[0].reserve(256);
 
-	m_ContainBlock.resize(CHUNKSIZE * CHUNKSIZE * CHUNKHIGHEST);
+	m_BlockId.resize(CHUNKSIZE * CHUNKSIZE * CHUNKHIGHEST);
 
 
 	Transform transform;
@@ -230,27 +230,27 @@ void Chunk::LoadChunk(TextureManager& tManager, ModelManager& mManager)
 				XMStoreFloat4x4(&instanceData.worldInvTranspose, XMMatrixTranspose(XMath::InverseTranspose(W)));
 				switch (GetBlock(mx + x, y, mz + z)){
 				case BlockId::Air:
-					m_ContainBlock[y * CHUNKSIZE * CHUNKSIZE + z * CHUNKSIZE + x] = BlockId::Air;
+					m_BlockId[y * CHUNKSIZE * CHUNKSIZE + z * CHUNKSIZE + x] = BlockId::Air;
 					break;
 				case BlockId::Dirt:
 					m_BlockTransforms[0].push_back(transform);
 					m_BlockInstancedData[0].push_back(instanceData);
-					m_ContainBlock[y * CHUNKSIZE * CHUNKSIZE + z * CHUNKSIZE + x] = BlockId::Dirt;
+					m_BlockId[y * CHUNKSIZE * CHUNKSIZE + z * CHUNKSIZE + x] = BlockId::Dirt;
 					break;
 				case BlockId::Stone:
 					m_BlockTransforms[1].push_back(transform);
 					m_BlockInstancedData[1].push_back(instanceData);
-					m_ContainBlock[y * CHUNKSIZE * CHUNKSIZE + z * CHUNKSIZE + x] = BlockId::Stone;
+					m_BlockId[y * CHUNKSIZE * CHUNKSIZE + z * CHUNKSIZE + x] = BlockId::Stone;
 					break;
 				case BlockId::BedRock:
 					m_BlockTransforms[2].push_back(transform);
 					m_BlockInstancedData[2].push_back(instanceData);
-					m_ContainBlock[y * CHUNKSIZE * CHUNKSIZE + z * CHUNKSIZE + x] = BlockId::BedRock;
+					m_BlockId[y * CHUNKSIZE * CHUNKSIZE + z * CHUNKSIZE + x] = BlockId::BedRock;
 					break;
 				case BlockId::Gress:
 					m_BlockTransforms[3].push_back(transform);
 					m_BlockInstancedData[3].push_back(instanceData);
-					m_ContainBlock[y * CHUNKSIZE * CHUNKSIZE + z * CHUNKSIZE + x] = BlockId::Gress;
+					m_BlockId[y * CHUNKSIZE * CHUNKSIZE + z * CHUNKSIZE + x] = BlockId::Gress;
 					break;
 				}
 			}

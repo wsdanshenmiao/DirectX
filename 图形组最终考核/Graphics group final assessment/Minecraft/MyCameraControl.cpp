@@ -68,31 +68,27 @@ void FreeCameraController::SetMoveSpeed(float speed)
 
 void FirstPersonCameraController::Update(float deltaTime, std::vector<DSM::BlockId> containBlock)
 {
+    static int jump = 0;
     bool isHit = false;
     bool onGround = false;
-    XMFLOAT3 cameraPosition = m_pCamera->GetPosition();
-    if (containBlock.empty() || 0 > cameraPosition.y || cameraPosition.y > CHUNKHIGHEST || 
-        containBlock[(int)cameraPosition.y * CHUNKSIZE * CHUNKSIZE +
-        (int)cameraPosition.z * CHUNKSIZE + (int)cameraPosition.x] != DSM::BlockId::Air) {
-        isHit = true;
-    }
-    if (containBlock[(int)(cameraPosition.y - 1.8f) * CHUNKSIZE * CHUNKSIZE +
+    XMFLOAT3 cameraPosition = m_pCamera->GetPosition();    
+    if (!containBlock.size() || containBlock[(int)(cameraPosition.y) * CHUNKSIZE * CHUNKSIZE +
         ((int)cameraPosition.z + 1) * CHUNKSIZE + (int)cameraPosition.x] != DSM::BlockId::Air ||
-        containBlock[(int)(cameraPosition.y - 1.8f) * CHUNKSIZE * CHUNKSIZE +
+        containBlock[(int)(cameraPosition.y) * CHUNKSIZE * CHUNKSIZE +
         ((int)cameraPosition.z - 1) * CHUNKSIZE + (int)cameraPosition.x] != DSM::BlockId::Air ||
-        containBlock[(int)(cameraPosition.y - 1.8f) * CHUNKSIZE * CHUNKSIZE +
+        containBlock[(int)(cameraPosition.y) * CHUNKSIZE * CHUNKSIZE +
         (int)cameraPosition.z * CHUNKSIZE + ((int)cameraPosition.x + 1)] != DSM::BlockId::Air ||
-        containBlock[(int)(cameraPosition.y - 1.8f) * CHUNKSIZE * CHUNKSIZE +
+        containBlock[(int)(cameraPosition.y) * CHUNKSIZE * CHUNKSIZE +
         (int)cameraPosition.z * CHUNKSIZE + ((int)cameraPosition.x - 1)] != DSM::BlockId::Air ||
-        containBlock[(int)(cameraPosition.y - 1.8f) * CHUNKSIZE * CHUNKSIZE +
+        containBlock[(int)(cameraPosition.y) * CHUNKSIZE * CHUNKSIZE +
         ((int)cameraPosition.z + 1) * CHUNKSIZE + ((int)cameraPosition.x + 1)] != DSM::BlockId::Air ||
-        containBlock[(int)(cameraPosition.y - 1.8f) * CHUNKSIZE * CHUNKSIZE +
+        containBlock[(int)(cameraPosition.y) * CHUNKSIZE * CHUNKSIZE +
         ((int)cameraPosition.z - 1) * CHUNKSIZE + ((int)cameraPosition.x - 1)] != DSM::BlockId::Air ||
-        containBlock[(int)(cameraPosition.y - 1.8f) * CHUNKSIZE * CHUNKSIZE +
+        containBlock[(int)(cameraPosition.y) * CHUNKSIZE * CHUNKSIZE +
         ((int)cameraPosition.z - 1) * CHUNKSIZE + ((int)cameraPosition.x + 1)] != DSM::BlockId::Air ||
-        containBlock[(int)(cameraPosition.y - 1.8f) * CHUNKSIZE * CHUNKSIZE +
+        containBlock[(int)(cameraPosition.y) * CHUNKSIZE * CHUNKSIZE +
         ((int)cameraPosition.z + 1) * CHUNKSIZE + ((int)cameraPosition.x - 1)] != DSM::BlockId::Air ||
-        containBlock[(int)(cameraPosition.y - 1.8f) * CHUNKSIZE * CHUNKSIZE +
+        containBlock[(int)(cameraPosition.y) * CHUNKSIZE * CHUNKSIZE +
         (int)cameraPosition.z * CHUNKSIZE + (int)cameraPosition.x] != DSM::BlockId::Air) {
         onGround = true;
     }
@@ -114,8 +110,15 @@ void FirstPersonCameraController::Update(float deltaTime, std::vector<DSM::Block
         );
     m_pCamera->Walk(forward * m_MoveSpeed * 0.016);
     m_pCamera->Strafe(strafe * m_MoveSpeed * 0.016);
-    if (!onGround) {
+    if (ImGui::IsKeyDown(ImGuiKey_Space) && onGround) {
+        jump = 50;
+    }
+    if (!onGround && jump <= 0) {
         m_pCamera->Translate(XMFLOAT3(0.0f, -1.0f, 0.0f), 0.04f);
+    }
+    if (jump > 0) {
+        m_pCamera->Translate(XMFLOAT3(0.0f, 1.0f, 0.0f), 0.04f);
+        jump--;
     }
 }
 

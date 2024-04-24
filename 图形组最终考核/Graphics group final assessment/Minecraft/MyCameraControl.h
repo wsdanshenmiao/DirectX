@@ -3,6 +3,7 @@
 
 #include "Camera.h"
 #include "Chunk.h"
+#include "CpuTimer.h"
 #include <vector>
 
 namespace DSM {

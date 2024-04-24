@@ -93,7 +93,7 @@ void GameApp::UpdateScene(float dt)
         if (chunkPosition.x <= cameraPosition.x && cameraPosition.x <= chunkPosition.x + CHUNKSIZE &&
             chunkPosition.y <= cameraPosition.z && cameraPosition.z <= chunkPosition.y + CHUNKSIZE) {
             inChunk = chunkPosition;
-            containBlock = chunk.GetContainBlock();
+            containBlock = chunk.GetBlockId();
             if (1 + BLOCKRANDOM + RAYRANGE < cameraPosition.y &&
                 cameraPosition.y < SEALEVEL - CHUNKRANGE - RAYRANGE - BLOCKRANDOM) {
                 blockTransform1 = chunk.GetStoneTranform();
@@ -121,7 +121,7 @@ void GameApp::UpdateScene(float dt)
         }
     }
 
-    
+    m_Enemy.FindPlayer(m_Player.GetEntity().GetTransform().GetPosition());
 
     CameraTransform(dt, containBlock);
 
@@ -190,6 +190,7 @@ bool GameApp::InitResource()
     InitCamara();
 
     m_Player.SetModel(m_pFCamera, m_ModelManager);
+    m_Enemy.SetModel(m_ModelManager);
 
     // 加载区块
     int radius = 5;
@@ -204,10 +205,6 @@ bool GameApp::InitResource()
     XMINT4 treeRange(-radius * CHUNKSIZE, radius * CHUNKSIZE, -radius * CHUNKSIZE, radius * CHUNKSIZE);
     m_CherryTree.CreateRandomTree(treeRange, m_ModelManager, m_TextureManager);
 
-    m_BasicEffect.SetFogState(m_FogEnabled);
-    m_BasicEffect.SetFogStart(m_FogStart);
-    m_BasicEffect.SetFogRange(m_FogRange);
-    m_BasicEffect.SetFogColor(XMFLOAT4(0.75f, 0.75f, 0.75f, 1.0f));
 
     // ******************
     // 初始化光栅化状态
@@ -237,6 +234,13 @@ bool GameApp::InitResource()
 
     // 要最后初始化小地图
     InitMiniMap();
+
+    m_FogEnabled = true;
+    m_BasicEffect.SetFogState(m_FogEnabled);
+    m_BasicEffect.SetFogStart(m_FogStart);
+    m_BasicEffect.SetFogRange(m_FogRange);
+    m_BasicEffect.SetFogColor(XMFLOAT4(0.75f, 0.75f, 0.75f, 1.0f));
+
 
     return true;
 }
@@ -328,9 +332,6 @@ void GameApp::InitMiniMap()
 
 void GameApp::PlaceDestroyBlocks()
 {
-
-
-
     static size_t create = 0;
     //放置方块
     if (ImGui::IsMouseClicked(ImGuiMouseButton_Right) && ImGui::IsKeyDown(ImGuiKey_LeftShift)) {
@@ -356,13 +357,6 @@ void GameApp::PlaceDestroyBlocks()
 // 相机变换
 void GameApp::CameraTransform(float dt, std::vector<DSM::BlockId> containBlock)
 {
-    if (containBlock[(((int)m_pFCamera->GetPosition().y) - 2) * CHUNKSIZE * CHUNKSIZE +
-        (int)m_pFCamera->GetPosition().z * CHUNKSIZE + (int)m_pFCamera->GetPosition().x] != DSM::BlockId::Air) {
-        underType = "Ground";
-    }
-    else {
-        underType = "Air";
-    }
     // 获取玩家变换
     Transform& playerTransform = m_Player.GetEntity().GetTransform();
     XMFLOAT3 FCPosition = m_pFCamera->GetPosition();
@@ -465,7 +459,6 @@ void GameApp::ImGuiOperations(float dt)
         ImGui::Text("X: %f",m_pFCamera->GetPosition().x);
         ImGui::Text("Y: %f", m_pFCamera->GetPosition().y);
         ImGui::Text("Z: %f", m_pFCamera->GetPosition().z);
-        ImGui::Text("underType: %s", underType);
 
         ImGui::End();
     }
@@ -489,6 +482,7 @@ void GameApp::DrawScene(ID3D11RenderTargetView* pRTV, ID3D11DepthStencilView* pD
         chunk.DrawChunk(m_pd3dDevice.Get(), m_pd3dImmediateContext.Get(), m_BasicEffect, m_pFCamera);
     }
     m_Player.GetEntity().Draw(m_pd3dImmediateContext.Get(), m_BasicEffect.Get());
+    m_Enemy.GetEntity().Draw(m_pd3dImmediateContext.Get(), m_BasicEffect.Get());
 
     m_CherryTree.DrawTree(m_pd3dDevice.Get(), m_pd3dImmediateContext.Get(), m_BasicEffect, m_pFCamera);
 

@@ -22,6 +22,7 @@
 #include "Player.h"
 #include "MyCameraControl.h"
 #include "CherryTree.h"
+#include "Enemy.h"
 
 #define RAYRANGE 4
 
@@ -84,12 +85,12 @@ private:
     DSM::CherryTree m_CherryTree;                               // 树
 
     DSM::Player m_Player;                                       // 玩家
-    float m_GAcceleration = 9.8;                                // 重力加速度
+    DSM::Enemy m_Enemy;                                         // 敌人
     
     bool m_IsNight = false;                                     // 是否为黑夜
     bool m_FogEnabled = false;                                  // 雾效
     float m_FogStart = 5.0f;                                    // 雾效起点    
-    float m_FogRange = 75.0f;                                   // 雾效范围
+    float m_FogRange = 100.0f;                                  // 雾效范围
 
     bool m_FadeUsed = true;                                     // 淡入淡出
     bool m_PrintScreenStarted = false;                          // 截取当前帧
@@ -99,7 +100,6 @@ private:
     std::vector<DSM::Block> m_Dirt;                              // 泥土
 
 
-    const char* underType;
 
 
 

@@ -42,7 +42,7 @@ public:
 	std::vector<Transform>& GetStoneTranform();
 	std::vector<Transform>& GetBedRockTranform();
 	std::vector<Transform>& GetGressTranform();
-	std::vector<BlockId>& GetContainBlock();
+	std::vector<DSM::BlockId>& GetBlockId();
 	static float GetNoice(int x, int z);
 	BlockId GetBlock(int x, int y, int z);
 
@@ -68,7 +68,7 @@ private:
 	std::vector<Transform> m_BlockTransforms[4];								// 方块的变换
 	std::unique_ptr<Buffer> m_pInstancedBuffer[4];							    // 实例缓冲区
 
-	std::vector<BlockId> m_ContainBlock;										// 记录方块位置
+	std::vector<DSM::BlockId> m_BlockId;										// 记录方块位置
 };
 
 }
