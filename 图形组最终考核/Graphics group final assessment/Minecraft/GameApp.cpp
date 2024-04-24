@@ -193,7 +193,7 @@ bool GameApp::InitResource()
     InitCamara();
 
     m_Player.SetModel(m_pFCamera, m_ModelManager);
-    m_Enemy.SetModel(m_ModelManager);
+    m_Enemy.SetModel(m_TextureManager, m_ModelManager);
 
     // 加载区块
     int radius = 5;
@@ -214,14 +214,6 @@ bool GameApp::InitResource()
     // ******************
     // 初始化光栅化状态
     //  
-    //D3D11_RASTERIZER_DESC rasterizerDesc;
-    //ZeroMemory(&rasterizerDesc, sizeof(rasterizerDesc));
-    //rasterizerDesc.FillMode = D3D11_FILL_SOLID;
-    //rasterizerDesc.CullMode = D3D11_CULL_FRONT;
-    //rasterizerDesc.FrontCounterClockwise = false;
-    //rasterizerDesc.DepthClipEnable = true;
-    //HR(m_pd3dDevice->CreateRasterizerState(&rasterizerDesc, m_pRState.GetAddressOf()));
-    //m_pd3dImmediateContext->RSSetState(m_pRState.Get());
 
     // 方向光
     m_DirLight[0].ambient = XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);

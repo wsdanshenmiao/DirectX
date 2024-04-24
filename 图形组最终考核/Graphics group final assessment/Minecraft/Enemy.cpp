@@ -19,13 +19,28 @@ void Enemy::SetPosition(const XMFLOAT3& position)
 	m_Entity.GetTransform().SetPosition(position);
 }
 
-void Enemy::SetModel(ModelManager& modelManager)
+void Enemy::SetModel(TextureManager& tManager, ModelManager& modelManager)
 {
 	Model* pModel = modelManager.CreateFromFile("..\\Model\\Enemy.obj");
 	pModel->SetDebugObjectName("Enemy");
 	m_Entity.SetModel(pModel);
 	m_Entity.GetTransform().SetScale(0.125f, 0.125f, 0.125f);
 	m_Entity.GetTransform().SetPosition(-5.0f, SEALEVEL + (int)(CHUNKRANGE * DSM::Chunk::GetNoice(-5, -5)) + 0.5f, -5.0f);
+
+	pModel = modelManager.CreateFromGeometry("Lifebar", Geometry::CreatePlane(1.5f, 0.15f));
+	tManager.CreateFromFile("..\\Texture\\entity\\100.png");
+	pModel->SetDebugObjectName("Lifebar");
+	pModel->materials[0].Set<std::string>("$Diffuse", "..\\Texture\\entity\\100.png");
+	pModel->materials[0].Set<XMFLOAT4>("$AmbientColor", XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f));
+	pModel->materials[0].Set<XMFLOAT4>("$DiffuseColor", XMFLOAT4(0.2f, 0.2f, 0.2f, 1.0f));
+	pModel->materials[0].Set<XMFLOAT4>("$SpecularColor", XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f));
+	pModel->materials[0].Set<float>("$SpecularPower", 16.0f);
+	pModel->materials[0].Set<XMFLOAT4>("$ReflectColor", XMFLOAT4());
+	m_Lifebar.SetModel(pModel);
+	XMFLOAT3 entieyPosition = m_Entity.GetTransform().GetPosition();
+	m_Lifebar.GetTransform().SetPosition(entieyPosition.x, entieyPosition.y + 2.2f, entieyPosition.z);
+	XMFLOAT3 right = m_Entity.GetTransform().GetRightAxis();
+	m_Lifebar.GetTransform().SetRotation(-right.x, -right.y, -right.z);
 }
 
 void Enemy::FindPlayer(DirectX::XMFLOAT3 playerPosition)
@@ -35,59 +50,21 @@ void Enemy::FindPlayer(DirectX::XMFLOAT3 playerPosition)
 	XMVECTOR directionVec = XMVector3Normalize(XMLoadFloat3(&float3));
 	XMStoreFloat3(&m_AzimuthTrack, directionVec);
 	enemyTransform.LookTo(XMFLOAT3(-m_AzimuthTrack.x, -m_AzimuthTrack.y, -m_AzimuthTrack.z));
-	enemyTransform.Translate(m_AzimuthTrack, 0.03f);
+	enemyTransform.Translate(m_AzimuthTrack, 0.032f);
+	XMFLOAT3 entieyPosition = m_Entity.GetTransform().GetPosition();
+	XMFLOAT3 up = m_Entity.GetTransform().GetUpAxis();
+	m_Lifebar.GetTransform().SetPosition(entieyPosition.x + up.x * 2.2f, entieyPosition.y + up.y * 2.2f, entieyPosition.z + up.z * 2.2f);
+	m_Lifebar.GetTransform().LookTo(XMFLOAT3(-m_AzimuthTrack.x, -m_AzimuthTrack.y + XM_PI, -m_AzimuthTrack.z));
 }
+
+template <class T>
+using ComPtr = Microsoft::WRL::ComPtr<T>;
 
 void Enemy::DrawEnemy(ID3D11Device* device, ID3D11DeviceContext* deviceContext, BasicEffect& effect)
 {
 	m_Entity.Draw(deviceContext, effect);
 
-    // 初始化树纹理资源
-    HR(CreateTexture2DArrayFromFile(
-        device,
-        deviceContext,
-        std::vector<std::wstring>{
-        L"..\\Texture\\Tree\\tree0.dds",
-            L"..\\Texture\\Tree\\tree1.dds",
-            L"..\\Texture\\Tree\\tree2.dds",
-            L"..\\Texture\\Tree\\tree3.dds"},
-        nullptr,
-        m_LifebarTexArray.GetAddressOf()));
-    effect.SetTextureArray(m_LifebarTexArray.Get());
-
-
-    srand((unsigned)time(nullptr));
-    VertexPosSize vertexes[16];
-    float theta = 0.0f;
-    for (int i = 0; i < 16; ++i)
-    {
-        // 取20-50的半径放置随机的树
-        float radius = (float)(rand() % 31 + 20);
-        float randomRad = rand() % 256 / 256.0f * XM_2PI / 16;
-        vertexes[i].pos = XMFLOAT3(radius * cosf(theta + randomRad), 36.0f, radius * sinf(theta + randomRad));
-        vertexes[i].size = XMFLOAT2(30.0f, 30.0f);
-        theta += XM_2PI / 16;
-    }
-
-    // 设置顶点缓冲区描述
-    D3D11_BUFFER_DESC vbd;
-    ZeroMemory(&vbd, sizeof(vbd));
-    vbd.Usage = D3D11_USAGE_IMMUTABLE;	// 数据不可修改
-    vbd.ByteWidth = sizeof(vertexes);
-    vbd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-    vbd.CPUAccessFlags = 0;
-    // 新建顶点缓冲区
-    D3D11_SUBRESOURCE_DATA InitData;
-    ZeroMemory(&InitData, sizeof(InitData));
-    InitData.pSysMem = vertexes;
-    HR(device->CreateBuffer(&vbd, &InitData, m_PointSpritesBuffer.GetAddressOf()));
-
-    effect.SetRenderBillboard(deviceContext, true);
-    UINT stride = sizeof(VertexPosSize);
-    UINT offset = 0;
-    deviceContext->IASetVertexBuffers(0, 1, m_PointSpritesBuffer.GetAddressOf(), &stride, &offset);
-    effect.Apply(deviceContext);
-    deviceContext->Draw(16, 0);
+	m_Lifebar.Draw(deviceContext, effect);
 
 }
 

@@ -20,6 +20,7 @@
 #include <Material.h>
 #include <MeshData.h>
 #include <LightHelper.h>
+#include "d3dUtil.h"
 
 
 class BasicEffect : public IEffect, public IEffectTransform,

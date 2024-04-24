@@ -23,17 +23,13 @@ public:
 	DirectX::XMFLOAT3 GetPosition();
 
 	void SetPosition(const DirectX::XMFLOAT3& position);
-	void SetModel(ModelManager& modelManager);
+	void SetModel(TextureManager& tManager, ModelManager& modelManager);
 	void FindPlayer(DirectX::XMFLOAT3 playerPosition);
 	void DrawEnemy(ID3D11Device* device, ID3D11DeviceContext* deviceContext, BasicEffect& effect);
 
 private:
 	DirectX::XMFLOAT3 m_AzimuthTrack;					// 敌人与玩家的相对位置
-
-	template <class T>
-	using ComPtr = Microsoft::WRL::ComPtr<T>;
-	ComPtr<ID3D11Buffer> m_PointSpritesBuffer;				    // 点精灵顶点缓冲区
-	ComPtr<ID3D11ShaderResourceView> m_LifebarTexArray;			    // 血条的纹理数组
+	GameObject m_Lifebar;								// 血条
 };
 
 
