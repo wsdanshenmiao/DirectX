@@ -86,6 +86,7 @@ private:
 
     DSM::Player m_Player;                                       // 玩家
     DSM::Enemy m_Enemy;                                         // 敌人
+    bool m_EnemyTrack = false;                                  // 敌人追踪
     
     bool m_IsNight = false;                                     // 是否为黑夜
     bool m_FogEnabled = false;                                  // 雾效

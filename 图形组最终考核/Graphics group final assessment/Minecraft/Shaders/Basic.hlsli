@@ -1,5 +1,7 @@
 #include "LightHelper.hlsli"
 
+Texture2D g_Tex : register(t0);
+Texture2DArray g_TexArray : register(t1);
 Texture2D g_DiffuseMap : register(t0);
 SamplerState g_Sam : register(s0);
 
@@ -82,3 +84,17 @@ struct InstancePosNormalTex
     matrix worldInvTranspose : WorldInvTranspose;
 };
 
+struct BillboardVertex
+{
+    float4 posH : SV_POSITION;
+    float3 posW : POSITION;
+    float3 normalW : NORMAL;
+    float2 tex : TEXCOORD;
+    uint PrimID : SV_PrimitiveID;
+};
+
+struct PointSprite
+{
+    float3 posW : POSITION;
+    float2 SizeW : SIZE;
+};

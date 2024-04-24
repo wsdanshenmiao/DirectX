@@ -73,6 +73,9 @@ public:
     // 默认状态来绘制
     void SetRenderDefault();
 
+    // 公告板绘制
+    void SetRenderBillboard(ID3D11DeviceContext* deviceContext, bool enableAlphaToCoverage);
+
     // 绘制实例
     void DrawInstanced(ID3D11DeviceContext* deviceContext, Buffer& instancedBuffer, const GameObject& object, uint32_t numObjects);
 

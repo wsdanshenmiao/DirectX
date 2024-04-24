@@ -4,9 +4,9 @@ using namespace DirectX;
 
 namespace DSM {
 
-Enemy::Enemy(const XMFLOAT3& position)
+Enemy::Enemy()
 {
-	SetPosition(position);
+
 }
 
 XMFLOAT3& Enemy::GetAzimuthTrack()
@@ -30,7 +30,7 @@ void Enemy::SetModel(ModelManager& modelManager)
 	pModel->SetDebugObjectName("Enemy");
 	m_Entity.SetModel(pModel);
 	m_Entity.GetTransform().SetScale(0.125f, 0.125f, 0.125f);
-	m_Entity.GetTransform().SetPosition(0.0f, 34.0f, 0.0f);
+	m_Entity.GetTransform().SetPosition(-5.0f, SEALEVEL + (int)(CHUNKRANGE * DSM::Chunk::GetNoice(-5, -5)) + 0.5f, -5.0f);
 }
 
 void Enemy::FindPlayer(DirectX::XMFLOAT3 playerPosition)
@@ -42,5 +42,23 @@ void Enemy::FindPlayer(DirectX::XMFLOAT3 playerPosition)
 	enemyTransform.LookTo(XMFLOAT3(-m_AzimuthTrack.x, -m_AzimuthTrack.y, -m_AzimuthTrack.z));
 	enemyTransform.Translate(m_AzimuthTrack, 0.03f);
 }
+
+void Enemy::DrawEnemy(ID3D11DeviceContext* deviceContext, IEffect& effect)
+{
+	// »æÖÆÑªÌõ
+	//effect.SetRenderBillboard(m_pd3dImmediateContext.Get(), m_EnableAlphaToCoverage);
+	//effect.SetMaterial(m_TreeMat);
+	//UINT stride = sizeof(VertexPosSize);
+	//UINT offset = 0;
+	//m_pd3dImmediateContext->IASetVertexBuffers(0, 1, mPointSpritesBuffer.GetAddressOf(), &stride, &offset);
+	//effect.Apply(m_pd3dImmediateContext.Get());
+	//m_pd3dImmediateContext->Draw(16, 0);
+
+	m_Entity.Draw(deviceContext, effect);
+}
+
+
+
+
 
 }
