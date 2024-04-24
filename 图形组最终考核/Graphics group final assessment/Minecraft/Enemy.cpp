@@ -14,23 +14,28 @@ DirectX::XMFLOAT3 Enemy::GetPosition()
 	return m_Entity.GetTransform().GetPosition();
 }
 
+int& Enemy::GetHP()
+{
+	return m_HP;
+}
+
 void Enemy::SetPosition(const XMFLOAT3& position)
 {
 	m_Entity.GetTransform().SetPosition(position);
 }
 
-void Enemy::SetModel(TextureManager& tManager, ModelManager& modelManager)
+void Enemy::SetModel(TextureManager& tManager, ModelManager& mManager)
 {
-	Model* pModel = modelManager.CreateFromFile("..\\Model\\Enemy.obj");
+	Model* pModel = mManager.CreateFromFile("..\\Model\\Enemy.obj");
 	pModel->SetDebugObjectName("Enemy");
 	m_Entity.SetModel(pModel);
 	m_Entity.GetTransform().SetScale(0.125f, 0.125f, 0.125f);
 	m_Entity.GetTransform().SetPosition(-5.0f, SEALEVEL + (int)(CHUNKRANGE * DSM::Chunk::GetNoice(-5, -5)) + 0.5f, -5.0f);
 
-	pModel = modelManager.CreateFromGeometry("Lifebar", Geometry::CreatePlane(1.5f, 0.15f));
-	tManager.CreateFromFile("..\\Texture\\entity\\100.png");
-	pModel->SetDebugObjectName("Lifebar");
-	pModel->materials[0].Set<std::string>("$Diffuse", "..\\Texture\\entity\\100.png");
+	pModel = mManager.CreateFromGeometry("Lifebar1", Geometry::CreatePlane(1.5f, 0.15f));
+	tManager.CreateFromFile("..\\Texture\\entity\\1.png");
+	pModel->SetDebugObjectName("Lifebar1");
+	pModel->materials[0].Set<std::string>("$Diffuse", "..\\Texture\\entity\\1.png");
 	pModel->materials[0].Set<XMFLOAT4>("$AmbientColor", XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f));
 	pModel->materials[0].Set<XMFLOAT4>("$DiffuseColor", XMFLOAT4(0.2f, 0.2f, 0.2f, 1.0f));
 	pModel->materials[0].Set<XMFLOAT4>("$SpecularColor", XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f));
@@ -57,15 +62,40 @@ void Enemy::FindPlayer(DirectX::XMFLOAT3 playerPosition)
 	m_Lifebar.GetTransform().LookTo(XMFLOAT3(-m_AzimuthTrack.x, -m_AzimuthTrack.y + XM_PI, -m_AzimuthTrack.z));
 }
 
-template <class T>
-using ComPtr = Microsoft::WRL::ComPtr<T>;
+void Enemy::LoadEnemy(TextureManager& tManager, ModelManager& mManager)
+{
+	if (m_HP == 2) {
+		Model* pModel = mManager.CreateFromGeometry("Lifebar2", Geometry::CreatePlane(1.5f, 0.15f));
+		tManager.CreateFromFile("..\\Texture\\entity\\2.png");
+		pModel->SetDebugObjectName("Lifebar2");
+		pModel->materials[0].Set<std::string>("$Diffuse", "..\\Texture\\entity\\2.png");
+		pModel->materials[0].Set<XMFLOAT4>("$AmbientColor", XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f));
+		pModel->materials[0].Set<XMFLOAT4>("$DiffuseColor", XMFLOAT4(0.2f, 0.2f, 0.2f, 1.0f));
+		pModel->materials[0].Set<XMFLOAT4>("$SpecularColor", XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f));
+		pModel->materials[0].Set<float>("$SpecularPower", 16.0f);
+		pModel->materials[0].Set<XMFLOAT4>("$ReflectColor", XMFLOAT4());
+		m_Lifebar.SetModel(pModel);
+	}
+	else if (m_HP == 1) {
+		Model* pModel = mManager.CreateFromGeometry("Lifebar3", Geometry::CreatePlane(1.5f, 0.15f));
+		tManager.CreateFromFile("..\\Texture\\entity\\3.png");
+		pModel->SetDebugObjectName("Lifebar3");
+		pModel->materials[0].Set<std::string>("$Diffuse", "..\\Texture\\entity\\3.png");
+		pModel->materials[0].Set<XMFLOAT4>("$AmbientColor", XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f));
+		pModel->materials[0].Set<XMFLOAT4>("$DiffuseColor", XMFLOAT4(0.2f, 0.2f, 0.2f, 1.0f));
+		pModel->materials[0].Set<XMFLOAT4>("$SpecularColor", XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f));
+		pModel->materials[0].Set<float>("$SpecularPower", 16.0f);
+		pModel->materials[0].Set<XMFLOAT4>("$ReflectColor", XMFLOAT4());
+		m_Lifebar.SetModel(pModel);
+	}
+}
 
 void Enemy::DrawEnemy(ID3D11Device* device, ID3D11DeviceContext* deviceContext, BasicEffect& effect)
 {
-	m_Entity.Draw(deviceContext, effect);
-
-	m_Lifebar.Draw(deviceContext, effect);
-
+	if (m_HP > 0) {
+		m_Entity.Draw(deviceContext, effect);
+		m_Lifebar.Draw(deviceContext, effect);
+	}
 }
 
 

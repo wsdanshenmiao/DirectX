@@ -64,6 +64,10 @@ void GameApp::UpdateScene(float dt)
     // 将射线设置在鼠标处
     Ray ray = Ray::ScreenToRay(*m_pFCamera, mousePos.x, mousePos.y);
 
+    if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && ray.Hit(m_Enemy.GetEntity().GetBoundingBox(), nullptr, 6.0f)) {
+        --m_Enemy.GetHP();
+    }
+
     if (m_FadeUsed) {
         m_FadeCount += m_FadeSign * dt / 2.0f;	// 2s时间淡入/淡出
         if (m_FadeSign > 0.0f && m_FadeCount > 1.0f) {  //开机淡入
@@ -80,6 +84,7 @@ void GameApp::UpdateScene(float dt)
     if (m_EnemyTrack) {
         m_Enemy.FindPlayer(m_Player.GetEntity().GetTransform().GetPosition());
     }
+    m_Enemy.LoadEnemy(m_TextureManager, m_ModelManager);
 
     XMFLOAT3 cameraPosition = m_pFCamera->GetPosition();
 
