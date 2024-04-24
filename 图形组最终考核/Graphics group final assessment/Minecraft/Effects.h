@@ -60,6 +60,10 @@ public:
 
     void SetMaterial(const Material& material) override;
 
+    void SetTexture(ID3D11ShaderResourceView* texture);
+
+    void SetTextureArray(ID3D11ShaderResourceView* textures);
+
     //
     // IEffectMeshData
     //

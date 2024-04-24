@@ -488,7 +488,7 @@ void GameApp::DrawScene(ID3D11RenderTargetView* pRTV, ID3D11DepthStencilView* pD
         chunk.DrawChunk(m_pd3dDevice.Get(), m_pd3dImmediateContext.Get(), m_BasicEffect, m_pFCamera);
     }
     m_Player.GetEntity().Draw(m_pd3dImmediateContext.Get(), m_BasicEffect.Get());
-    m_Enemy.DrawEnemy(m_pd3dImmediateContext.Get(), m_BasicEffect.Get());
+    m_Enemy.DrawEnemy(m_pd3dDevice.Get(), m_pd3dImmediateContext.Get(), m_BasicEffect.Get());
 
     m_CherryTree.DrawTree(m_pd3dDevice.Get(), m_pd3dImmediateContext.Get(), m_BasicEffect, m_pFCamera);
 
