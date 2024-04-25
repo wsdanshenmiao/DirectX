@@ -99,6 +99,7 @@ private:
     float m_FadeSign = 1.0f;                                    
 
     std::vector<DSM::Block> m_Dirt;                              // 泥土
+    size_t m_SoilNum = 64;
 
 
 

@@ -58,15 +58,6 @@ void GameApp::UpdateScene(float dt)
     //获取io
     ImGuiIO& io = ImGui::GetIO();
 
-    //获取鼠标
-    ImVec2 mousePos = ImGui::GetMousePos();
-
-    // 将射线设置在鼠标处
-    Ray ray = Ray::ScreenToRay(*m_pFCamera, mousePos.x, mousePos.y);
-
-    if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && ray.Hit(m_Enemy.GetEntity().GetBoundingBox(), nullptr, 6.0f)) {
-        --m_Enemy.GetHP();
-    }
 
     if (m_FadeUsed) {
         m_FadeCount += m_FadeSign * dt / 2.0f;	// 2s时间淡入/淡出
@@ -130,12 +121,13 @@ void GameApp::UpdateScene(float dt)
         }
     }
 
+    PlaceDestroyBlocks();
+
 
     CameraTransform(dt, containBlock);
 
     DayAndNightChange(dt);
     
-    PlaceDestroyBlocks();
 
     ImGuiOperations(dt);    // ImGui操作
 }
@@ -181,9 +173,6 @@ void GameApp::DrawScene()
         m_PrintScreenStarted = false;
     }
 
-    for (auto& dirt : m_Dirt) {
-        dirt.GetBlock().Draw(m_pd3dImmediateContext.Get(), m_BasicEffect);
-    }
 
     ID3D11RenderTargetView* pRTVs[] = { GetBackBufferRTV() };
     m_pd3dImmediateContext->OMSetRenderTargets(1, pRTVs, nullptr);
@@ -213,7 +202,9 @@ bool GameApp::InitResource()
     XMINT4 treeRange(-radius * CHUNKSIZE, radius * CHUNKSIZE, -radius * CHUNKSIZE, radius * CHUNKSIZE);
     m_CherryTree.CreateRandomTree(treeRange, m_ModelManager, m_TextureManager);
 
-
+    GameObject object;
+    object.SetModel(nullptr);
+    m_Dirt.resize(64, DSM::Block(object, DSM::BlockId::Dirt));
     
 
     // ******************
@@ -233,7 +224,7 @@ bool GameApp::InitResource()
     m_DirLight[3].direction = XMFLOAT3(-0.577f, -0.577f, -0.577f);
     for (int i = 0; i < 4; ++i)
         m_BasicEffect.SetDirLight(i, m_DirLight[i]);
-
+    
     // 要最后初始化小地图
     InitMiniMap();
 
@@ -334,15 +325,31 @@ void GameApp::InitMiniMap()
 
 void GameApp::PlaceDestroyBlocks()
 {
+    //获取鼠标
+    ImVec2 mousePos = ImGui::GetMousePos();
+
+    // 将射线设置在鼠标处
+    Ray ray = Ray::ScreenToRay(*m_pFCamera, mousePos.x, mousePos.y);
+
+
+    if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && ray.Hit(m_Enemy.GetEntity().GetBoundingBox(), nullptr, 6.0f)) {
+        --m_Enemy.GetHP();
+    }
     static size_t create = 0;
+    for (size_t i = 0; i < m_SoilNum && m_Dirt[create].GetBlock().GetModel(); i++) {
+        if (!m_Dirt[i].GetBlock().GetModel()) {
+            create = i;
+            break;
+        }
+    }
     //放置方块
     if (ImGui::IsMouseClicked(ImGuiMouseButton_Right) && ImGui::IsKeyDown(ImGuiKey_LeftShift)) {
         bool Placing = true;
         GameObject tmpObject;
-        tmpObject.SetModel(DSM::BlockModel().GetStoneModel(m_TextureManager.Get(), m_ModelManager.Get()));
+        tmpObject.SetModel(DSM::BlockModel().GetDirtModel(m_TextureManager.Get(), m_ModelManager.Get()));
         DirectX::XMFLOAT3 position = m_pFCamera->GetPosition();
         DirectX::XMFLOAT3 lookAxis = m_pFCamera->GetLookAxis();
-        tmpObject.GetTransform().SetPosition(position.x + lookAxis.x * 5, position.y + lookAxis.y * 5, position.z + lookAxis.z * 5);
+        tmpObject.GetTransform().SetPosition(position.x + lookAxis.x * 4, position.y + lookAxis.y * 4, position.z + lookAxis.z * 4);
         for (size_t i = 0; i < m_Dirt.size(); i++) {
             if (m_Dirt[i].GetBlock().GetModel() && m_Dirt[i].GetBlock().GetBoundingBox().Intersects(tmpObject.GetBoundingBox())) {
                 Placing = false;
@@ -350,8 +357,16 @@ void GameApp::PlaceDestroyBlocks()
             }
         }
         if (Placing) {
-            m_Dirt.push_back(DSM::Block(tmpObject, DSM::BlockId::Dirt));
+            m_Dirt[create] = (DSM::Block(tmpObject, DSM::BlockId::Dirt));
             create++;
+        }
+    }
+    if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+        for (size_t i = 0; i < m_SoilNum; i++) {
+            if (ray.Hit(m_Dirt[i].GetBlock().GetBoundingBox(), nullptr, 6.0f)) {
+                m_Dirt[i].GetBlock().SetModel(nullptr);
+                create = i;
+            }
         }
     }
 }
@@ -488,6 +503,12 @@ void GameApp::DrawScene(ID3D11RenderTargetView* pRTV, ID3D11DepthStencilView* pD
     m_Enemy.DrawEnemy(m_pd3dDevice.Get(), m_pd3dImmediateContext.Get(), m_BasicEffect.Get());
 
     m_CherryTree.DrawTree(m_pd3dDevice.Get(), m_pd3dImmediateContext.Get(), m_BasicEffect, m_pFCamera);
+
+    for (auto& dirt : m_Dirt) {
+        if (dirt.GetBlock().GetModel()) {
+            dirt.GetBlock().Draw(m_pd3dImmediateContext.Get(), m_BasicEffect);
+        }
+    }
 
     // 绘制天空盒
     m_SkyboxEffect.SetRenderDefault();

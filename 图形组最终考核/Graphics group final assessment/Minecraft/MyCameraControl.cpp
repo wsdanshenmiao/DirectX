@@ -114,7 +114,7 @@ void FirstPersonCameraController::Update(float deltaTime, std::vector<DSM::Block
         jump = 50;
     }
     if (!onGround && jump <= 0) {
-        m_pCamera->Translate(XMFLOAT3(0.0f, -1.0f, 0.0f), 0.04f);
+        m_pCamera->Translate(XMFLOAT3(0.0f, -1.0f, 0.0f), 0.06f);
     }
     if (jump > 0) {
         m_pCamera->Translate(XMFLOAT3(0.0f, 1.0f, 0.0f), 0.04f);

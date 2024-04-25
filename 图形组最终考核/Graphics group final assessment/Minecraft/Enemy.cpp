@@ -50,12 +50,15 @@ void Enemy::SetModel(TextureManager& tManager, ModelManager& mManager)
 
 void Enemy::FindPlayer(DirectX::XMFLOAT3 playerPosition)
 {
+	// 获取敌人和玩家的相对位置
 	Transform& enemyTransform = m_Entity.GetTransform();
 	XMFLOAT3 float3(XMFLOAT3(playerPosition.x - GetPosition().x, playerPosition.y - GetPosition().y, playerPosition.z - GetPosition().z));
 	XMVECTOR directionVec = XMVector3Normalize(XMLoadFloat3(&float3));
 	XMStoreFloat3(&m_AzimuthTrack, directionVec);
+	// 是敌人始终朝向玩家
 	enemyTransform.LookTo(XMFLOAT3(-m_AzimuthTrack.x, -m_AzimuthTrack.y, -m_AzimuthTrack.z));
-	enemyTransform.Translate(m_AzimuthTrack, 0.032f);
+	enemyTransform.Translate(m_AzimuthTrack, 0.016f * m_Speed);
+	// 使血条朝向玩家并在敌人头顶
 	XMFLOAT3 entieyPosition = m_Entity.GetTransform().GetPosition();
 	XMFLOAT3 up = m_Entity.GetTransform().GetUpAxis();
 	m_Lifebar.GetTransform().SetPosition(entieyPosition.x + up.x * 2.2f, entieyPosition.y + up.y * 2.2f, entieyPosition.z + up.z * 2.2f);

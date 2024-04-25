@@ -32,7 +32,7 @@ public:
 private:
 	DirectX::XMFLOAT3 m_AzimuthTrack;					// 敌人与玩家的相对位置
 	GameObject m_Lifebar;								// 血条
-	int m_HP = 3;											// 血量
+	int m_HP = 3;										// 血量
 };
 
 
