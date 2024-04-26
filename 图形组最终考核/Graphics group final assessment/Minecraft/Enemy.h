@@ -27,10 +27,11 @@ public:
 	int& GetHP();
 
 	void SetPosition(const DirectX::XMFLOAT3& position);
+	void SetPosition(float x, float y, float z);
 	void SetModel(TextureManager& tManager, ModelManager& modelManager);
 	void LoadEnemy(TextureManager& tManager, ModelManager& mManager);
 	void FindPlayer(DirectX::XMFLOAT3 playerPosition);
-	void DrawEnemy(ID3D11Device* device, ID3D11DeviceContext* deviceContext, BasicEffect& effect);
+	void DrawEnemy(ID3D11DeviceContext* deviceContext, BasicEffect& effect);
 
 private:
 	DirectX::XMFLOAT3 m_AzimuthTrack;					// 敌人与玩家的相对位置

@@ -51,6 +51,7 @@ private:
     void PlaceDestroyBlocks();
     void DrawScene(ID3D11RenderTargetView* pRTV, ID3D11DepthStencilView* pDSV, const D3D11_VIEWPORT& viewport);
     void DayAndNightChange(float dt);
+    void EnemyManagement();
 
 
 private:
@@ -82,7 +83,7 @@ private:
     float m_Diffuse = 0.5f;                                     // 方向光漫反射的系数
 
     std::vector<DSM::Chunk> m_Chunk;                            // 区块
-    int m_Radius = 4;                                           // 区块半径
+    int m_Radius = 3;                                           // 区块半径
     DSM::CherryTree m_CherryTree;                               // 树
 
     DSM::Player m_Player;                                       // 玩家

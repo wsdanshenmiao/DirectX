@@ -22,6 +22,16 @@ int& Enemy::GetHP()
 void Enemy::SetPosition(const XMFLOAT3& position)
 {
 	m_Entity.GetTransform().SetPosition(position);
+	// 使血条朝向玩家并在敌人头顶
+	XMFLOAT3 entieyPosition = m_Entity.GetTransform().GetPosition();
+	m_Lifebar.GetTransform().SetPosition(entieyPosition.x, entieyPosition.y + 2.2f, entieyPosition.z);
+	XMFLOAT3 right = m_Entity.GetTransform().GetRightAxis();
+	m_Lifebar.GetTransform().SetRotation(-right.x, -right.y, -right.z);
+}
+
+void Enemy::SetPosition(float x, float y, float z)
+{
+	SetPosition(XMFLOAT3(x, y, z));
 }
 
 void Enemy::SetModel(TextureManager& tManager, ModelManager& mManager)
@@ -30,7 +40,6 @@ void Enemy::SetModel(TextureManager& tManager, ModelManager& mManager)
 	pModel->SetDebugObjectName("Enemy");
 	m_Entity.SetModel(pModel);
 	m_Entity.GetTransform().SetScale(0.125f, 0.125f, 0.125f);
-	m_Entity.GetTransform().SetPosition(-5.0f, SEALEVEL + (int)(CHUNKRANGE * DSM::Chunk::GetNoice(-5, -5)) + 0.5f, -5.0f);
 
 	pModel = mManager.CreateFromGeometry("Lifebar1", Geometry::CreatePlane(1.5f, 0.15f));
 	tManager.CreateFromFile("..\\Texture\\entity\\1.png");
@@ -55,7 +64,7 @@ void Enemy::FindPlayer(DirectX::XMFLOAT3 playerPosition)
 	XMFLOAT3 float3(XMFLOAT3(playerPosition.x - GetPosition().x, playerPosition.y - GetPosition().y, playerPosition.z - GetPosition().z));
 	XMVECTOR directionVec = XMVector3Normalize(XMLoadFloat3(&float3));
 	XMStoreFloat3(&m_AzimuthTrack, directionVec);
-	// 是敌人始终朝向玩家
+	// 使敌人始终朝向玩家
 	enemyTransform.LookTo(XMFLOAT3(-m_AzimuthTrack.x, -m_AzimuthTrack.y, -m_AzimuthTrack.z));
 	enemyTransform.Translate(m_AzimuthTrack, 0.016f * m_Speed);
 	// 使血条朝向玩家并在敌人头顶
@@ -93,7 +102,7 @@ void Enemy::LoadEnemy(TextureManager& tManager, ModelManager& mManager)
 	}
 }
 
-void Enemy::DrawEnemy(ID3D11Device* device, ID3D11DeviceContext* deviceContext, BasicEffect& effect)
+void Enemy::DrawEnemy(ID3D11DeviceContext* deviceContext, BasicEffect& effect)
 {
 	if (m_HP > 0) {
 		m_Entity.Draw(deviceContext, effect);

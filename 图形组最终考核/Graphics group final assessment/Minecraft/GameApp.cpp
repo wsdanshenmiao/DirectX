@@ -113,6 +113,8 @@ void GameApp::UpdateScene(float dt)
         }
     }
 
+    EnemyManagement();
+
     PlaceDestroyBlocks();
 
     CameraTransform(dt, containBlock);
@@ -213,8 +215,10 @@ bool GameApp::InitResource()
     for (int i = 0; i < 4; ++i)
         m_BasicEffect.SetDirLight(i, m_DirLight[i]);
     
+    m_CherryTree.m_EnableTreeFC = false;
     // 要最后初始化小地图
     InitMiniMap();
+    m_CherryTree.m_EnableTreeFC = true;
 
     m_FogEnabled = true;
     m_BasicEffect.SetFogState(m_FogEnabled);
@@ -311,34 +315,13 @@ void GameApp::InitMiniMap()
 }
 
 
+// 放置与破坏方块
 void GameApp::PlaceDestroyBlocks()
 {
     //获取鼠标
     ImVec2 mousePos = ImGui::GetMousePos();
-
     // 将射线设置在鼠标处
     Ray ray = Ray::ScreenToRay(*m_pFCamera, mousePos.x, mousePos.y);
-
-    for (auto& enemy : m_Enemy) {
-        if (m_EnemyTrack) {
-            enemy.FindPlayer(m_Player.GetEntity().GetTransform().GetPosition());
-        }
-        enemy.LoadEnemy(m_TextureManager, m_ModelManager);
-    }
-    for (std::vector<DSM::Enemy>::iterator it = m_Enemy.begin(); it != m_Enemy.end(); ++it) {
-        if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && ray.Hit((*it).GetEntity().GetBoundingBox(), nullptr, 6.0f)) {
-            --(*it).GetHP();
-            if ((*it).GetHP() <= 0) {
-                m_Enemy.erase(it);
-                break;
-            }
-        }
-    }
-    if (m_IsNight && m_Enemy.size() < 10) {
-        DSM::Enemy enemy;
-        enemy.SetModel(m_TextureManager, m_ModelManager);
-        m_Enemy.push_back(enemy);
-    }
 
     static size_t create = 0;
     for (size_t i = 0; i < m_SoilNum && m_Dirt[create].GetBlock().GetModel(); i++) {
@@ -375,6 +358,7 @@ void GameApp::PlaceDestroyBlocks()
         }
     }
 }
+
 
 // 相机变换
 void GameApp::CameraTransform(float dt, std::vector<DSM::BlockId> containBlock)
@@ -416,6 +400,8 @@ void GameApp::CameraTransform(float dt, std::vector<DSM::BlockId> containBlock)
     }
 }
 
+
+// ImGui操作
 void GameApp::ImGuiOperations(float dt)
 {
     static float thirdDistance = 3.5f;
@@ -458,21 +444,16 @@ void GameApp::ImGuiOperations(float dt)
                 m_BasicEffect.SetFogStart(15.0f);
             }
             else {
+                if (m_Diffuse < 0.15f) {
+                    m_IsNight = true;
+                }
+                else {
+                    m_IsNight = false;
+                }
                 m_BasicEffect.SetFogColor(XMFLOAT4(m_Diffuse - 0.1f, m_Diffuse - 0.1f, m_Diffuse - 0.1f, 1.0f));
                 m_BasicEffect.SetFogStart(10.0f);
-
-                //if (m_SkyColor < 0.1f) {
-                //    m_IsNight = true;
-                //    m_BasicEffect.SetFogColor(XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f));
-                //    m_BasicEffect.SetFogStart(5.0f);
-                //}
-                //else {
-                //    m_IsNight = false;
-                //    m_BasicEffect.SetFogColor(XMFLOAT4(0.75f, 0.75f, 0.75f, 1.0f));
-                //    m_BasicEffect.SetFogStart(15.0f);
-                //}
             }
-            if (ImGui::SliderFloat("Fog Range", &m_FogRange, 15.0f, 175.0f, "%.0f")) {
+            if (ImGui::SliderFloat("Fog Range", &m_FogRange, 40.0f, 175.0f, "%.0f")) {
                 m_BasicEffect.SetFogRange(m_FogRange);
             }
             float fog_start = m_IsNight ? 5.0f : 15.0f;
@@ -509,6 +490,9 @@ void GameApp::ImGuiOperations(float dt)
     m_FPCameraControl.SetMoveSpeed(m_Player.GetSpeed());
 }
 
+
+
+// 绘制主要场景
 void GameApp::DrawScene(ID3D11RenderTargetView* pRTV, ID3D11DepthStencilView* pDSV, const D3D11_VIEWPORT& viewport)
 {
     m_pd3dImmediateContext->ClearRenderTargetView(pRTV, reinterpret_cast<const float*>(&Colors::Pink));
@@ -522,7 +506,7 @@ void GameApp::DrawScene(ID3D11RenderTargetView* pRTV, ID3D11DepthStencilView* pD
     }
      m_Player.GetEntity().Draw(m_pd3dImmediateContext.Get(), m_BasicEffect.Get());
      for (auto& enemy : m_Enemy) {
-         enemy.DrawEnemy(m_pd3dDevice.Get(), m_pd3dImmediateContext.Get(), m_BasicEffect.Get());
+         enemy.DrawEnemy(m_pd3dImmediateContext.Get(), m_BasicEffect.Get());
      }
 
      m_CherryTree.DrawTree(m_pd3dDevice.Get(), m_pd3dImmediateContext.Get(), m_BasicEffect, m_pFCamera);
@@ -542,6 +526,9 @@ void GameApp::DrawScene(ID3D11RenderTargetView* pRTV, ID3D11DepthStencilView* pD
     m_pd3dImmediateContext->OMSetRenderTargets(1, &pRTV, nullptr);
 }
 
+
+
+// 昼夜更替
 void GameApp::DayAndNightChange(float dt)
 {
     // 漫反射光的昼夜更替
@@ -574,5 +561,46 @@ void GameApp::DayAndNightChange(float dt)
     }
     else if (m_SkyColor < -0.02f) {
         m_SkySign = 1.0f;
+    }
+}
+
+void GameApp::EnemyManagement()
+{
+    ImVec2 mousePos = ImGui::GetMousePos();
+    Ray ray = Ray::ScreenToRay(*m_pFCamera, mousePos.x, mousePos.y);
+
+    // 加载敌人
+    for (auto& enemy : m_Enemy) {
+        if (m_EnemyTrack) {
+            enemy.FindPlayer(m_Player.GetEntity().GetTransform().GetPosition());
+        }
+        enemy.LoadEnemy(m_TextureManager, m_ModelManager);
+    }
+    // 血量扣除
+    for (std::vector<DSM::Enemy>::iterator it = m_Enemy.begin(); it != m_Enemy.end(); ++it) {
+        if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && ray.Hit((*it).GetEntity().GetBoundingBox(), nullptr, 6.0f)) {
+            --(*it).GetHP();
+            if ((*it).GetHP() <= 0) {
+                m_Enemy.erase(it);
+                break;
+            }
+        }
+    }
+    // 夜晚生成敌人
+    if (m_IsNight && m_Enemy.size() < 10) {
+        std::mt19937 random;	// 梅森旋转
+        random.seed(DSM::Chunk::m_Seed);	// 设置种子
+        for (int i = 0; i < 10; i++) {
+            DSM::Enemy enemy;
+            enemy.SetModel(m_TextureManager, m_ModelManager);
+            std::uniform_real<float> randomDistX(-50.f, 50.f);
+            std::uniform_real<float> randomDistZ(-50.f, 50.f);
+            XMFLOAT3 playerPosition = m_Player.GetEntity().GetTransform().GetPosition();
+            int X = (int)(playerPosition.x + randomDistX(random));
+            int Z = (int)(playerPosition.y + randomDistZ(random));
+            int Y = SEALEVEL + (int)(CHUNKRANGE * DSM::Chunk::GetNoice(X, Z) + 0.2f);
+            enemy.SetPosition(X, Y, Z);
+            m_Enemy.push_back(std::move(enemy));
+        }
     }
 }
