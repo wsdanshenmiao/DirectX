@@ -54,6 +54,7 @@ void GameApp::OnResize()
         m_BasicEffect.SetProjMatrix(m_pFCamera->GetProjMatrixXM());
         m_SkyboxEffect.SetProjMatrix(m_pFCamera->GetProjMatrixXM());
         m_RainEffect.SetProjMatrix(m_pFCamera->GetProjMatrixXM());
+        m_RainEffect.SetProjMatrix(m_pFCamera->GetProjMatrixXM());
     }
 }
 
@@ -95,6 +96,10 @@ void GameApp::UpdateScene(float dt)
     std::vector<BasicEffect::InstancedData>& bedRockData = inChunk.GetBedRockInstancedData();
     std::vector<BasicEffect::InstancedData>& stoneData = inChunk.GetStoneInstancedData();
     std::vector<BasicEffect::InstancedData>& gressData = inChunk.GetGressInstancedData();
+
+    if (m_EnableRain) {
+        ParticleSystem(dt);
+    }
 
     EnemyManagement();
 
@@ -160,6 +165,7 @@ bool GameApp::InitResource()
 {
     InitSkybox();
     InitCamara();
+    InitRain();
 
     m_Player.SetModel(m_pFCamera, m_ModelManager);
 
@@ -211,6 +217,43 @@ bool GameApp::InitResource()
 
 
     return true;
+}
+
+void GameApp::InitRain()
+{
+    m_RainEffect.SetDepthStencilState(RenderStates::DSSNoDepthWrite.Get(), 0);
+    m_RainEffect.SetViewMatrix(m_pFCamera->GetViewMatrixXM());
+    m_RainEffect.SetProjMatrix(m_pFCamera->GetProjMatrixXM());
+    // ******************
+    // 初始化粒子系统
+    //
+    m_TextureManager.CreateFromFile("..\\Texture\\rain\\raindrop.dds", false, true);
+
+    // 创建随机数据
+    std::mt19937 randEngine;
+    randEngine.seed(std::random_device()());
+    std::uniform_real_distribution<float> randF(-1.0f, 1.0f);
+    std::vector<float> randomValues(4096);
+
+    // 生成1D随机纹理
+    CD3D11_TEXTURE1D_DESC texDesc(DXGI_FORMAT_R32G32B32A32_FLOAT, 1024, 1, 1);
+    D3D11_SUBRESOURCE_DATA initData{ randomValues.data(), 1024 * GetFormatSize(DXGI_FORMAT_R32G32B32A32_FLOAT) };
+    ComPtr<ID3D11Texture1D> pRandomTex;
+    ComPtr<ID3D11ShaderResourceView> pRandomTexSRV;
+
+    std::generate(randomValues.begin(), randomValues.end(), [&]() { return randF(randEngine); });
+    HR(m_pd3dDevice->CreateTexture1D(&texDesc, &initData, pRandomTex.ReleaseAndGetAddressOf()));
+    HR(m_pd3dDevice->CreateShaderResourceView(pRandomTex.Get(), nullptr, pRandomTexSRV.ReleaseAndGetAddressOf()));
+    m_TextureManager.AddTexture("RainRandomTex", pRandomTexSRV.Get());
+
+    m_Rain.InitResource(m_pd3dDevice.Get(), 10000);
+    m_Rain.SetTextureInput(m_TextureManager.GetTexture("..\\Texture\\rain\\raindrop.dds"));
+    m_Rain.SetTextureRandom(m_TextureManager.GetTexture("RainRandomTex"));
+    m_Rain.SetEmitDir(XMFLOAT3(0.0f, -1.0f, 0.0f));
+    m_Rain.SetAcceleration(XMFLOAT3(-1.0f, -9.8f, 0.0f));
+    m_Rain.SetEmitInterval(0.0015f);
+    m_Rain.SetAliveTime(3.0f);
+    m_Rain.SetDebugObjectName("Rain");
 }
 
 void GameApp::InitCamara()
@@ -404,6 +447,7 @@ void GameApp::ImGuiOperations(float dt)
         }
         ImGui::Checkbox("Enable Chunk Frustum Culling", &DSM::Chunk::m_EnableFrustumCulling);
         ImGui::Checkbox("Enable Tree Frustum Culling", &DSM::CherryTree::m_EnableTreeFC);
+        ImGui::Checkbox("Enable Rain", &m_EnableRain);
         ImGui::Checkbox("Enemy tracking", &m_EnemyTrack);
         static int fogMode = 0;
         static const char* fModes[] = {
@@ -505,6 +549,14 @@ void GameApp::DrawScene(ID3D11RenderTargetView* pRTV, ID3D11DepthStencilView* pD
     m_SkyboxEffect.SetSkyCount(m_pd3dImmediateContext.Get(), m_SkyColor);
     m_Skybox.Draw(m_pd3dImmediateContext.Get(), m_SkyboxEffect);
 
+    // ******************
+    // 粒子系统留在最后绘制便于混合
+    //
+    if (m_EnableRain) {
+        m_pd3dImmediateContext->OMSetRenderTargets(1, &pRTV, m_pDepthTexture->GetDepthStencil());
+        m_Rain.Draw(m_pd3dImmediateContext.Get(), m_RainEffect);
+    }
+
     pRTV = nullptr;
     m_pd3dImmediateContext->OMSetRenderTargets(1, &pRTV, nullptr);
 }
@@ -586,4 +638,28 @@ void GameApp::EnemyManagement()
             m_Enemy.push_back(std::move(enemy));
         }
     }
+}
+
+void GameApp::ParticleSystem(float dt)
+{
+    // ******************
+    // 粒子系统
+    //
+    m_Rain.Update(dt, m_Timer.TotalTime());
+
+
+    m_RainEffect.SetViewMatrix(m_pFCamera->GetViewMatrixXM());
+    m_RainEffect.SetEyePos(m_pFCamera->GetPosition());
+
+    static XMFLOAT3 lastCameraPos = m_pFCamera->GetPosition();
+    XMFLOAT3 cameraPos = m_pFCamera->GetPosition();
+
+    XMVECTOR cameraPosVec = XMLoadFloat3(&cameraPos);
+    XMVECTOR lastCameraPosVec = XMLoadFloat3(&lastCameraPos);
+    XMFLOAT3 emitPos;
+    XMStoreFloat3(&emitPos, cameraPosVec + 3.0f * (cameraPosVec - lastCameraPosVec));
+    m_RainEffect.SetViewMatrix(m_pFCamera->GetViewMatrixXM());
+    m_RainEffect.SetEyePos(m_pFCamera->GetPosition());
+    m_Rain.SetEmitPos(emitPos);
+    lastCameraPos = m_pFCamera->GetPosition();
 }

@@ -96,34 +96,27 @@ bool ParticleEffect::InitAll(ID3D11Device* device, std::wstring_view filename)
 
     Microsoft::WRL::ComPtr<ID3DBlob> blob;
 
-    // ******************
     // 创建顶点着色器
-    //
-    
-    fs::path path = filename;
-    fs::path stem = fs::path(filename).stem();
+    pImpl->m_pEffectHelper->CreateShaderFromFile("RainVS", L"Shaders/Rain_VS.cso", device,
+        "VS", "vs_5_0", nullptr, blob.GetAddressOf());
 
-    HR(pImpl->m_pEffectHelper->CreateShaderFromFile((stem.string() + "_SO_VS"), filename,
-        device, "SO_VS", "vs_5_0", nullptr, blob.GetAddressOf()));
+    pImpl->m_pEffectHelper->CreateShaderFromFile("RainSOVS", L"Shaders/Rain_SO_VS.cso", device,
+        "VS", "vs_5_0", nullptr, blob.GetAddressOf());
+
     // 创建顶点布局
     HR(device->CreateInputLayout(inputLayouts, ARRAYSIZE(inputLayouts),
         blob->GetBufferPointer(), blob->GetBufferSize(), pImpl->m_pVertexParticleLayout.GetAddressOf()));
 
-    HR(pImpl->m_pEffectHelper->CreateShaderFromFile((stem.string() + "_VS"), filename,
-        device, "VS", "vs_5_0"));
 
     // ******************
     // 创建几何/流输出着色器
     //
 
     // 流输出几何着色器
-    fs::path csoFilename = stem;
-    csoFilename += "_SO_GS.cso";
-    csoFilename = cacheDir / csoFilename;
-    if (overWrite || FAILED(D3DReadFileToBlob(csoFilename.c_str(), blob.ReleaseAndGetAddressOf())))
+    if (overWrite || FAILED(D3DReadFileToBlob(L"Shaders/Rain_SO_GS.cso", blob.ReleaseAndGetAddressOf())))
     {
-        HR(EffectHelper::CompileShaderFromFile(filename, "SO_GS", "gs_5_0", blob.ReleaseAndGetAddressOf()));
-        D3DWriteBlobToFile(blob.Get(), csoFilename.c_str(), overWrite);
+        HR(EffectHelper::CompileShaderFromFile(L"Shaders/Rain_SO_GS.hlsl", "SO_GS", "gs_5_0", blob.ReleaseAndGetAddressOf()));
+        D3DWriteBlobToFile(blob.Get(), L"Rain_SO_GS.cso", overWrite);
     }
     
     
@@ -132,16 +125,16 @@ bool ParticleEffect::InitAll(ID3D11Device* device, std::wstring_view filename)
     HR(device->CreateGeometryShaderWithStreamOutput(blob->GetBufferPointer(), blob->GetBufferSize(),
         outputLayout, ARRAYSIZE(outputLayout), strides, 1, D3D11_SO_NO_RASTERIZED_STREAM,
         nullptr, pGS.GetAddressOf()));
-    HR(pImpl->m_pEffectHelper->AddGeometryShaderWithStreamOutput((stem.string() + "_SO_GS"), device, pGS.Get(), blob.Get()));
+    HR(pImpl->m_pEffectHelper->AddGeometryShaderWithStreamOutput("RainSOGS", device, pGS.Get(), blob.Get()));
 
     // 几何着色器
-    HR(pImpl->m_pEffectHelper->CreateShaderFromFile((stem.string() + "_GS"), filename,
+    HR(pImpl->m_pEffectHelper->CreateShaderFromFile("RainGS", L"Shaders/Rain_GS.cso",
         device, "GS", "gs_5_0"));
 
     // ******************
     // 创建像素着色器
     //
-    HR(pImpl->m_pEffectHelper->CreateShaderFromFile((stem.string() + "_PS"), filename,
+    HR(pImpl->m_pEffectHelper->CreateShaderFromFile("RainPS", L"Shaders/Rain_PS.cso",
         device, "PS", "ps_5_0"));
 
     // ******************
@@ -149,16 +142,16 @@ bool ParticleEffect::InitAll(ID3D11Device* device, std::wstring_view filename)
     //
     EffectPassDesc passDesc;
     std::string nameVS, nameGS, namePS;
-    nameVS = stem.string() + "_VS";
-    nameGS = stem.string() + "_GS";
-    namePS = stem.string() + "_PS";
+    nameVS = "RainVS";
+    nameGS = "RainGS";
+    namePS = "RainPS";
     passDesc.nameVS = nameVS;
     passDesc.nameGS = nameGS;
     passDesc.namePS = namePS;
     HR(pImpl->m_pEffectHelper->AddEffectPass("Render", device, &passDesc));
 
-    nameVS = stem.string() + "_SO_VS";
-    nameGS = stem.string() + "_SO_GS";
+    nameVS = "RainSOVS";
+    nameGS = "RainSOGS";
     passDesc.nameVS = nameVS;
     passDesc.nameGS = nameGS;
     passDesc.namePS = "";

@@ -44,6 +44,7 @@ public:
 private:
     bool InitResource();
 
+    void InitRain();
     void InitSkybox();
     void InitCamara();
     void InitMiniMap();
@@ -53,7 +54,7 @@ private:
     void DrawScene(ID3D11RenderTargetView* pRTV, ID3D11DepthStencilView* pDSV, const D3D11_VIEWPORT& viewport);
     void DayAndNightChange(float dt);
     void EnemyManagement();
-
+    void ParticleSystem(float dt);
 
 private:
     TextureManager m_TextureManager;
@@ -103,6 +104,7 @@ private:
 
     ParticleManager m_Rain;                                      // 雨水粒子系统
     ParticleEffect m_RainEffect;                                 // 雨水特效
+    bool m_EnableRain = true;                                           // 下雨
 
 
     std::vector<DSM::Block> m_Dirt;                              // 泥土
