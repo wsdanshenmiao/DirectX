@@ -63,22 +63,22 @@ std::vector<BasicEffect::InstancedData>& Chunk::GetGressInstancedData()
 	return Chunk::m_EnableFrustumCulling ? m_AcceptedData[3] : m_BlockInstancedData[3];
 }
 
-std::vector<Transform>& Chunk::GetDirtTranform()
+std::vector<Transform>& Chunk::GetDirtTransform()
 {
 	return m_BlockTransforms[0];
 }
 
-std::vector<Transform>& Chunk::GetStoneTranform()
+std::vector<Transform>& Chunk::GetStoneTransform()
 {
 	return m_BlockTransforms[1];
 }
 
-std::vector<Transform>& Chunk::GetBedRockTranform()
+std::vector<Transform>& Chunk::GetBedRockTransform()
 {
 	return m_BlockTransforms[2];
 }
 
-std::vector<Transform>& Chunk:: GetGressTranform()
+std::vector<Transform>& Chunk:: GetGressTransform()
 {
 	return m_BlockTransforms[3];
 }
@@ -285,7 +285,7 @@ void Chunk::DrawChunk(ID3D11Device* device, ID3D11DeviceContext* deviceContext, 
 	for (int i = 0; i < 4; i++) {
 		const auto& refData = m_EnableFrustumCulling ? m_AcceptedData[i] : m_BlockInstancedData[i];
 
-		m_pInstancedBuffer[i] = std::make_unique<Buffer>(device,
+		m_pInstancedBuffer[i] = std::make_shared<Buffer>(device,
 			CD3D11_BUFFER_DESC(sizeof(BasicEffect::InstancedData) * refData.size(), D3D11_BIND_VERTEX_BUFFER,
 				D3D11_USAGE_DYNAMIC, D3D11_CPU_ACCESS_WRITE));
 		if (m_pInstancedBuffer[i]->GetBuffer()) {

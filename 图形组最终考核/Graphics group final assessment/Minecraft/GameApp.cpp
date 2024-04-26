@@ -29,6 +29,9 @@ bool GameApp::Init()
         return false;
     }
 
+    if (!m_RainEffect.InitAll(m_pd3dDevice.Get(), L"Shaders\\Rain.hlsl"))
+        return false;
+
     if (!InitResource())
         return false;
 
@@ -50,6 +53,7 @@ void GameApp::OnResize()
         m_pFCamera->SetViewPort(0.0f, 0.0f, (float)m_ClientWidth, (float)m_ClientHeight);
         m_BasicEffect.SetProjMatrix(m_pFCamera->GetProjMatrixXM());
         m_SkyboxEffect.SetProjMatrix(m_pFCamera->GetProjMatrixXM());
+        m_RainEffect.SetProjMatrix(m_pFCamera->GetProjMatrixXM());
     }
 }
 
@@ -72,46 +76,25 @@ void GameApp::UpdateScene(float dt)
     XMFLOAT3 cameraPosition = m_pFCamera->GetPosition();
 
     // 获取人物可能触及的物块
-    XMINT2 inChunk;
+    DSM::Chunk& inChunk = m_Chunk[0];
     std::vector<DSM::BlockId> containBlock;
-    std::vector<Transform> blockTransform1;
-    std::vector<Transform> blockTransform2;
-    std::vector<Transform> blockTransform3;
-    std::vector<BasicEffect::InstancedData> blockData1;
-    std::vector<BasicEffect::InstancedData> blockData2;
-    std::vector<BasicEffect::InstancedData> blockData3;
     for (auto& chunk : m_Chunk) {
         XMINT2 chunkPosition = chunk.GetPositon();
-        if (chunkPosition.x <= cameraPosition.x && cameraPosition.x <= chunkPosition.x + CHUNKSIZE &&
-            chunkPosition.y <= cameraPosition.z && cameraPosition.z <= chunkPosition.y + CHUNKSIZE) {
-            inChunk = chunkPosition;
+        if (chunkPosition.x <= cameraPosition.x && cameraPosition.x < chunkPosition.x + CHUNKSIZE &&
+            chunkPosition.y <= cameraPosition.z && cameraPosition.z < chunkPosition.y + CHUNKSIZE) {
+            inChunk = chunk;
             containBlock = chunk.GetBlockId();
-            if (1 + BLOCKRANDOM + RAYRANGE < cameraPosition.y &&
-                cameraPosition.y < SEALEVEL - CHUNKRANGE - RAYRANGE - BLOCKRANDOM) {
-                blockTransform1 = chunk.GetStoneTranform();
-                blockData1 = chunk.GetStoneInstancedData();
-            }
-            else if (cameraPosition.y < 1) {
-                blockTransform1 = chunk.GetBedRockTranform();
-                blockData1 = chunk.GetBedRockInstancedData();
-            }
-            else if (cameraPosition.y < SEALEVEL - CHUNKRANGE - RAYRANGE - BLOCKRANDOM) {
-                blockTransform1 = chunk.GetStoneTranform();
-                blockTransform2 = chunk.GetBedRockTranform();
-                blockData1 = chunk.GetStoneInstancedData();
-                blockData1 = chunk.GetBedRockInstancedData();
-            }
-            else {
-                blockTransform1 = chunk.GetStoneTranform();
-                blockTransform2 = chunk.GetDirtTranform();
-                blockTransform3 = chunk.GetGressTranform();
-                blockData1 = chunk.GetStoneInstancedData();
-                blockData2 = chunk.GetDirtInstancedData();
-                blockData3 = chunk.GetDirtInstancedData();
-            }
             break;
         }
     }
+    std::vector<Transform>& dirtTransform = inChunk.GetDirtTransform();
+    std::vector<Transform>& bedRockTransform = inChunk.GetBedRockTransform();
+    std::vector<Transform>& stoneTransform = inChunk.GetStoneTransform();
+    std::vector<Transform>& gressTransform = inChunk.GetGressTransform();
+    std::vector<BasicEffect::InstancedData>& dirtData = inChunk.GetDirtInstancedData();
+    std::vector<BasicEffect::InstancedData>& bedRockData = inChunk.GetBedRockInstancedData();
+    std::vector<BasicEffect::InstancedData>& stoneData = inChunk.GetStoneInstancedData();
+    std::vector<BasicEffect::InstancedData>& gressData = inChunk.GetGressInstancedData();
 
     EnemyManagement();
 
@@ -589,7 +572,7 @@ void GameApp::EnemyManagement()
     // 夜晚生成敌人
     if (m_IsNight && m_Enemy.size() < 10) {
         std::mt19937 random;	// 梅森旋转
-        random.seed(DSM::Chunk::m_Seed);	// 设置种子
+        random.seed(std::random_device()());	// 设置种子
         for (int i = 0; i < 10; i++) {
             DSM::Enemy enemy;
             enemy.SetModel(m_TextureManager, m_ModelManager);

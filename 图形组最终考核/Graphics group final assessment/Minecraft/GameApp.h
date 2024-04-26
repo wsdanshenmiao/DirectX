@@ -23,6 +23,7 @@
 #include "MyCameraControl.h"
 #include "CherryTree.h"
 #include "Enemy.h"
+#include "ParticleManager.h"
 
 #define RAYRANGE 4
 
@@ -87,7 +88,7 @@ private:
     DSM::CherryTree m_CherryTree;                               // 树
 
     DSM::Player m_Player;                                       // 玩家
-    std::vector<DSM::Enemy> m_Enemy;                                         // 敌人
+    std::vector<DSM::Enemy> m_Enemy;                            // 敌人
     bool m_EnemyTrack = false;                                  // 敌人追踪
     
     bool m_IsNight = false;                                     // 是否为黑夜
@@ -99,6 +100,10 @@ private:
     bool m_PrintScreenStarted = false;                          // 截取当前帧
     float m_FadeCount = 0.0f;                                   // 淡出系数
     float m_FadeSign = 1.0f;                                    
+
+    ParticleManager m_Rain;                                      // 雨水粒子系统
+    ParticleEffect m_RainEffect;                                 // 雨水特效
+
 
     std::vector<DSM::Block> m_Dirt;                              // 泥土
     size_t m_SoilNum = 64;

@@ -38,10 +38,10 @@ public:
 	std::vector<BasicEffect::InstancedData>& GetStoneInstancedData();
 	std::vector<BasicEffect::InstancedData>& GetBedRockInstancedData();
 	std::vector<BasicEffect::InstancedData>& GetGressInstancedData();
-	std::vector<Transform>& GetDirtTranform();
-	std::vector<Transform>& GetStoneTranform();
-	std::vector<Transform>& GetBedRockTranform();
-	std::vector<Transform>& GetGressTranform();
+	std::vector<Transform>& GetDirtTransform();
+	std::vector<Transform>& GetStoneTransform();
+	std::vector<Transform>& GetBedRockTransform();
+	std::vector<Transform>& GetGressTransform();
 	std::vector<DSM::BlockId>& GetBlockId();
 	static float GetNoice(int x, int z);
 	BlockId GetBlock(int x, int y, int z);
@@ -66,7 +66,7 @@ private:
 	std::vector<BasicEffect::InstancedData> m_AcceptedData[4];					// 上传到实例缓冲区的数据
 	std::vector<BasicEffect::InstancedData> m_BlockInstancedData[4];			// 方块的实例数据
 	std::vector<Transform> m_BlockTransforms[4];								// 方块的变换
-	std::unique_ptr<Buffer> m_pInstancedBuffer[4];							    // 实例缓冲区
+	std::shared_ptr<Buffer> m_pInstancedBuffer[4];							    // 实例缓冲区
 
 	std::vector<DSM::BlockId> m_BlockId;										// 记录方块位置
 };

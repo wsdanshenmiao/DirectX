@@ -37,10 +37,6 @@ public:
     ComPtr<ID3D11InputLayout> m_pVertexPosNormalTexLayout;
     ComPtr<ID3D11InputLayout> m_pInstancePosNormalTexLayout;
 
-    ComPtr<ID3D11InputLayout> m_pVertexPosSizeLayout;			// 点精灵输入布局
-
-    ComPtr<ID3D11ShaderResourceView> m_pTexture;				// 用于绘制的纹理
-    ComPtr<ID3D11ShaderResourceView> m_pTextures;				// 用于绘制的纹理数组
 
 
     XMFLOAT4X4 m_World{}, m_View{}, m_Proj{};
@@ -130,22 +126,6 @@ bool BasicEffect::InitAll(ID3D11Device* device)
     pImpl->m_pEffectHelper->CreateShaderFromFile("BasicPS", L"Shaders/Basic_PS.cso", device);
 
 
-    // ******************
-    // 绘制公告板
-    //
-    pImpl->m_pEffectHelper->CreateShaderFromFile("BillboardVS", L"Shaders/Billboard_VS.cso", device, "VS", "vs_5_0", nullptr, blob.GetAddressOf());
-
-    // 创建顶点输入布局
-    HR(device->CreateInputLayout(VertexPosSize::GetInputLayout(), ARRAYSIZE(VertexPosSize::GetInputLayout()), blob->GetBufferPointer(),
-        blob->GetBufferSize(), pImpl->m_pVertexPosSizeLayout.GetAddressOf()));
-
-    pImpl->m_pEffectHelper->CreateShaderFromFile("BillboardPS", L"Shaders/Billboard_PS.cso", device);
-
-    pImpl->m_pEffectHelper->CreateShaderFromFile("BillboardGS", L"Shaders/Billboard_GS.cso", device, "GS", "gs_5_0", nullptr, blob.GetAddressOf());
-
-
-
-
     // 创建通道
     EffectPassDesc passDesc;
     passDesc.nameVS = "BasicInstanceVS";
@@ -154,11 +134,6 @@ bool BasicEffect::InitAll(ID3D11Device* device)
 
     passDesc.nameVS = "BasicObjectVS";
     HR(pImpl->m_pEffectHelper->AddEffectPass("BasicObject", device, &passDesc));
-
-    passDesc.nameVS = "BillboardVS";
-    passDesc.namePS = "BillboardPS";
-    passDesc.nameGS = "BillboardGS";
-    HR(pImpl->m_pEffectHelper->AddEffectPass("Billboard", device, &passDesc));
 
 
     pImpl->m_pEffectHelper->SetSamplerStateByName("g_Sam", RenderStates::SSLinearWrap.Get());
@@ -272,18 +247,6 @@ void BasicEffect::SetRenderDefault()
     pImpl->m_CurrTopology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 }
 
-void BasicEffect::SetRenderBillboard(ID3D11DeviceContext* deviceContext, bool enableAlphaToCoverage)
-{
-    pImpl->m_pCurrEffectPass = pImpl->m_pEffectHelper->GetEffectPass("Billboard");
-    pImpl->m_CurrTopology = D3D11_PRIMITIVE_TOPOLOGY_POINTLIST;
-    pImpl->m_pCurrInputLayout = pImpl->m_pVertexPosSizeLayout;
-    deviceContext->RSSetState(RenderStates::RSNoCull.Get());
-    deviceContext->PSSetSamplers(0, 1, RenderStates::SSLinearWrap.GetAddressOf());
-    deviceContext->OMSetDepthStencilState(nullptr, 0);
-    deviceContext->OMSetBlendState(
-        (enableAlphaToCoverage ? RenderStates::BSAlphaToCoverage.Get() : nullptr),
-        nullptr, 0xFFFFFFFF);
-}
 
 void BasicEffect::DrawInstanced(ID3D11DeviceContext* deviceContext, Buffer& instancedBuffer, const GameObject& object, uint32_t numObjects)
 {
@@ -316,15 +279,6 @@ void BasicEffect::DrawInstanced(ID3D11DeviceContext* deviceContext, Buffer& inst
     }
 }
 
-void BasicEffect::SetTexture(ID3D11ShaderResourceView* texture)
-{
-    pImpl->m_pTexture = texture;
-}
-
-void BasicEffect::SetTextureArray(ID3D11ShaderResourceView* textures)
-{
-    pImpl->m_pTextures = textures;
-}
 
 void BasicEffect::Apply(ID3D11DeviceContext* deviceContext)
 {
@@ -338,10 +292,6 @@ void BasicEffect::Apply(ID3D11DeviceContext* deviceContext)
     W = XMMatrixTranspose(W);
     VP = XMMatrixTranspose(VP);
     WInvT = XMMatrixTranspose(WInvT);
-
-    // 设置纹理
-    deviceContext->PSSetShaderResources(0, 1, pImpl->m_pTexture.GetAddressOf());
-    deviceContext->PSSetShaderResources(1, 1, pImpl->m_pTextures.GetAddressOf());
 
     pImpl->m_pEffectHelper->GetConstantBufferVariable("g_WorldInvTranspose")->SetFloatMatrix(4, 4, (FLOAT*)&WInvT);
     pImpl->m_pEffectHelper->GetConstantBufferVariable("g_ViewProj")->SetFloatMatrix(4, 4, (FLOAT*)&VP);
