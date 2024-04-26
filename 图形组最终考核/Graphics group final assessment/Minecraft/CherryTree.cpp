@@ -4,7 +4,7 @@ using namespace DirectX;
 
 namespace DSM {
 
-bool CherryTree::m_EnableTreeFC = false;
+bool CherryTree::m_EnableTreeFC = true;
 
 void CherryTree::CreateRandomTree(const DirectX::XMINT4& range, ModelManager& mManager, TextureManager& tManager)
 {

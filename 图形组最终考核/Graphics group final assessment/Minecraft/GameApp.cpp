@@ -458,16 +458,19 @@ void GameApp::ImGuiOperations(float dt)
                 m_BasicEffect.SetFogStart(15.0f);
             }
             else {
-                if (m_SkyColor < 0.1f) {
-                    m_IsNight = true;
-                    m_BasicEffect.SetFogColor(XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f));
-                    m_BasicEffect.SetFogStart(5.0f);
-                }
-                else {
-                    m_IsNight = false;
-                    m_BasicEffect.SetFogColor(XMFLOAT4(0.75f, 0.75f, 0.75f, 1.0f));
-                    m_BasicEffect.SetFogStart(15.0f);
-                }
+                m_BasicEffect.SetFogColor(XMFLOAT4(m_Diffuse - 0.1f, m_Diffuse - 0.1f, m_Diffuse - 0.1f, 1.0f));
+                m_BasicEffect.SetFogStart(10.0f);
+
+                //if (m_SkyColor < 0.1f) {
+                //    m_IsNight = true;
+                //    m_BasicEffect.SetFogColor(XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f));
+                //    m_BasicEffect.SetFogStart(5.0f);
+                //}
+                //else {
+                //    m_IsNight = false;
+                //    m_BasicEffect.SetFogColor(XMFLOAT4(0.75f, 0.75f, 0.75f, 1.0f));
+                //    m_BasicEffect.SetFogStart(15.0f);
+                //}
             }
             if (ImGui::SliderFloat("Fog Range", &m_FogRange, 15.0f, 175.0f, "%.0f")) {
                 m_BasicEffect.SetFogRange(m_FogRange);
@@ -542,11 +545,11 @@ void GameApp::DrawScene(ID3D11RenderTargetView* pRTV, ID3D11DepthStencilView* pD
 void GameApp::DayAndNightChange(float dt)
 {
     // 漫反射光的昼夜更替
-    m_Diffuse += m_DiffuseSign * 0.014 * dt;
+    m_Diffuse += m_DiffuseSign * 0.012 * dt;
     if (m_Diffuse > 0.5f) {
         m_DiffuseSign = -1.0f;
     }
-    else if (m_Diffuse < 0.0f) {
+    else if (m_Diffuse < 0.06f) {
         m_DiffuseSign = 1.0f;
     }
     m_DirLight[0].diffuse = XMFLOAT4(m_Diffuse, m_Diffuse, m_Diffuse, 1.0f);
