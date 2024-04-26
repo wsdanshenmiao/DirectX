@@ -50,15 +50,15 @@ void Enemy::SetModel(TextureManager& tManager, ModelManager& mManager)
 
 void Enemy::FindPlayer(DirectX::XMFLOAT3 playerPosition)
 {
-	// »ñÈ¡µĞÈËºÍÍæ¼ÒµÄÏà¶ÔÎ»ÖÃ
+	// è·å–æ•Œäººå’Œç©å®¶çš„ç›¸å¯¹ä½ç½®
 	Transform& enemyTransform = m_Entity.GetTransform();
 	XMFLOAT3 float3(XMFLOAT3(playerPosition.x - GetPosition().x, playerPosition.y - GetPosition().y, playerPosition.z - GetPosition().z));
 	XMVECTOR directionVec = XMVector3Normalize(XMLoadFloat3(&float3));
 	XMStoreFloat3(&m_AzimuthTrack, directionVec);
-	// ÊÇµĞÈËÊ¼ÖÕ³¯ÏòÍæ¼Ò
+	// æ˜¯æ•Œäººå§‹ç»ˆæœå‘ç©å®¶
 	enemyTransform.LookTo(XMFLOAT3(-m_AzimuthTrack.x, -m_AzimuthTrack.y, -m_AzimuthTrack.z));
 	enemyTransform.Translate(m_AzimuthTrack, 0.016f * m_Speed);
-	// Ê¹ÑªÌõ³¯ÏòÍæ¼Ò²¢ÔÚµĞÈËÍ·¶¥
+	// ä½¿è¡€æ¡æœå‘ç©å®¶å¹¶åœ¨æ•Œäººå¤´é¡¶
 	XMFLOAT3 entieyPosition = m_Entity.GetTransform().GetPosition();
 	XMFLOAT3 up = m_Entity.GetTransform().GetUpAxis();
 	m_Lifebar.GetTransform().SetPosition(entieyPosition.x + up.x * 2.2f, entieyPosition.y + up.y * 2.2f, entieyPosition.z + up.z * 2.2f);

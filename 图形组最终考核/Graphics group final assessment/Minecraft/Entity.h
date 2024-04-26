@@ -13,6 +13,7 @@ public:
 	Entity() = default;
 	Entity(GameObject entity, float speed);
 	Entity(const Entity& entity) = default;
+	Entity& operator=(const Entity& other) = default;
 	Entity(Entity&& entity) = default;
 
 	GameObject& GetEntity();

@@ -17,6 +17,9 @@ class Enemy :public Entity
 {
 public:
 	Enemy() = default;
+	Enemy(const Enemy& other) = default;
+	Enemy(Enemy&& other) = default;
+	Enemy& operator=(const Enemy& other) = default;
 	~Enemy() = default;
 
 	DirectX::XMFLOAT3& GetAzimuthTrack();	// 敌人与玩家的相对位置

@@ -82,10 +82,11 @@ private:
     float m_Diffuse = 0.5f;                                     // 方向光漫反射的系数
 
     std::vector<DSM::Chunk> m_Chunk;                            // 区块
+    int m_Radius = 4;                                           // 区块半径
     DSM::CherryTree m_CherryTree;                               // 树
 
     DSM::Player m_Player;                                       // 玩家
-    DSM::Enemy m_Enemy;                                         // 敌人
+    std::vector<DSM::Enemy> m_Enemy;                                         // 敌人
     bool m_EnemyTrack = false;                                  // 敌人追踪
     
     bool m_IsNight = false;                                     // 是否为黑夜

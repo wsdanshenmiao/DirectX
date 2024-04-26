@@ -55,10 +55,6 @@ void GameApp::OnResize()
 
 void GameApp::UpdateScene(float dt)
 {
-    //获取io
-    ImGuiIO& io = ImGui::GetIO();
-
-
     if (m_FadeUsed) {
         m_FadeCount += m_FadeSign * dt / 2.0f;	// 2s时间淡入/淡出
         if (m_FadeSign > 0.0f && m_FadeCount > 1.0f) {  //开机淡入
@@ -72,10 +68,6 @@ void GameApp::UpdateScene(float dt)
         }
     }
 
-    if (m_EnemyTrack) {
-        m_Enemy.FindPlayer(m_Player.GetEntity().GetTransform().GetPosition());
-    }
-    m_Enemy.LoadEnemy(m_TextureManager, m_ModelManager);
 
     XMFLOAT3 cameraPosition = m_pFCamera->GetPosition();
 
@@ -123,11 +115,9 @@ void GameApp::UpdateScene(float dt)
 
     PlaceDestroyBlocks();
 
-
     CameraTransform(dt, containBlock);
 
     DayAndNightChange(dt);
-    
 
     ImGuiOperations(dt);    // ImGui操作
 }
@@ -187,19 +177,17 @@ bool GameApp::InitResource()
     InitCamara();
 
     m_Player.SetModel(m_pFCamera, m_ModelManager);
-    m_Enemy.SetModel(m_TextureManager, m_ModelManager);
 
     // 加载区块
-    int radius = 5;
-    m_Chunk.resize(pow(radius * 2, 2));
-    for (int i = -radius, pos = 0; i < radius; ++i) {
-        for (int j = -radius; j < radius; ++j , ++pos) {
+    m_Chunk.resize(pow(m_Radius * 2, 2));
+    for (int i = -m_Radius, pos = 0; i < m_Radius; ++i) {
+        for (int j = -m_Radius; j < m_Radius; ++j , ++pos) {
             m_Chunk[pos].SetPosition(0 + CHUNKSIZE * i, 0 + CHUNKSIZE * j);
             m_Chunk[pos].LoadChunk(m_TextureManager, m_ModelManager);
         }
     }
 
-    XMINT4 treeRange(-radius * CHUNKSIZE, radius * CHUNKSIZE, -radius * CHUNKSIZE, radius * CHUNKSIZE);
+    XMINT4 treeRange(-m_Radius * CHUNKSIZE, m_Radius * CHUNKSIZE, -m_Radius * CHUNKSIZE, m_Radius * CHUNKSIZE);
     m_CherryTree.CreateRandomTree(treeRange, m_ModelManager, m_TextureManager);
 
     GameObject object;
@@ -331,10 +319,27 @@ void GameApp::PlaceDestroyBlocks()
     // 将射线设置在鼠标处
     Ray ray = Ray::ScreenToRay(*m_pFCamera, mousePos.x, mousePos.y);
 
-
-    if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && ray.Hit(m_Enemy.GetEntity().GetBoundingBox(), nullptr, 6.0f)) {
-        --m_Enemy.GetHP();
+    for (auto& enemy : m_Enemy) {
+        if (m_EnemyTrack) {
+            enemy.FindPlayer(m_Player.GetEntity().GetTransform().GetPosition());
+        }
+        enemy.LoadEnemy(m_TextureManager, m_ModelManager);
     }
+    for (std::vector<DSM::Enemy>::iterator it = m_Enemy.begin(); it != m_Enemy.end(); ++it) {
+        if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && ray.Hit((*it).GetEntity().GetBoundingBox(), nullptr, 6.0f)) {
+            --(*it).GetHP();
+            if ((*it).GetHP() <= 0) {
+                m_Enemy.erase(it);
+                break;
+            }
+        }
+    }
+    if (m_IsNight && m_Enemy.size() < 10) {
+        DSM::Enemy enemy;
+        enemy.SetModel(m_TextureManager, m_ModelManager);
+        m_Enemy.push_back(enemy);
+    }
+
     static size_t create = 0;
     for (size_t i = 0; i < m_SoilNum && m_Dirt[create].GetBlock().GetModel(); i++) {
         if (!m_Dirt[i].GetBlock().GetModel()) {
@@ -433,6 +438,7 @@ void GameApp::ImGuiOperations(float dt)
         ImGui::Checkbox("Enemy tracking", &m_EnemyTrack);
         static int fogMode = 0;
         static const char* fModes[] = {
+            "Auto",
             "Daytime",
             "Dark Night",
         };
@@ -440,13 +446,25 @@ void GameApp::ImGuiOperations(float dt)
             m_BasicEffect.SetFogState(m_FogEnabled);
         }
         if (m_FogEnabled) {
-            if (ImGui::Combo("Fog Mode", &fogMode, fModes, ARRAYSIZE(fModes))) {
-                m_IsNight = (fogMode == 1);
-                if (m_IsNight) { // 黑夜模式下变为逐渐黑暗
+            ImGui::Combo("Fog Mode", &fogMode, fModes, ARRAYSIZE(fModes));
+            if (fogMode == 2) { // 黑夜模式下变为逐渐黑暗
+                    m_IsNight = true;
+                    m_BasicEffect.SetFogColor(XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f));
+                    m_BasicEffect.SetFogStart(5.0f);
+            }
+            else if (fogMode == 1) {  // 白天模式则对应雾效
+                m_IsNight = false;
+                m_BasicEffect.SetFogColor(XMFLOAT4(0.75f, 0.75f, 0.75f, 1.0f));
+                m_BasicEffect.SetFogStart(15.0f);
+            }
+            else {
+                if (m_SkyColor < 0.1f) {
+                    m_IsNight = true;
                     m_BasicEffect.SetFogColor(XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f));
                     m_BasicEffect.SetFogStart(5.0f);
                 }
-                else {  // 白天模式则对应雾效
+                else {
+                    m_IsNight = false;
                     m_BasicEffect.SetFogColor(XMFLOAT4(0.75f, 0.75f, 0.75f, 1.0f));
                     m_BasicEffect.SetFogStart(15.0f);
                 }
@@ -499,10 +517,12 @@ void GameApp::DrawScene(ID3D11RenderTargetView* pRTV, ID3D11DepthStencilView* pD
     for (auto& chunk : m_Chunk) {
         chunk.DrawChunk(m_pd3dDevice.Get(), m_pd3dImmediateContext.Get(), m_BasicEffect, m_pFCamera);
     }
-    m_Player.GetEntity().Draw(m_pd3dImmediateContext.Get(), m_BasicEffect.Get());
-    m_Enemy.DrawEnemy(m_pd3dDevice.Get(), m_pd3dImmediateContext.Get(), m_BasicEffect.Get());
+     m_Player.GetEntity().Draw(m_pd3dImmediateContext.Get(), m_BasicEffect.Get());
+     for (auto& enemy : m_Enemy) {
+         enemy.DrawEnemy(m_pd3dDevice.Get(), m_pd3dImmediateContext.Get(), m_BasicEffect.Get());
+     }
 
-    m_CherryTree.DrawTree(m_pd3dDevice.Get(), m_pd3dImmediateContext.Get(), m_BasicEffect, m_pFCamera);
+     m_CherryTree.DrawTree(m_pd3dDevice.Get(), m_pd3dImmediateContext.Get(), m_BasicEffect, m_pFCamera);
 
     for (auto& dirt : m_Dirt) {
         if (dirt.GetBlock().GetModel()) {

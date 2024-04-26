@@ -215,7 +215,6 @@ void Chunk::LoadChunk(TextureManager& tManager, ModelManager& mManager)
 
 	m_BlockId.resize(CHUNKSIZE * CHUNKSIZE * CHUNKHIGHEST);
 
-
 	Transform transform;
 	size_t pos = 0;
 	for (int y = 0; y < CHUNKHIGHEST; y++) {	//每一层 16 * 16
