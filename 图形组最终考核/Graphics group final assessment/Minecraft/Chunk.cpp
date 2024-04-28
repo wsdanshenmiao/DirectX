@@ -6,6 +6,8 @@ namespace DSM {
 
 bool Chunk::m_EnableFrustumCulling = false;				// 视锥体裁剪关闭
 int Chunk::m_Seed = 050113;								// 默认种子
+int Chunk::m_StoreChunkRadius = 10;						// 超过此半径的区块被卸载
+
 
 Chunk::Chunk(DirectX::XMINT2 position, ID3D11Device* device)
 	:m_Positon(position) {}
@@ -255,6 +257,13 @@ void Chunk::LoadChunk(TextureManager& tManager, ModelManager& mManager)
 			}
 		}
 	}
+}
+
+bool Chunk::UnloadChunk(const XMINT2& centerChunk)
+{
+	int xDistance = abs(m_Positon.x - centerChunk.x);
+	int yDistance = abs(m_Positon.y - centerChunk.y);
+	return (xDistance > m_StoreChunkRadius * CHUNKSIZE || yDistance > m_StoreChunkRadius * CHUNKSIZE);
 }
 
 void Chunk::FrustumCulling(std::shared_ptr<FirstPersonCamera> camera)

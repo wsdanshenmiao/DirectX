@@ -4,7 +4,7 @@
 using namespace DirectX;
 
 GameApp::GameApp(HINSTANCE hInstance, const std::wstring& windowName, int initWidth, int initHeight)
-    : D3DApp(hInstance, windowName, initWidth, initHeight) {}
+    : D3DApp(hInstance, windowName, initWidth, initHeight), m_StoreChunkNum(pow(DSM::Chunk::m_StoreChunkRadius * 2, 2)){}
 
 GameApp::~GameApp() {}
 
@@ -88,6 +88,7 @@ void GameApp::UpdateScene(float dt)
             break;
         }
     }
+    XMINT2 inChunkPos = inChunk.GetPositon();
     std::vector<Transform>& dirtTransform = inChunk.GetDirtTransform();
     std::vector<Transform>& bedRockTransform = inChunk.GetBedRockTransform();
     std::vector<Transform>& stoneTransform = inChunk.GetStoneTransform();
@@ -96,6 +97,8 @@ void GameApp::UpdateScene(float dt)
     std::vector<BasicEffect::InstancedData>& bedRockData = inChunk.GetBedRockInstancedData();
     std::vector<BasicEffect::InstancedData>& stoneData = inChunk.GetStoneInstancedData();
     std::vector<BasicEffect::InstancedData>& gressData = inChunk.GetGressInstancedData();
+
+    LoadChunk(inChunkPos);
 
     if (m_EnableRain) {
         ParticleSystem(dt);
@@ -169,16 +172,17 @@ bool GameApp::InitResource()
 
     m_Player.SetModel(m_pFCamera, m_ModelManager);
 
+    int loadRadius = sqrt(m_StoreChunkNum) / 2;
     // 加载区块
-    m_Chunk.resize(pow(m_Radius * 2, 2));
-    for (int i = -m_Radius, pos = 0; i < m_Radius; ++i) {
-        for (int j = -m_Radius; j < m_Radius; ++j , ++pos) {
+    m_Chunk.resize(m_StoreChunkNum);
+    for (int i = -loadRadius, pos = 0; i < loadRadius; ++i) {
+        for (int j = -loadRadius; j < loadRadius; ++j , ++pos) {
             m_Chunk[pos].SetPosition(0 + CHUNKSIZE * i, 0 + CHUNKSIZE * j);
             m_Chunk[pos].LoadChunk(m_TextureManager, m_ModelManager);
         }
     }
 
-    XMINT4 treeRange(-m_Radius * CHUNKSIZE, m_Radius * CHUNKSIZE, -m_Radius * CHUNKSIZE, m_Radius * CHUNKSIZE);
+    XMINT4 treeRange(-m_ViewRange * CHUNKSIZE, m_ViewRange * CHUNKSIZE, -m_ViewRange * CHUNKSIZE, m_ViewRange * CHUNKSIZE);
     m_CherryTree.CreateRandomTree(treeRange, m_ModelManager, m_TextureManager);
 
     GameObject object;
@@ -214,7 +218,6 @@ bool GameApp::InitResource()
     m_BasicEffect.SetFogStart(m_FogStart);
     m_BasicEffect.SetFogRange(m_FogRange);
     m_BasicEffect.SetFogColor(XMFLOAT4(0.75f, 0.75f, 0.75f, 1.0f));
-
 
     return true;
 }
@@ -341,6 +344,7 @@ void GameApp::InitMiniMap()
 }
 
 
+
 // 放置与破坏方块
 void GameApp::PlaceDestroyBlocks()
 {
@@ -386,6 +390,7 @@ void GameApp::PlaceDestroyBlocks()
 }
 
 
+
 // 相机变换
 void GameApp::CameraTransform(float dt, std::vector<DSM::BlockId> containBlock)
 {
@@ -425,6 +430,7 @@ void GameApp::CameraTransform(float dt, std::vector<DSM::BlockId> containBlock)
         m_PostProcessEffect.SetEyePos(m_pFCamera->GetPosition());
     }
 }
+
 
 
 // ImGui操作
@@ -500,7 +506,7 @@ void GameApp::ImGuiOperations(float dt)
             }
             m_CameraMode = CameraMode::ThirdPerson;
         }
-        ImGui::SliderFloat("Speed", &m_Player.GetSpeed(), 0.5f, 5.0f);
+        ImGui::SliderFloat("Speed", &m_Player.GetSpeed(), 0.5f, 10.0f);
         ImGui::SliderFloat("Third Person Distance", &thirdDistance, 2.0f, 6.0f);
 
         ImGui::Text("X: %f",m_pFCamera->GetPosition().x);
@@ -529,9 +535,17 @@ void GameApp::DrawScene(ID3D11RenderTargetView* pRTV, ID3D11DepthStencilView* pD
 
     m_BasicEffect.SetRenderDefault();
     for (auto& chunk : m_Chunk) {
-        chunk.DrawChunk(m_pd3dDevice.Get(), m_pd3dImmediateContext.Get(), m_BasicEffect, m_pFCamera);
+        XMINT2 chunkPosition = chunk.GetPositon();
+        XMFLOAT3 cameraPosition = m_pFCamera->GetPosition();
+        float xDistance = abs(cameraPosition.x - chunkPosition.x);
+        float yDistance = abs(cameraPosition.z - chunkPosition.y);
+        if (xDistance < m_ViewRange * CHUNKSIZE && yDistance < m_ViewRange * CHUNKSIZE) {
+            chunk.DrawChunk(m_pd3dDevice.Get(), m_pd3dImmediateContext.Get(), m_BasicEffect, m_pFCamera);
+        }
     }
+
      m_Player.GetEntity().Draw(m_pd3dImmediateContext.Get(), m_BasicEffect.Get());
+
      for (auto& enemy : m_Enemy) {
          enemy.DrawEnemy(m_pd3dImmediateContext.Get(), m_BasicEffect.Get());
      }
@@ -599,6 +613,8 @@ void GameApp::DayAndNightChange(float dt)
     }
 }
 
+
+
 void GameApp::EnemyManagement()
 {
     ImVec2 mousePos = ImGui::GetMousePos();
@@ -640,6 +656,8 @@ void GameApp::EnemyManagement()
     }
 }
 
+
+
 void GameApp::ParticleSystem(float dt)
 {
     // ******************
@@ -662,4 +680,41 @@ void GameApp::ParticleSystem(float dt)
     m_RainEffect.SetEyePos(m_pFCamera->GetPosition());
     m_Rain.SetEmitPos(emitPos);
     lastCameraPos = m_pFCamera->GetPosition();
+}
+
+
+
+void GameApp::LoadChunk(const XMINT2& inChunkPos)
+{
+    int viewRange = pow(m_ViewRange * 2, 2);    // 可视区块个数
+    std::vector<XMINT2> shouldLoad;             // 需要加载的区块
+    shouldLoad.reserve(viewRange);
+    for (int i = -m_ViewRange; i < m_ViewRange; ++i) {
+        for (int j = -m_ViewRange; j < m_ViewRange; ++j) {
+            shouldLoad.push_back(XMINT2(inChunkPos.x + i * CHUNKSIZE, inChunkPos.y + j * CHUNKSIZE));
+        }
+    }
+    for (std::vector<DSM::Chunk>::iterator it = m_Chunk.begin(); 
+        m_Chunk.size() > m_StoreChunkNum && it != m_Chunk.end();) {
+        if ((*it).UnloadChunk(inChunkPos)) {    // 移除加载范围外的区块
+            it = m_Chunk.erase(it);
+        }
+        else {
+            ++it;
+        }
+    }
+    for (auto& chunk : m_Chunk) {   // 判断需要加载的区块是否在已有区块中
+        for (std::vector<XMINT2>::iterator it = shouldLoad.begin(); it != shouldLoad.end();) {
+            if (chunk.GetPositon().x == (*it).x && chunk.GetPositon().y == (*it).y) {
+                it = shouldLoad.erase(it);
+            }
+            else {
+                ++it;
+            }
+        }
+    }
+    for (int i = 0; i < shouldLoad.size(); ++i) {
+        DSM::Chunk& chunk = m_Chunk.emplace_back(shouldLoad[i], m_pd3dDevice.Get());
+        chunk.LoadChunk(m_TextureManager, m_ModelManager);
+    }
 }

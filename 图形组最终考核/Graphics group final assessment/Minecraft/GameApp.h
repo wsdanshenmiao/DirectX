@@ -48,6 +48,7 @@ private:
     void InitSkybox();
     void InitCamara();
     void InitMiniMap();
+
     void CameraTransform(float dt, std::vector<DSM::BlockId> containBlock);
     void ImGuiOperations(float dt);
     void PlaceDestroyBlocks();
@@ -55,6 +56,7 @@ private:
     void DayAndNightChange(float dt);
     void EnemyManagement();
     void ParticleSystem(float dt);
+    void LoadChunk(const DirectX::XMINT2& inChunkPos);
 
 private:
     TextureManager m_TextureManager;
@@ -85,7 +87,9 @@ private:
     float m_Diffuse = 0.5f;                                     // 方向光漫反射的系数
 
     std::vector<DSM::Chunk> m_Chunk;                            // 区块
-    int m_Radius = 3;                                           // 区块半径
+    int m_ViewRange = 4;                                        // 视距半径
+    int m_StoreChunkNum;                                        // 存储的区块个数
+
     DSM::CherryTree m_CherryTree;                               // 树
 
     DSM::Player m_Player;                                       // 玩家
