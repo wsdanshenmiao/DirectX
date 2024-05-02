@@ -209,9 +209,11 @@ bool GameApp::InitResource()
         m_BasicEffect.SetDirLight(i, m_DirLight[i]);
     
     m_CherryTree.m_EnableTreeFC = false;
+    m_EnableChunkFrustumCulling = false;
     // 要最后初始化小地图
     InitMiniMap();
     m_CherryTree.m_EnableTreeFC = true;
+    m_EnableChunkFrustumCulling = true;
 
     m_FogEnabled = true;
     m_BasicEffect.SetFogState(m_FogEnabled);
@@ -451,7 +453,8 @@ void GameApp::ImGuiOperations(float dt)
         if (ImGui::Button("Save As Output.jpg")) {
             m_PrintScreenStarted = true;
         }
-        ImGui::Checkbox("Enable Chunk Frustum Culling", &DSM::Chunk::m_EnableFrustumCulling);
+        ImGui::Checkbox("Enable Chunk Frustum Culling", &m_EnableChunkFrustumCulling);
+        ImGui::Checkbox("Enable Block Frustum Culling", &DSM::Chunk::m_EnableFrustumCulling);
         ImGui::Checkbox("Enable Tree Frustum Culling", &DSM::CherryTree::m_EnableTreeFC);
         ImGui::Checkbox("Enable Rain", &m_EnableRain);
         ImGui::Checkbox("Enemy tracking", &m_EnemyTrack);
@@ -534,13 +537,18 @@ void GameApp::DrawScene(ID3D11RenderTargetView* pRTV, ID3D11DepthStencilView* pD
     m_pd3dImmediateContext->RSSetViewports(1, &viewport);
 
     m_BasicEffect.SetRenderDefault();
-    for (auto& chunk : m_Chunk) {
-        XMINT2 chunkPosition = chunk.GetPositon();
-        XMFLOAT3 cameraPosition = m_pFCamera->GetPosition();
-        float xDistance = abs(cameraPosition.x - chunkPosition.x);
-        float yDistance = abs(cameraPosition.z - chunkPosition.y);
-        if (xDistance < m_ViewRange * CHUNKSIZE && yDistance < m_ViewRange * CHUNKSIZE) {
-            chunk.DrawChunk(m_pd3dDevice.Get(), m_pd3dImmediateContext.Get(), m_BasicEffect, m_pFCamera);
+    if (m_EnableChunkFrustumCulling) {
+        ChunkFrustumCull();
+    }
+    else {
+        for (auto& chunk : m_Chunk) {
+            XMINT2 chunkPosition = chunk.GetPositon();
+            XMFLOAT3 cameraPosition = m_pFCamera->GetPosition();
+            float xDistance = abs(cameraPosition.x - chunkPosition.x);
+            float yDistance = abs(cameraPosition.z - chunkPosition.y);
+            if (xDistance < m_ViewRange * CHUNKSIZE && yDistance < m_ViewRange * CHUNKSIZE) {
+                chunk.DrawChunk(m_pd3dDevice.Get(), m_pd3dImmediateContext.Get(), m_BasicEffect, m_pFCamera);
+            }
         }
     }
 
@@ -716,5 +724,31 @@ void GameApp::LoadChunk(const XMINT2& inChunkPos)
     for (int i = 0; i < shouldLoad.size(); ++i) {
         DSM::Chunk& chunk = m_Chunk.emplace_back(shouldLoad[i], m_pd3dDevice.Get());
         chunk.LoadChunk(m_TextureManager, m_ModelManager);
+    }
+}
+
+
+
+void GameApp::ChunkFrustumCull()
+{
+    // 筛选要绘制的区块
+    for (auto& chunk : m_Chunk) {
+        XMINT2 chunkPosition = chunk.GetPositon();
+        XMFLOAT3 cameraPosition = m_pFCamera->GetPosition();
+        float xDistance = abs(cameraPosition.x - chunkPosition.x);
+        float yDistance = abs(cameraPosition.z - chunkPosition.y);
+        if (xDistance < m_ViewRange * CHUNKSIZE && yDistance < m_ViewRange * CHUNKSIZE) {
+            // 对区块进行剔除
+            BoundingFrustum frustum;
+            BoundingFrustum::CreateFromMatrix(frustum, m_pFCamera->GetProjMatrixXM());  // 视锥体包围盒
+            BoundingBox localBox(XMFLOAT3(0.0f, 0.0f, 0.0f), XMFLOAT3(CHUNKSIZE / 2, CHUNKHIGHEST / 2, CHUNKSIZE / 2)), box;
+            XMINT2 chunkPosition = chunk.GetPositon();
+            Transform chunkTransform;
+            chunkTransform.SetPosition(chunkPosition.x + CHUNKSIZE / 2, CHUNKHIGHEST / 2, chunkPosition.y + CHUNKSIZE / 2);
+            localBox.Transform(box, chunkTransform.GetLocalToWorldMatrixXM() * m_pFCamera->GetViewMatrixXM());
+            if (frustum.Intersects(box)) {
+                chunk.DrawChunk(m_pd3dDevice.Get(), m_pd3dImmediateContext.Get(), m_BasicEffect.Get(), m_pFCamera);
+            }
+        }
     }
 }

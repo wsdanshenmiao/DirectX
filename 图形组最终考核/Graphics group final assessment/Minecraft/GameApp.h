@@ -57,6 +57,7 @@ private:
     void EnemyManagement();
     void ParticleSystem(float dt);
     void LoadChunk(const DirectX::XMINT2& inChunkPos);
+    void ChunkFrustumCull();
 
 private:
     TextureManager m_TextureManager;
@@ -89,6 +90,7 @@ private:
     std::vector<DSM::Chunk> m_Chunk;                            // 区块
     int m_ViewRange = 4;                                        // 视距半径
     int m_StoreChunkNum;                                        // 存储的区块个数
+    bool m_EnableChunkFrustumCulling = true;                    // 区块的视锥体剔除
 
     DSM::CherryTree m_CherryTree;                               // 树
 
