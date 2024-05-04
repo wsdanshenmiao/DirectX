@@ -6,7 +6,7 @@ namespace DSM {
 
 bool Chunk::m_EnableFrustumCulling = false;				// 视锥体裁剪关闭
 int Chunk::m_Seed = 050113;								// 默认种子
-int Chunk::m_StoreChunkRadius = 20;						// 超过此半径的区块被卸载
+int Chunk::m_StoreChunkRadius = 8;						// 超过此半径的区块被卸载
 
 
 Chunk::Chunk(DirectX::XMINT2 position, ID3D11Device* device)

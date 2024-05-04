@@ -697,18 +697,10 @@ void GameApp::LoadChunk(const XMINT2& inChunkPos)
     int viewRange = pow(m_ViewRange * 2, 2);    // 可视区块个数
     std::vector<XMINT2> shouldLoad;             // 需要加载的区块
     shouldLoad.reserve(viewRange);
+    // 筛选视距内的区块
     for (int i = -m_ViewRange; i < m_ViewRange; ++i) {
         for (int j = -m_ViewRange; j < m_ViewRange; ++j) {
             shouldLoad.push_back(XMINT2(inChunkPos.x + i * CHUNKSIZE, inChunkPos.y + j * CHUNKSIZE));
-        }
-    }
-    for (std::vector<DSM::Chunk>::iterator it = m_Chunk.begin(); 
-        m_Chunk.size() > m_StoreChunkNum && it != m_Chunk.end();) {
-        if ((*it).UnloadChunk(inChunkPos)) {    // 移除加载范围外的区块
-            it = m_Chunk.erase(it);
-        }
-        else {
-            ++it;
         }
     }
     for (auto& chunk : m_Chunk) {   // 判断需要加载的区块是否在已有区块中
@@ -724,6 +716,17 @@ void GameApp::LoadChunk(const XMINT2& inChunkPos)
     for (int i = 0; i < shouldLoad.size(); ++i) {
         DSM::Chunk& chunk = m_Chunk.emplace_back(shouldLoad[i], m_pd3dDevice.Get());
         chunk.LoadChunk(m_TextureManager, m_ModelManager);
+    }
+
+    // 卸载区块
+    for (std::vector<DSM::Chunk>::iterator it = m_Chunk.begin();
+        m_Chunk.size() > pow(m_StoreChunkNum, 2) && it != m_Chunk.end();) {
+        if ((*it).UnloadChunk(inChunkPos)) {    // 移除加载范围外的区块
+            it = m_Chunk.erase(it);
+        }
+        else {
+            ++it;
+        }
     }
 }
 
