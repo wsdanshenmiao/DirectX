@@ -3,8 +3,9 @@
 #include <DXTrace.h>
 using namespace DirectX;
 
+
 GameApp::GameApp(HINSTANCE hInstance, const std::wstring& windowName, int initWidth, int initHeight)
-    : D3DApp(hInstance, windowName, initWidth, initHeight), m_StoreChunkNum(pow(DSM::Chunk::m_StoreChunkRadius * 2, 2)){}
+    : D3DApp(hInstance, windowName, initWidth, initHeight), m_StoreChunkNum((int)pow(DSM::Chunk::m_StoreChunkRadius * 2, 2)){}
 
 GameApp::~GameApp() {}
 
@@ -172,7 +173,7 @@ bool GameApp::InitResource()
 
     m_Player.SetModel(m_pFCamera, m_ModelManager);
 
-    int loadRadius = sqrt(m_StoreChunkNum) / 2;
+    int loadRadius = (int)sqrt(m_StoreChunkNum) / 2;
     // 加载区块
     m_Chunk.resize(m_StoreChunkNum);
     for (int i = -loadRadius, pos = 0; i < loadRadius; ++i) {
@@ -589,7 +590,7 @@ void GameApp::DrawScene(ID3D11RenderTargetView* pRTV, ID3D11DepthStencilView* pD
 void GameApp::DayAndNightChange(float dt)
 {
     // 漫反射光的昼夜更替
-    m_Diffuse += m_DiffuseSign * 0.012 * dt;
+    m_Diffuse += m_DiffuseSign * 0.012f * dt;
     if (m_Diffuse > 0.5f) {
         m_DiffuseSign = -1.0f;
     }
@@ -658,7 +659,7 @@ void GameApp::EnemyManagement()
             int X = (int)(playerPosition.x + randomDistX(random));
             int Z = (int)(playerPosition.y + randomDistZ(random));
             int Y = SEALEVEL + (int)(CHUNKRANGE * DSM::Chunk::GetNoice(X, Z) + 0.2f);
-            enemy.SetPosition(X, Y, Z);
+            enemy.SetPosition((float)X, (float)Y, (float)Z);
             m_Enemy.push_back(std::move(enemy));
         }
     }
@@ -692,11 +693,26 @@ void GameApp::ParticleSystem(float dt)
 
 
 
+
+
+static std::mutex m_ChunkMutex;
+
+// 多线程并行函数
+static void ParallelLoadChunk(std::vector<DSM::Chunk>* mChunk, DSM::Chunk& newChunk, TextureManager& tManager, ModelManager& mManager)
+{
+    newChunk.LoadChunk(tManager, mManager);
+    // 插入时锁住vector
+    std::lock_guard<std::mutex> lock(m_ChunkMutex);
+    mChunk->push_back(std::move(newChunk));
+}
+
+
 void GameApp::LoadChunk(const XMINT2& inChunkPos)
 {
-    int viewRange = pow(m_ViewRange * 2, 2);    // 可视区块个数
+    int viewRange = (int)pow(m_ViewRange * 2, 2);    // 可视区块个数
     std::vector<XMINT2> shouldLoad;             // 需要加载的区块
     shouldLoad.reserve(viewRange);
+
     // 筛选视距内的区块
     for (int i = -m_ViewRange; i < m_ViewRange; ++i) {
         for (int j = -m_ViewRange; j < m_ViewRange; ++j) {
@@ -713,11 +729,20 @@ void GameApp::LoadChunk(const XMINT2& inChunkPos)
             }
         }
     }
+
+#define ASYNC 0
+#if ASYNC
+    for (int i = 0; i < shouldLoad.size(); ++i) {
+        DSM::Chunk chunk(shouldLoad[i], m_pd3dDevice.Get());
+        std::async(std::launch::async, ParallelLoadChunk, &m_Chunk, std::ref(chunk), std::ref(m_TextureManager), std::ref(m_ModelManager));
+    }
+#else
     for (int i = 0; i < shouldLoad.size(); ++i) {
         DSM::Chunk& chunk = m_Chunk.emplace_back(shouldLoad[i], m_pd3dDevice.Get());
         chunk.LoadChunk(m_TextureManager, m_ModelManager);
+        break;
     }
-
+#endif
     // 卸载区块
     for (std::vector<DSM::Chunk>::iterator it = m_Chunk.begin();
         m_Chunk.size() > pow(m_StoreChunkNum, 2) && it != m_Chunk.end();) {
@@ -747,7 +772,7 @@ void GameApp::ChunkFrustumCull()
             BoundingBox localBox(XMFLOAT3(0.0f, 0.0f, 0.0f), XMFLOAT3(CHUNKSIZE / 2, CHUNKHIGHEST / 2, CHUNKSIZE / 2)), box;
             XMINT2 chunkPosition = chunk.GetPositon();
             Transform chunkTransform;
-            chunkTransform.SetPosition(chunkPosition.x + CHUNKSIZE / 2, CHUNKHIGHEST / 2, chunkPosition.y + CHUNKSIZE / 2);
+            chunkTransform.SetPosition((float)(chunkPosition.x + CHUNKSIZE / 2), (float)(CHUNKHIGHEST / 2), (float)(chunkPosition.y + CHUNKSIZE / 2));
             localBox.Transform(box, chunkTransform.GetLocalToWorldMatrixXM() * m_pFCamera->GetViewMatrixXM());
             if (frustum.Intersects(box)) {
                 chunk.DrawChunk(m_pd3dDevice.Get(), m_pd3dImmediateContext.Get(), m_BasicEffect.Get(), m_pFCamera);

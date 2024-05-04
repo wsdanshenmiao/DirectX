@@ -45,6 +45,14 @@ bool Chunk::OutOfChunk(int x, int y, int z)
 	return false;
 }
 
+bool Chunk::GetState()
+{
+	if (m_Loading) {
+		return true;
+	}
+	return false;
+}
+
 std::vector<BasicEffect::InstancedData>& Chunk::GetDirtInstancedData()
 {
 	return Chunk::m_EnableFrustumCulling ? m_AcceptedData[0] : m_BlockInstancedData[0];

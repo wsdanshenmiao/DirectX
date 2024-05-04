@@ -1,6 +1,7 @@
 #ifndef GAMEAPP_H
 #define GAMEAPP_H
 
+#include <future>
 #include <random>
 #include <WinMin.h>
 #include "d3dApp.h"
@@ -91,6 +92,7 @@ private:
     int m_ViewRange = 8;                                        // 视距半径
     int m_StoreChunkNum;                                        // 存储的区块个数
     bool m_EnableChunkFrustumCulling = true;                    // 区块的视锥体剔除
+    std::vector<std::future<void>> m_Futures;
 
     DSM::CherryTree m_CherryTree;                               // 树
 

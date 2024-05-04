@@ -29,11 +29,12 @@ public:
 	Chunk(DirectX::XMINT2 position, ID3D11Device* device);
 	Chunk(int x, int y, ID3D11Device* device);
 
-	DirectX::XMINT2 GetPositon();
 	void SetPosition(DirectX::XMINT2 position);
 	void SetPosition(int x, int y);
 	bool OutOfChunk(int x, int y, int z);
 
+	DirectX::XMINT2 GetPositon();
+	bool GetState();
 	std::vector<BasicEffect::InstancedData>& GetDirtInstancedData();
 	std::vector<BasicEffect::InstancedData>& GetStoneInstancedData();
 	std::vector<BasicEffect::InstancedData>& GetBedRockInstancedData();
@@ -43,7 +44,6 @@ public:
 	std::vector<Transform>& GetBedRockTransform();
 	std::vector<Transform>& GetGressTransform();
 	std::vector<DSM::BlockId>& GetBlockId();
-	static float GetNoice(int x, int z);
 	BlockId GetBlock(int x, int y, int z);
 
 	void SetBlock(int x, int y, int z, Block& block, TextureManager& tManager, ModelManager& mManager);
@@ -52,6 +52,10 @@ public:
 	void FrustumCulling(std::shared_ptr<FirstPersonCamera> camera);
 	
 	void DrawChunk(ID3D11Device* device, ID3D11DeviceContext* deviceContext, BasicEffect& effect, std::shared_ptr<FirstPersonCamera> camera);
+
+	static float GetNoice(int x, int z);
+
+
 
 public:
 	static bool m_EnableFrustumCulling;				// 视锥体裁剪关闭
