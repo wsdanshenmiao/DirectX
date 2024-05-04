@@ -78,26 +78,26 @@ void GameApp::UpdateScene(float dt)
     XMFLOAT3 cameraPosition = m_pFCamera->GetPosition();
 
     // 获取人物可能触及的物块
-    DSM::Chunk& inChunk = m_Chunk[0];
+    DSM::Chunk* inChunk;
     std::vector<DSM::BlockId> containBlock;
     for (auto& chunk : m_Chunk) {
         XMINT2 chunkPosition = chunk.GetPositon();
         if (chunkPosition.x <= cameraPosition.x && cameraPosition.x < chunkPosition.x + CHUNKSIZE &&
             chunkPosition.y <= cameraPosition.z && cameraPosition.z < chunkPosition.y + CHUNKSIZE) {
-            inChunk = chunk;
+            inChunk = &chunk;
             containBlock = chunk.GetBlockId();
             break;
         }
     }
-    XMINT2 inChunkPos = inChunk.GetPositon();
-    std::vector<Transform>& dirtTransform = inChunk.GetDirtTransform();
-    std::vector<Transform>& bedRockTransform = inChunk.GetBedRockTransform();
-    std::vector<Transform>& stoneTransform = inChunk.GetStoneTransform();
-    std::vector<Transform>& gressTransform = inChunk.GetGressTransform();
-    std::vector<BasicEffect::InstancedData>& dirtData = inChunk.GetDirtInstancedData();
-    std::vector<BasicEffect::InstancedData>& bedRockData = inChunk.GetBedRockInstancedData();
-    std::vector<BasicEffect::InstancedData>& stoneData = inChunk.GetStoneInstancedData();
-    std::vector<BasicEffect::InstancedData>& gressData = inChunk.GetGressInstancedData();
+    XMINT2 inChunkPos = inChunk->GetPositon();
+    std::vector<Transform>& dirtTransform = inChunk->GetDirtTransform();
+    std::vector<Transform>& bedRockTransform = inChunk->GetBedRockTransform();
+    std::vector<Transform>& stoneTransform = inChunk->GetStoneTransform();
+    std::vector<Transform>& gressTransform = inChunk->GetGressTransform();
+    std::vector<BasicEffect::InstancedData>& dirtData = inChunk->GetDirtInstancedData();
+    std::vector<BasicEffect::InstancedData>& bedRockData = inChunk->GetBedRockInstancedData();
+    std::vector<BasicEffect::InstancedData>& stoneData = inChunk->GetStoneInstancedData();
+    std::vector<BasicEffect::InstancedData>& gressData = inChunk->GetGressInstancedData();
 
     LoadChunk(inChunkPos);
 
@@ -707,25 +707,36 @@ static void ParallelLoadChunk(std::vector<DSM::Chunk>* mChunk, DSM::Chunk& newCh
 }
 
 
+struct XMINT2Less
+{
+    bool operator()(const XMINT2& left, const XMINT2& right) const
+    {
+        if (left.x == right.x) {
+            return left.y < right.y;
+        }
+        return left.x < right.x;
+    }
+};
+
+
 void GameApp::LoadChunk(const XMINT2& inChunkPos)
 {
+    static int pos = m_Chunk.size();
     int viewRange = (int)pow(m_ViewRange * 2, 2);    // 可视区块个数
-    std::vector<XMINT2> shouldLoad;             // 需要加载的区块
-    shouldLoad.reserve(viewRange);
+    std::set<XMINT2, XMINT2Less> chunkPosition;             // 需要加载的区块
+
+    // 存储区块位置
+    for (auto& chunk : m_Chunk) {
+        chunkPosition.insert(chunk.GetPositon());
+    }
 
     // 筛选视距内的区块
     for (int i = -m_ViewRange; i < m_ViewRange; ++i) {
         for (int j = -m_ViewRange; j < m_ViewRange; ++j) {
-            shouldLoad.push_back(XMINT2(inChunkPos.x + i * CHUNKSIZE, inChunkPos.y + j * CHUNKSIZE));
-        }
-    }
-    for (auto& chunk : m_Chunk) {   // 判断需要加载的区块是否在已有区块中
-        for (std::vector<XMINT2>::iterator it = shouldLoad.begin(); it != shouldLoad.end();) {
-            if (chunk.GetPositon().x == (*it).x && chunk.GetPositon().y == (*it).y) {
-                it = shouldLoad.erase(it);
-            }
-            else {
-                ++it;
+            XMINT2 position(inChunkPos.x + i * CHUNKSIZE, inChunkPos.y + j * CHUNKSIZE);
+            // 插入成功则是新区块
+            if (chunkPosition.insert(position).second) {
+                m_Chunk.emplace_back(position, m_pd3dDevice.Get());
             }
         }
     }
@@ -737,10 +748,12 @@ void GameApp::LoadChunk(const XMINT2& inChunkPos)
         std::async(std::launch::async, ParallelLoadChunk, &m_Chunk, std::ref(chunk), std::ref(m_TextureManager), std::ref(m_ModelManager));
     }
 #else
-    for (int i = 0; i < shouldLoad.size(); ++i) {
-        DSM::Chunk& chunk = m_Chunk.emplace_back(shouldLoad[i], m_pd3dDevice.Get());
-        chunk.LoadChunk(m_TextureManager, m_ModelManager);
-        break;
+    // 每帧加载一个区块
+    for (int i = 0; pos < m_Chunk.size(); pos++) {
+        if (!m_Chunk[pos].GetState()) {
+            m_Chunk[pos].LoadChunk(m_TextureManager, m_ModelManager);
+            break;
+        }
     }
 #endif
     // 卸载区块

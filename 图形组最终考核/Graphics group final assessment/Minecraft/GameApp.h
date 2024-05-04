@@ -1,6 +1,7 @@
 #ifndef GAMEAPP_H
 #define GAMEAPP_H
 
+#include <set>
 #include <future>
 #include <random>
 #include <WinMin.h>
