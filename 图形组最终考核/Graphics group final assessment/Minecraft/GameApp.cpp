@@ -266,7 +266,7 @@ void GameApp::InitCamara()
 {
     // ******************
     // 初始化摄像机
-    XMFLOAT3 position(0.0f, SEALEVEL + (int)(CHUNKRANGE * DSM::Chunk::GetNoice(0, 0)) + 2.3f, 0.0f);
+    XMFLOAT3 position(0.0f, SEALEVEL + (int)(DSM::Chunk::GetNoice(0, 0)) + 2.3f, 0.0f);
     auto fCamera = std::make_shared<FirstPersonCamera>();
     auto tCamera = std::make_shared<ThirdPersonCamera>();
     m_pFCamera = fCamera;
@@ -658,7 +658,7 @@ void GameApp::EnemyManagement()
             XMFLOAT3 playerPosition = m_Player.GetEntity().GetTransform().GetPosition();
             int X = (int)(playerPosition.x + randomDistX(random));
             int Z = (int)(playerPosition.y + randomDistZ(random));
-            int Y = SEALEVEL + (int)(CHUNKRANGE * DSM::Chunk::GetNoice(X, Z) + 0.2f);
+            int Y = SEALEVEL + (int)(DSM::Chunk::GetNoice(X, Z) + 0.2f);
             enemy.SetPosition((float)X, (float)Y, (float)Z);
             m_Enemy.push_back(std::move(enemy));
         }
@@ -695,15 +695,13 @@ void GameApp::ParticleSystem(float dt)
 
 
 
-static std::mutex m_ChunkMutex;
 
 // 多线程并行函数
-static void ParallelLoadChunk(std::vector<DSM::Chunk>* mChunk, DSM::Chunk& newChunk, TextureManager& tManager, ModelManager& mManager)
+static void ParallelLoadChunk(DSM::Chunk& chunk, TextureManager& tManager, ModelManager& mManager)
 {
-    newChunk.LoadChunk(tManager, mManager);
-    // 插入时锁住vector
-    std::lock_guard<std::mutex> lock(m_ChunkMutex);
-    mChunk->push_back(std::move(newChunk));
+    if (!chunk.GetState()) {
+        chunk.LoadChunk(tManager, mManager);
+    }
 }
 
 
@@ -723,7 +721,8 @@ void GameApp::LoadChunk(const XMINT2& inChunkPos)
 {
     static int pos = m_Chunk.size();
     int viewRange = (int)pow(m_ViewRange * 2, 2);    // 可视区块个数
-    std::set<XMINT2, XMINT2Less> chunkPosition;             // 需要加载的区块
+    std::set<XMINT2, XMINT2Less> chunkPosition;             // 需要加载的区块的位置
+    static std::vector<DSM::Chunk> shouldLoad;                     // 需要加载的区块
 
     // 存储区块位置
     for (auto& chunk : m_Chunk) {
@@ -736,24 +735,22 @@ void GameApp::LoadChunk(const XMINT2& inChunkPos)
             XMINT2 position(inChunkPos.x + i * CHUNKSIZE, inChunkPos.y + j * CHUNKSIZE);
             // 插入成功则是新区块
             if (chunkPosition.insert(position).second) {
-                m_Chunk.emplace_back(position, m_pd3dDevice.Get());
+                shouldLoad.emplace_back(position, m_pd3dDevice.Get());
             }
         }
     }
 
 #define ASYNC 0
 #if ASYNC
-    for (int i = 0; i < shouldLoad.size(); ++i) {
-        DSM::Chunk chunk(shouldLoad[i], m_pd3dDevice.Get());
-        std::async(std::launch::async, ParallelLoadChunk, &m_Chunk, std::ref(chunk), std::ref(m_TextureManager), std::ref(m_ModelManager));
+    for (int i = 0; pos < m_Chunk.size(); pos++) {
+        m_Futures.push_back(std::async(std::launch::async, ParallelLoadChunk, std::ref(m_Chunk[pos]), std::ref(m_TextureManager), std::ref(m_ModelManager)));
     }
 #else
     // 每帧加载一个区块
-    for (int i = 0; pos < m_Chunk.size(); pos++) {
-        if (!m_Chunk[pos].GetState()) {
-            m_Chunk[pos].LoadChunk(m_TextureManager, m_ModelManager);
-            break;
-        }
+    if (shouldLoad.size() > 0) {
+        DSM::Chunk& chunk = m_Chunk.emplace_back(std::move(shouldLoad.back()));
+        shouldLoad.pop_back();
+        chunk.LoadChunk(m_TextureManager, m_ModelManager);
     }
 #endif
     // 卸载区块

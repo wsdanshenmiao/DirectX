@@ -106,11 +106,13 @@ float Chunk::GetNoice(int x, int z)
 	noice1.SetFrequency(0.1f);
 	FastNoiseLite noice2(m_Seed);
 	noice2.SetNoiseType(FastNoiseLite::NoiseType_Perlin);
-	noice2.SetFrequency(0.06f);
+	noice2.SetFrequency(0.04f);
 	FastNoiseLite noice3(m_Seed);
 	noice3.SetNoiseType(FastNoiseLite::NoiseType_Perlin);
-	noice3.SetFrequency(0.04f);
-	float noice = (noice1.GetNoise((float)x, (float)z) + noice2.GetNoise((float)x, (float)z) + noice3.GetNoise((float)x, (float)z)) / 3;
+	noice3.SetFrequency(0.005f);
+	float noice = (noice1.GetNoise((float)x, (float)z) * LOWAMPLITUDE + 
+		noice2.GetNoise((float)x, (float)z) * NORMALAMPLITUDE + 
+		noice3.GetNoise((float)x, (float)z) * HIGHAMPLITUDE);
 	return noice;
 }
 
@@ -130,13 +132,13 @@ BlockId Chunk::GetBlock(int x, int y, int z)
 	if (y < 1 + dis(gen)) {
 		return BlockId::BedRock;
 	}
-	else if (y < SEALEVEL - DIRTTHICKNESS + (int)(CHUNKRANGE * noice) + dis(gen)) {
+	else if (y < SEALEVEL - DIRTTHICKNESS + (int)noice + dis(gen)) {
 		return BlockId::Stone;
 	}
-	else if (y < SEALEVEL + (int)(CHUNKRANGE * noice)) {
+	else if (y < SEALEVEL + (int)noice) {
 		return BlockId::Dirt;
 	}
-	else if (y == SEALEVEL + (int)(CHUNKRANGE * noice)){
+	else if (y == SEALEVEL + (int)noice){
 		return BlockId::Gress;
 	}
 	else {

@@ -14,13 +14,14 @@
 
 namespace DSM {
 
-#define CHUNKHIGHEST 64		// 区块最高高度
-#define SEALEVEL 32			// 海平面
+#define CHUNKHIGHEST 128	// 区块最高高度
+#define SEALEVEL 64			// 海平面
 #define CHUNKSIZE 16		// 区块长度
-#define CHUNKRANGE 15		// 柏林噪声应用的幅度
 #define DIRTTHICKNESS 10	// 泥土层的厚度
 #define BLOCKRANDOM 3		// 区块随机值
-
+#define HIGHAMPLITUDE 30	// 低频噪声振幅
+#define	NORMALAMPLITUDE 15	// 中频噪声振幅
+#define LOWAMPLITUDE 5		// 高频噪声振幅
 
 class Chunk
 {

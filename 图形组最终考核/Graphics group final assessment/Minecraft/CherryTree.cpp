@@ -36,7 +36,7 @@ void CherryTree::CreateRandomTree(const int& minx, const int& maxx, const int& m
 		Transform transform;
 		int X = center.x + (int)randomDistX(random);
 		int Z = center.y + (int)randomDistZ(random);
-		int Y = SEALEVEL + (int)(CHUNKRANGE * DSM::Chunk::GetNoice(X, Z)) + 2;
+		int Y = SEALEVEL + (int)(DSM::Chunk::GetNoice(X, Z)) + 2;
 		transform.SetPosition(X, Y, Z);
 		m_CherryTreeWoodTransforms[pos] = transform;
 		XMMATRIX W = transform.GetLocalToWorldMatrixXM();
