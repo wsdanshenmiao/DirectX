@@ -11,6 +11,8 @@
 #include "TextureManager.h"
 #include "ModelManager.h"
 #include "Camera.h"
+#include "InstrumentorMacro.h"
+#include "InstrumentorTimer.h"
 
 namespace DSM {
 
@@ -19,9 +21,9 @@ namespace DSM {
 #define CHUNKSIZE 16		// 区块长度
 #define DIRTTHICKNESS 10	// 泥土层的厚度
 #define BLOCKRANDOM 3		// 区块随机值
-#define HIGHAMPLITUDE 30	// 低频噪声振幅
-#define	NORMALAMPLITUDE 15	// 中频噪声振幅
-#define LOWAMPLITUDE 5		// 高频噪声振幅
+#define HIGHAMPLITUDE 35	// 低频噪声振幅
+#define	NORMALAMPLITUDE 8	// 中频噪声振幅
+#define LOWAMPLITUDE 2		// 高频噪声振幅
 
 class Chunk
 {

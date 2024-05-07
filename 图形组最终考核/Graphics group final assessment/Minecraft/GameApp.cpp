@@ -11,6 +11,8 @@ GameApp::~GameApp() {}
 
 bool GameApp::Init()
 {
+    PROFILE_FUNCTION();
+
     if (!D3DApp::Init())
         return false;
 
@@ -61,6 +63,8 @@ void GameApp::OnResize()
 
 void GameApp::UpdateScene(float dt)
 {
+    PROFILE_FUNCTION();
+
     if (m_FadeUsed) {
         m_FadeCount += m_FadeSign * dt / 2.0f;	// 2s时间淡入/淡出
         if (m_FadeSign > 0.0f && m_FadeCount > 1.0f) {  //开机淡入
@@ -99,6 +103,7 @@ void GameApp::UpdateScene(float dt)
     std::vector<BasicEffect::InstancedData>& stoneData = inChunk->GetStoneInstancedData();
     std::vector<BasicEffect::InstancedData>& gressData = inChunk->GetGressInstancedData();
 
+    
     LoadChunk(inChunkPos);
 
     if (m_EnableRain) {
@@ -118,6 +123,8 @@ void GameApp::UpdateScene(float dt)
 
 void GameApp::DrawScene()
 {
+    PROFILE_FUNCTION();
+
     // 创建后备缓冲区的渲染目标视图
     if (m_FrameCount < m_BackBufferCount) {
         ComPtr<ID3D11Texture2D> pBackBuffer;
@@ -167,6 +174,8 @@ void GameApp::DrawScene()
 
 bool GameApp::InitResource()
 {
+    PROFILE_FUNCTION();
+
     InitSkybox();
     InitCamara();
     InitRain();
@@ -227,6 +236,8 @@ bool GameApp::InitResource()
 
 void GameApp::InitRain()
 {
+    PROFILE_FUNCTION();
+
     m_RainEffect.SetDepthStencilState(RenderStates::DSSNoDepthWrite.Get(), 0);
     m_RainEffect.SetViewMatrix(m_pFCamera->GetViewMatrixXM());
     m_RainEffect.SetProjMatrix(m_pFCamera->GetProjMatrixXM());
@@ -264,6 +275,8 @@ void GameApp::InitRain()
 
 void GameApp::InitCamara()
 {
+    PROFILE_FUNCTION();
+
     // ******************
     // 初始化摄像机
     XMFLOAT3 position(0.0f, SEALEVEL + (int)(DSM::Chunk::GetNoice(0, 0)) + 2.3f, 0.0f);
@@ -292,6 +305,8 @@ void GameApp::InitCamara()
 
 void GameApp::InitSkybox()
 {
+    PROFILE_FUNCTION();
+
     // 初始化天空盒
     ComPtr<ID3D11Texture2D> pTex;
     D3D11_TEXTURE2D_DESC texDesc;
@@ -323,6 +338,8 @@ void GameApp::InitSkybox()
 
 void GameApp::InitMiniMap()
 {
+    PROFILE_FUNCTION();
+
     // 初始化小地图
     m_pMinimapTexture = std::make_unique<Texture2D>(m_pd3dDevice.Get(), 300.0f, 300.0f, DXGI_FORMAT_R8G8B8A8_UNORM);
     std::unique_ptr<Depth2D> pMinimapDepthTexture = std::make_unique<Depth2D>(m_pd3dDevice.Get(), 300.0f, 300.0f);
@@ -397,6 +414,8 @@ void GameApp::PlaceDestroyBlocks()
 // 相机变换
 void GameApp::CameraTransform(float dt, std::vector<DSM::BlockId> containBlock)
 {
+    PROFILE_FUNCTION();
+
     // 获取玩家变换
     Transform& playerTransform = m_Player.GetEntity().GetTransform();
     XMFLOAT3 FCPosition = m_pFCamera->GetPosition();
@@ -439,6 +458,8 @@ void GameApp::CameraTransform(float dt, std::vector<DSM::BlockId> containBlock)
 // ImGui操作
 void GameApp::ImGuiOperations(float dt)
 {
+    PROFILE_FUNCTION();
+
     static float thirdDistance = 3.5f;
     static int cameraMode = 0;
     static const char* cModes[] = {
@@ -510,7 +531,7 @@ void GameApp::ImGuiOperations(float dt)
             }
             m_CameraMode = CameraMode::ThirdPerson;
         }
-        ImGui::SliderFloat("Speed", &m_Player.GetSpeed(), 0.5f, 10.0f);
+        ImGui::SliderFloat("Speed", &m_Player.GetSpeed(), 0.5f, 4.0f);
         ImGui::SliderFloat("Third Person Distance", &thirdDistance, 2.0f, 6.0f);
 
         ImGui::Text("X: %f",m_pFCamera->GetPosition().x);
@@ -532,6 +553,8 @@ void GameApp::ImGuiOperations(float dt)
 // 绘制主要场景
 void GameApp::DrawScene(ID3D11RenderTargetView* pRTV, ID3D11DepthStencilView* pDSV, const D3D11_VIEWPORT& viewport)
 {
+    PROFILE_FUNCTION();
+
     m_pd3dImmediateContext->ClearRenderTargetView(pRTV, reinterpret_cast<const float*>(&Colors::Pink));
     m_pd3dImmediateContext->ClearDepthStencilView(pDSV, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
     m_pd3dImmediateContext->OMSetRenderTargets(1, &pRTV, pDSV);
@@ -694,14 +717,14 @@ void GameApp::ParticleSystem(float dt)
 
 
 
-
+static std::mutex s_ChunkMutex;
 
 // 多线程并行函数
-static void ParallelLoadChunk(DSM::Chunk& chunk, TextureManager& tManager, ModelManager& mManager)
+static void ParallelLoadChunk(std::vector<DSM::Chunk>& m_Chunk, DSM::Chunk& chunk, TextureManager& tManager, ModelManager& mManager)
 {
-    if (!chunk.GetState()) {
-        chunk.LoadChunk(tManager, mManager);
-    }
+    chunk.LoadChunk(tManager, mManager);
+    std::lock_guard<std::mutex> lock(s_ChunkMutex);
+    m_Chunk.push_back(chunk);
 }
 
 
@@ -719,10 +742,12 @@ struct XMINT2Less
 
 void GameApp::LoadChunk(const XMINT2& inChunkPos)
 {
+    PROFILE_FUNCTION();
+
     static int pos = m_Chunk.size();
     int viewRange = (int)pow(m_ViewRange * 2, 2);    // 可视区块个数
     std::set<XMINT2, XMINT2Less> chunkPosition;             // 需要加载的区块的位置
-    static std::vector<DSM::Chunk> shouldLoad;                     // 需要加载的区块
+    std::vector<XMINT2> shouldLoad;                     // 需要加载的区块
 
     // 存储区块位置
     for (auto& chunk : m_Chunk) {
@@ -735,21 +760,23 @@ void GameApp::LoadChunk(const XMINT2& inChunkPos)
             XMINT2 position(inChunkPos.x + i * CHUNKSIZE, inChunkPos.y + j * CHUNKSIZE);
             // 插入成功则是新区块
             if (chunkPosition.insert(position).second) {
-                shouldLoad.emplace_back(position, m_pd3dDevice.Get());
+                shouldLoad.emplace_back(position);
+                break;
             }
         }
     }
 
 #define ASYNC 0
 #if ASYNC
-    for (int i = 0; pos < m_Chunk.size(); pos++) {
-        m_Futures.push_back(std::async(std::launch::async, ParallelLoadChunk, std::ref(m_Chunk[pos]), std::ref(m_TextureManager), std::ref(m_ModelManager)));
+    for (; shouldLoad.size() > 0;) {
+        DSM::Chunk chunk(shouldLoad.back(), m_pd3dDevice.Get());
+        shouldLoad.pop_back();
+        m_Futures.push_back(std::async(std::launch::async, ParallelLoadChunk, std::ref(m_Chunk), std::ref(chunk), std::ref(m_TextureManager), std::ref(m_ModelManager)));
     }
 #else
     // 每帧加载一个区块
     if (shouldLoad.size() > 0) {
-        DSM::Chunk& chunk = m_Chunk.emplace_back(std::move(shouldLoad.back()));
-        shouldLoad.pop_back();
+        DSM::Chunk& chunk = m_Chunk.emplace_back(std::move(shouldLoad.back()), m_pd3dDevice.Get());
         chunk.LoadChunk(m_TextureManager, m_ModelManager);
     }
 #endif
@@ -769,6 +796,8 @@ void GameApp::LoadChunk(const XMINT2& inChunkPos)
 
 void GameApp::ChunkFrustumCull()
 {
+    PROFILE_FUNCTION();
+
     // 筛选要绘制的区块
     for (auto& chunk : m_Chunk) {
         XMINT2 chunkPosition = chunk.GetPositon();

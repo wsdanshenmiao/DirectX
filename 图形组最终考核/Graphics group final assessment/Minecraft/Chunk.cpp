@@ -6,7 +6,7 @@ namespace DSM {
 
 bool Chunk::m_EnableFrustumCulling = false;				// 视锥体裁剪关闭
 int Chunk::m_Seed = 050113;								// 默认种子
-int Chunk::m_StoreChunkRadius = 8;						// 超过此半径的区块被卸载
+int Chunk::m_StoreChunkRadius = 20;						// 超过此半径的区块被卸载
 
 
 Chunk::Chunk(DirectX::XMINT2 position, ID3D11Device* device)
@@ -109,7 +109,7 @@ float Chunk::GetNoice(int x, int z)
 	noice2.SetFrequency(0.04f);
 	FastNoiseLite noice3(m_Seed);
 	noice3.SetNoiseType(FastNoiseLite::NoiseType_Perlin);
-	noice3.SetFrequency(0.005f);
+	noice3.SetFrequency(0.001f);
 	float noice = (noice1.GetNoise((float)x, (float)z) * LOWAMPLITUDE + 
 		noice2.GetNoise((float)x, (float)z) * NORMALAMPLITUDE + 
 		noice3.GetNoise((float)x, (float)z) * HIGHAMPLITUDE);
@@ -202,6 +202,8 @@ void Chunk::DrawChunk(ID3D11DeviceContext* deviceContext, IEffect& effect)
 
 void Chunk::LoadChunk(TextureManager& tManager, ModelManager& mManager)
 {
+	PROFILE_FUNCTION();
+
 	m_Loading = true;
 	// 初始化方块
 	m_Block[0].GetBlock().SetModel(nullptr);
@@ -218,12 +220,12 @@ void Chunk::LoadChunk(TextureManager& tManager, ModelManager& mManager)
 	// 生成方块
 	m_BlockInstancedData[0].reserve(2200);
 	m_BlockTransforms[0].reserve(2200);
-	m_BlockInstancedData[0].reserve(5400);
-	m_BlockTransforms[0].reserve(5400);
-	m_BlockInstancedData[0].reserve(650);
-	m_BlockTransforms[0].reserve(650);
-	m_BlockInstancedData[0].reserve(256);
-	m_BlockTransforms[0].reserve(256);
+	m_BlockInstancedData[1].reserve(8820);
+	m_BlockTransforms[1].reserve(8820);
+	m_BlockInstancedData[2].reserve(650);
+	m_BlockTransforms[2].reserve(650);
+	m_BlockInstancedData[3].reserve(256);
+	m_BlockTransforms[3].reserve(256);
 
 	m_BlockId.resize(CHUNKSIZE * CHUNKSIZE * CHUNKHIGHEST);
 
