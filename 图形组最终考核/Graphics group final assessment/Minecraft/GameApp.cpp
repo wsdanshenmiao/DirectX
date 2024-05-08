@@ -79,21 +79,40 @@ void GameApp::UpdateScene(float dt)
     }
 
 
-    XMFLOAT3 cameraPosition = m_pFCamera->GetPosition();
+    XMFLOAT3 cameraPos = m_pFCamera->GetPosition();
 
     // 获取人物可能触及的物块
-    DSM::Chunk* inChunk;
+    DSM::Chunk* inChunk = nullptr;
     std::vector<DSM::BlockId> containBlock;
     for (auto& chunk : m_Chunk) {
         XMINT2 chunkPosition = chunk.GetPositon();
-        if (chunkPosition.x <= cameraPosition.x && cameraPosition.x < chunkPosition.x + CHUNKSIZE &&
-            chunkPosition.y <= cameraPosition.z && cameraPosition.z < chunkPosition.y + CHUNKSIZE) {
+        if (chunkPosition.x <= cameraPos.x && cameraPos.x < chunkPosition.x + CHUNKSIZE &&
+            chunkPosition.y <= cameraPos.z && cameraPos.z < chunkPosition.y + CHUNKSIZE) {
             inChunk = &chunk;
             containBlock = chunk.GetBlockId();
             break;
         }
     }
-    XMINT2 inChunkPos = inChunk->GetPositon();
+
+    if (!inChunk) { // 若超出界限
+        int cameraPosX = (int)cameraPos.x;
+        int cameraPosZ = (int)cameraPos.z;
+        if (cameraPosX < 0) {
+            cameraPosX -= 16;
+        }
+        if (cameraPosZ < 0) {
+            cameraPosZ -= 16;
+        }
+        XMINT2 chunkPos(cameraPosX - cameraPosX % CHUNKSIZE, cameraPosZ - cameraPosZ % CHUNKSIZE);  // 获取应该加载的区块的坐标
+
+        LoadChunk(chunkPos);    // 禁止移动操作并加载当前区块
+    }
+    else {
+        XMINT2 inChunkPos = inChunk->GetPositon();
+        LoadChunk(inChunkPos);
+        CameraTransform(dt, containBlock);
+    }
+
     std::vector<Transform>& dirtTransform = inChunk->GetDirtTransform();
     std::vector<Transform>& bedRockTransform = inChunk->GetBedRockTransform();
     std::vector<Transform>& stoneTransform = inChunk->GetStoneTransform();
@@ -103,9 +122,6 @@ void GameApp::UpdateScene(float dt)
     std::vector<BasicEffect::InstancedData>& stoneData = inChunk->GetStoneInstancedData();
     std::vector<BasicEffect::InstancedData>& gressData = inChunk->GetGressInstancedData();
 
-    
-    LoadChunk(inChunkPos);
-
     if (m_EnableRain) {
         ParticleSystem(dt);
     }
@@ -113,8 +129,6 @@ void GameApp::UpdateScene(float dt)
     EnemyManagement();
 
     PlaceDestroyBlocks();
-
-    CameraTransform(dt, containBlock);
 
     DayAndNightChange(dt);
 
@@ -172,6 +186,23 @@ void GameApp::DrawScene()
     HR(m_pSwapChain->Present(0, m_IsDxgiFlipModel ? DXGI_PRESENT_ALLOW_TEARING : 0));
 }
 
+
+
+
+
+
+
+static std::mutex s_ChunkMutex;
+
+// 多线程并行函数
+static void ParallelLoadChunk(std::vector<DSM::Chunk>& m_Chunk, DSM::Chunk chunk, TextureManager& tManager, ModelManager& mManager)
+{
+    chunk.LoadChunk();
+    std::lock_guard<std::mutex> lock(s_ChunkMutex);
+    m_Chunk.push_back(chunk);
+}
+
+
 bool GameApp::InitResource()
 {
     PROFILE_FUNCTION();
@@ -182,15 +213,39 @@ bool GameApp::InitResource()
 
     m_Player.SetModel(m_pFCamera, m_ModelManager);
 
+
     int loadRadius = (int)sqrt(m_StoreChunkNum) / 2;
+    
     // 加载区块
-    m_Chunk.resize(m_StoreChunkNum);
-    for (int i = -loadRadius, pos = 0; i < loadRadius; ++i) {
-        for (int j = -loadRadius; j < loadRadius; ++j , ++pos) {
-            m_Chunk[pos].SetPosition(0 + CHUNKSIZE * i, 0 + CHUNKSIZE * j);
-            m_Chunk[pos].LoadChunk(m_TextureManager, m_ModelManager);
+    m_Chunk.reserve(m_StoreChunkNum);
+
+#define ASYNC 0
+#if ASYNC
+    DSM::Chunk initialChunk(0, 0);
+    initialChunk.InitBlock(m_TextureManager, m_ModelManager);
+    initialChunk.LoadChunk();
+    m_Chunk.push_back(std::move(initialChunk));
+    for (int i = -loadRadius; i < loadRadius; ++i) {
+        for (int j = -loadRadius; j < loadRadius; ++j) {
+            if (i == 0 && j == 0) {
+                continue;
+            }
+            DSM::Chunk chunk(0 + CHUNKSIZE * i, 0 + CHUNKSIZE * j);
+            chunk.InitBlock(m_TextureManager, m_ModelManager);
+            m_Futures.push_back(std::async(std::launch::async, ParallelLoadChunk, std::ref(m_Chunk), chunk, std::ref(m_TextureManager), std::ref(m_ModelManager)));
         }
     }
+
+#else
+    for (int i = -loadRadius; i < loadRadius; ++i) {
+        for (int j = -loadRadius; j < loadRadius; ++j) {
+            DSM::Chunk& chunk = m_Chunk.emplace_back(0 + CHUNKSIZE * i, 0 + CHUNKSIZE * j);
+            chunk.InitBlock(m_TextureManager, m_ModelManager);
+            chunk.LoadChunk();
+        }
+    }
+
+#endif
 
     XMINT4 treeRange(-m_ViewRange * CHUNKSIZE, m_ViewRange * CHUNKSIZE, -m_ViewRange * CHUNKSIZE, m_ViewRange * CHUNKSIZE);
     m_CherryTree.CreateRandomTree(treeRange, m_ModelManager, m_TextureManager);
@@ -717,15 +772,6 @@ void GameApp::ParticleSystem(float dt)
 
 
 
-static std::mutex s_ChunkMutex;
-
-// 多线程并行函数
-static void ParallelLoadChunk(std::vector<DSM::Chunk>& m_Chunk, DSM::Chunk& chunk, TextureManager& tManager, ModelManager& mManager)
-{
-    chunk.LoadChunk(tManager, mManager);
-    std::lock_guard<std::mutex> lock(s_ChunkMutex);
-    m_Chunk.push_back(chunk);
-}
 
 
 struct XMINT2Less
@@ -766,20 +812,24 @@ void GameApp::LoadChunk(const XMINT2& inChunkPos)
         }
     }
 
-#define ASYNC 0
 #if ASYNC
     for (; shouldLoad.size() > 0;) {
-        DSM::Chunk chunk(shouldLoad.back(), m_pd3dDevice.Get());
+        DSM::Chunk chunk(shouldLoad.back());
+        chunk.InitBlock(m_TextureManager, m_ModelManager);
         shouldLoad.pop_back();
-        m_Futures.push_back(std::async(std::launch::async, ParallelLoadChunk, std::ref(m_Chunk), std::ref(chunk), std::ref(m_TextureManager), std::ref(m_ModelManager)));
+        m_Futures.push_back(std::async(std::launch::async, ParallelLoadChunk, std::ref(m_Chunk), chunk, std::ref(m_TextureManager), std::ref(m_ModelManager)));
     }
+
 #else
     // 每帧加载一个区块
     if (shouldLoad.size() > 0) {
-        DSM::Chunk& chunk = m_Chunk.emplace_back(std::move(shouldLoad.back()), m_pd3dDevice.Get());
-        chunk.LoadChunk(m_TextureManager, m_ModelManager);
+        DSM::Chunk& chunk = m_Chunk.emplace_back(std::move(shouldLoad.back()));
+        chunk.InitBlock(m_TextureManager, m_ModelManager);
+        chunk.LoadChunk();
     }
+
 #endif
+
     // 卸载区块
     for (std::vector<DSM::Chunk>::iterator it = m_Chunk.begin();
         m_Chunk.size() > pow(m_StoreChunkNum, 2) && it != m_Chunk.end();) {

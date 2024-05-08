@@ -6,13 +6,13 @@ namespace DSM {
 
 bool Chunk::m_EnableFrustumCulling = false;				// 视锥体裁剪关闭
 int Chunk::m_Seed = 050113;								// 默认种子
-int Chunk::m_StoreChunkRadius = 20;						// 超过此半径的区块被卸载
+int Chunk::m_StoreChunkRadius = 4;						// 超过此半径的区块被卸载
 
 
-Chunk::Chunk(DirectX::XMINT2 position, ID3D11Device* device)
+Chunk::Chunk(DirectX::XMINT2 position)
 	:m_Positon(position) {}
 
-Chunk::Chunk(int x, int y, ID3D11Device* device)
+Chunk::Chunk(int x, int y)
 	:m_Positon(DirectX::XMINT2(x, y)) {}
 
 DirectX::XMINT2 Chunk::GetPositon()
@@ -147,6 +147,21 @@ BlockId Chunk::GetBlock(int x, int y, int z)
 }
 
 
+void Chunk::InitBlock(TextureManager& tManager, ModelManager& mManager)
+{
+	// 初始化方块
+	m_Block[0].GetBlock().SetModel(nullptr);
+	m_Block[0].SetId(BlockId::Air);
+	m_Block[1].GetBlock().SetModel(m_Block[1].GetBlockModel().GetDirtModel(tManager, mManager));
+	m_Block[1].SetId(BlockId::Dirt);
+	m_Block[2].GetBlock().SetModel(m_Block[2].GetBlockModel().GetStoneModel(tManager, mManager));
+	m_Block[2].SetId(BlockId::Stone);
+	m_Block[3].GetBlock().SetModel(m_Block[3].GetBlockModel().GetBedRockModel(tManager, mManager));
+	m_Block[3].SetId(BlockId::BedRock);
+	m_Block[4].GetBlock().SetModel(m_Block[4].GetBlockModel().GetGressModel(tManager, mManager));
+	m_Block[4].SetId(BlockId::Gress);
+}
+
 #if 0
 // 设置方块种类
 void Chunk::SetBlock(int x, int y, int z, Block& block, TextureManager& tManager, ModelManager& mManager)
@@ -200,22 +215,11 @@ void Chunk::DrawChunk(ID3D11DeviceContext* deviceContext, IEffect& effect)
 
 #else
 
-void Chunk::LoadChunk(TextureManager& tManager, ModelManager& mManager)
+void Chunk::LoadChunk()
 {
 	PROFILE_FUNCTION();
 
 	m_Loading = true;
-	// 初始化方块
-	m_Block[0].GetBlock().SetModel(nullptr);
-	m_Block[0].SetId(BlockId::Air);
-	m_Block[1].GetBlock().SetModel(m_Block[1].GetBlockModel().GetDirtModel(tManager, mManager));
-	m_Block[1].SetId(BlockId::Dirt);
-	m_Block[2].GetBlock().SetModel(m_Block[2].GetBlockModel().GetStoneModel(tManager, mManager));
-	m_Block[2].SetId(BlockId::Stone);
-	m_Block[3].GetBlock().SetModel(m_Block[3].GetBlockModel().GetBedRockModel(tManager, mManager));
-	m_Block[3].SetId(BlockId::BedRock);
-	m_Block[4].GetBlock().SetModel(m_Block[4].GetBlockModel().GetGressModel(tManager, mManager));
-	m_Block[4].SetId(BlockId::Gress);
 
 	// 生成方块
 	m_BlockInstancedData[0].reserve(2200);

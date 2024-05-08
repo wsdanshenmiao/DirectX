@@ -29,8 +29,8 @@ class Chunk
 {
 public:
 	Chunk() = default;
-	Chunk(DirectX::XMINT2 position, ID3D11Device* device);
-	Chunk(int x, int y, ID3D11Device* device);
+	Chunk(DirectX::XMINT2 position);
+	Chunk(int x, int y);
 
 	void SetPosition(DirectX::XMINT2 position);
 	void SetPosition(int x, int y);
@@ -49,8 +49,9 @@ public:
 	std::vector<DSM::BlockId>& GetBlockId();
 	BlockId GetBlock(int x, int y, int z);
 
+	void InitBlock(TextureManager& tManager, ModelManager& mManager);
 	void SetBlock(int x, int y, int z, Block& block, TextureManager& tManager, ModelManager& mManager);
-	void LoadChunk(TextureManager& tManager, ModelManager& mManager);
+	void LoadChunk();
 	bool UnloadChunk(const DirectX::XMINT2& centerChunk);
 	void FrustumCulling(std::shared_ptr<FirstPersonCamera> camera);
 	
