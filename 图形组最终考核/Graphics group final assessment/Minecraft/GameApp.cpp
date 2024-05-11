@@ -83,13 +83,14 @@ void GameApp::UpdateScene(float dt)
 
     // 获取人物可能触及的物块
     DSM::Chunk* inChunk = nullptr;
-    std::vector<DSM::BlockId> containBlock;
+    std::vector<BoundingBox>* containBlock;
     for (auto& chunk : m_Chunk) {
         XMINT2 chunkPosition = chunk.GetPositon();
         if (chunkPosition.x <= cameraPos.x && cameraPos.x < chunkPosition.x + CHUNKSIZE &&
             chunkPosition.y <= cameraPos.z && cameraPos.z < chunkPosition.y + CHUNKSIZE) {
             inChunk = &chunk;
-            containBlock = chunk.GetBlockId();
+            containBlock = &chunk.GetBlockBox();
+            //containBlock = chunk.GetBlockId();
             break;
         }
     }
@@ -110,25 +111,17 @@ void GameApp::UpdateScene(float dt)
     else {
         XMINT2 inChunkPos = inChunk->GetPositon();
         LoadChunk(inChunkPos);
-        CameraTransform(dt, containBlock);
+        PlaceDestroyBlocks(inChunk);
+        CameraTransform(dt, *containBlock);
+        //CameraTransform(dt, containBlock);CameraTransform(dt, containBlock);
     }
 
-    std::vector<Transform>& dirtTransform = inChunk->GetDirtTransform();
-    std::vector<Transform>& bedRockTransform = inChunk->GetBedRockTransform();
-    std::vector<Transform>& stoneTransform = inChunk->GetStoneTransform();
-    std::vector<Transform>& gressTransform = inChunk->GetGressTransform();
-    std::vector<BasicEffect::InstancedData>& dirtData = inChunk->GetDirtInstancedData();
-    std::vector<BasicEffect::InstancedData>& bedRockData = inChunk->GetBedRockInstancedData();
-    std::vector<BasicEffect::InstancedData>& stoneData = inChunk->GetStoneInstancedData();
-    std::vector<BasicEffect::InstancedData>& gressData = inChunk->GetGressInstancedData();
 
     if (m_EnableRain) {
         ParticleSystem(dt);
     }
 
     EnemyManagement();
-
-    PlaceDestroyBlocks();
 
     DayAndNightChange(dt);
 
@@ -421,8 +414,19 @@ void GameApp::InitMiniMap()
 
 
 // 放置与破坏方块
-void GameApp::PlaceDestroyBlocks()
+void GameApp::PlaceDestroyBlocks(DSM::Chunk* inChunk)
 {
+    std::vector<Transform>& dirtTransform = inChunk->GetDirtTransform();
+    std::vector<Transform>& bedRockTransform = inChunk->GetBedRockTransform();
+    std::vector<Transform>& stoneTransform = inChunk->GetStoneTransform();
+    std::vector<Transform>& gressTransform = inChunk->GetGressTransform();
+    std::vector<BasicEffect::InstancedData>& dirtData = inChunk->GetDirtInstancedData();
+    std::vector<BasicEffect::InstancedData>& bedRockData = inChunk->GetBedRockInstancedData();
+    std::vector<BasicEffect::InstancedData>& stoneData = inChunk->GetStoneInstancedData();
+    std::vector<BasicEffect::InstancedData>& gressData = inChunk->GetGressInstancedData();
+
+    std::vector<BoundingBox>& blockBox = inChunk->GetBlockBox();
+
     //获取鼠标
     ImVec2 mousePos = ImGui::GetMousePos();
     // 将射线设置在鼠标处
@@ -467,7 +471,7 @@ void GameApp::PlaceDestroyBlocks()
 
 
 // 相机变换
-void GameApp::CameraTransform(float dt, std::vector<DSM::BlockId> containBlock)
+void GameApp::CameraTransform(float dt, std::vector<BoundingBox>& containBlock)
 {
     PROFILE_FUNCTION();
 
@@ -823,7 +827,7 @@ void GameApp::LoadChunk(const XMINT2& inChunkPos)
 #else
     // 每帧加载一个区块
     if (shouldLoad.size() > 0) {
-        DSM::Chunk& chunk = m_Chunk.emplace_back(std::move(shouldLoad.back()));
+        DSM::Chunk& chunk = m_Chunk.emplace_back(std::move(shouldLoad.front()));
         chunk.InitBlock(m_TextureManager, m_ModelManager);
         chunk.LoadChunk();
     }

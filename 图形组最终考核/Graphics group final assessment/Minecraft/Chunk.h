@@ -21,9 +21,9 @@ namespace DSM {
 #define CHUNKSIZE 16		// 区块长度
 #define DIRTTHICKNESS 10	// 泥土层的厚度
 #define BLOCKRANDOM 3		// 区块随机值
-#define HIGHAMPLITUDE 35	// 低频噪声振幅
-#define	NORMALAMPLITUDE 8	// 中频噪声振幅
-#define LOWAMPLITUDE 2		// 高频噪声振幅
+#define HIGHAMPLITUDE 30	// 低频噪声振幅
+#define	NORMALAMPLITUDE 15	// 中频噪声振幅
+#define LOWAMPLITUDE 3		// 高频噪声振幅
 
 class Chunk
 {
@@ -46,7 +46,7 @@ public:
 	std::vector<Transform>& GetStoneTransform();
 	std::vector<Transform>& GetBedRockTransform();
 	std::vector<Transform>& GetGressTransform();
-	std::vector<DSM::BlockId>& GetBlockId();
+	std::vector<DirectX::BoundingBox> & GetBlockBox();
 	BlockId GetBlock(int x, int y, int z);
 
 	void InitBlock(TextureManager& tManager, ModelManager& mManager);
@@ -76,7 +76,7 @@ private:
 	std::vector<Transform> m_BlockTransforms[4];								// 方块的变换
 	std::shared_ptr<Buffer> m_pInstancedBuffer[4];							    // 实例缓冲区
 
-	std::vector<DSM::BlockId> m_BlockId;										// 记录方块位置
+	std::vector<DirectX::BoundingBox> m_BlockBox;										// 记录方块位置
 };
 
 }

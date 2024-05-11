@@ -53,9 +53,9 @@ private:
     void InitCamara();
     void InitMiniMap();
 
-    void CameraTransform(float dt, std::vector<DSM::BlockId> containBlock);
+    void CameraTransform(float dt, std::vector<DirectX::BoundingBox>& containBlock);
     void ImGuiOperations(float dt);
-    void PlaceDestroyBlocks();
+    void PlaceDestroyBlocks(DSM::Chunk* inChunk);
     void DrawScene(ID3D11RenderTargetView* pRTV, ID3D11DepthStencilView* pDSV, const D3D11_VIEWPORT& viewport);
     void DayAndNightChange(float dt);
     void EnemyManagement();
@@ -92,7 +92,7 @@ private:
     float m_Diffuse = 0.5f;                                     // 方向光漫反射的系数
 
     std::vector<DSM::Chunk> m_Chunk;                            // 区块
-    int m_ViewRange = 4;                                        // 视距半径
+    int m_ViewRange = 2;                                        // 视距半径
     int m_StoreChunkNum;                                        // 存储的区块个数
     bool m_EnableChunkFrustumCulling = true;                    // 区块的视锥体剔除
     std::vector<std::future<void>> m_Futures;

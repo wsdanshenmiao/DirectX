@@ -6,7 +6,7 @@ namespace DSM {
 
 bool Chunk::m_EnableFrustumCulling = false;				// 视锥体裁剪关闭
 int Chunk::m_Seed = 050113;								// 默认种子
-int Chunk::m_StoreChunkRadius = 4;						// 超过此半径的区块被卸载
+int Chunk::m_StoreChunkRadius = 2;						// 超过此半径的区块被卸载
 
 
 Chunk::Chunk(DirectX::XMINT2 position)
@@ -93,9 +93,9 @@ std::vector<Transform>& Chunk:: GetGressTransform()
 	return m_BlockTransforms[3];
 }
 
-std::vector<BlockId>& Chunk::GetBlockId()
+std::vector<BoundingBox>& Chunk::GetBlockBox()
 {
-	return m_BlockId;
+	return m_BlockBox;
 }
 
 // 生成不同频率的柏林噪声
@@ -109,7 +109,7 @@ float Chunk::GetNoice(int x, int z)
 	noice2.SetFrequency(0.04f);
 	FastNoiseLite noice3(m_Seed);
 	noice3.SetNoiseType(FastNoiseLite::NoiseType_Perlin);
-	noice3.SetFrequency(0.001f);
+	noice3.SetFrequency(0.006f);
 	float noice = (noice1.GetNoise((float)x, (float)z) * LOWAMPLITUDE + 
 		noice2.GetNoise((float)x, (float)z) * NORMALAMPLITUDE + 
 		noice3.GetNoise((float)x, (float)z) * HIGHAMPLITUDE);
@@ -231,7 +231,7 @@ void Chunk::LoadChunk()
 	m_BlockInstancedData[3].reserve(256);
 	m_BlockTransforms[3].reserve(256);
 
-	m_BlockId.resize(CHUNKSIZE * CHUNKSIZE * CHUNKHIGHEST);
+	m_BlockBox.resize(CHUNKSIZE * CHUNKSIZE * CHUNKHIGHEST);
 
 	Transform transform;
 	size_t pos = 0;
@@ -245,29 +245,35 @@ void Chunk::LoadChunk()
 				XMMATRIX W = transform.GetLocalToWorldMatrixXM();
 				XMStoreFloat4x4(&instanceData.world, XMMatrixTranspose(W));
 				XMStoreFloat4x4(&instanceData.worldInvTranspose, XMMatrixTranspose(XMath::InverseTranspose(W)));
+				;
 				switch (GetBlock(mx + x, y, mz + z)){
 				case BlockId::Air:
-					m_BlockId[y * CHUNKSIZE * CHUNKSIZE + z * CHUNKSIZE + x] = BlockId::Air;
+					m_BlockBox[y * CHUNKSIZE * CHUNKSIZE + z * CHUNKSIZE + x] = 
+						BoundingBox(XMFLOAT3(mx + x + 0.5f, y + 0.5f, mz + z + 0.5f), XMFLOAT3(0.0f, 0.0f, 0.0f));
 					break;
 				case BlockId::Dirt:
 					m_BlockTransforms[0].push_back(transform);
 					m_BlockInstancedData[0].push_back(instanceData);
-					m_BlockId[y * CHUNKSIZE * CHUNKSIZE + z * CHUNKSIZE + x] = BlockId::Dirt;
+					m_BlockBox[y * CHUNKSIZE * CHUNKSIZE + z * CHUNKSIZE + x] =
+						BoundingBox(XMFLOAT3(mx + x + 0.5f, y + 0.5f, mz + z + 0.5f), XMFLOAT3(0.5f, 0.5f, 0.5f));
 					break;
 				case BlockId::Stone:
 					m_BlockTransforms[1].push_back(transform);
 					m_BlockInstancedData[1].push_back(instanceData);
-					m_BlockId[y * CHUNKSIZE * CHUNKSIZE + z * CHUNKSIZE + x] = BlockId::Stone;
+					m_BlockBox[y * CHUNKSIZE * CHUNKSIZE + z * CHUNKSIZE + x] =
+						BoundingBox(XMFLOAT3(mx + x + 0.5f, y + 0.5f, mz + z + 0.5f), XMFLOAT3(0.5f, 0.5f, 0.5f));
 					break;
 				case BlockId::BedRock:
 					m_BlockTransforms[2].push_back(transform);
 					m_BlockInstancedData[2].push_back(instanceData);
-					m_BlockId[y * CHUNKSIZE * CHUNKSIZE + z * CHUNKSIZE + x] = BlockId::BedRock;
+					m_BlockBox[y * CHUNKSIZE * CHUNKSIZE + z * CHUNKSIZE + x] =
+						BoundingBox(XMFLOAT3(mx + x + 0.5f, y + 0.5f, mz + z + 0.5f), XMFLOAT3(0.5f, 0.5f, 0.5f));
 					break;
 				case BlockId::Gress:
 					m_BlockTransforms[3].push_back(transform);
 					m_BlockInstancedData[3].push_back(instanceData);
-					m_BlockId[y * CHUNKSIZE * CHUNKSIZE + z * CHUNKSIZE + x] = BlockId::Gress;
+					m_BlockBox[y * CHUNKSIZE * CHUNKSIZE + z * CHUNKSIZE + x] =
+						BoundingBox(XMFLOAT3(mx + x + 0.5f, y + 0.5f, mz + z + 0.5f), XMFLOAT3(0.5f, 0.5f, 0.5f));
 					break;
 				}
 			}

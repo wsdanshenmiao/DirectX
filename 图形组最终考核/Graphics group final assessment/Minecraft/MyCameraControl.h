@@ -57,7 +57,7 @@ class FirstPersonCameraController : public CameraController
 public:
     ~FirstPersonCameraController() override {};
     void Update(float deltaTime) override {};
-    void Update(float deltaTime, std::vector<DSM::BlockId> containBlock);
+    void Update(float deltaTime, std::vector<DirectX::BoundingBox>& containBlock);
 
     void InitCamera(FirstPersonCamera* pCamera);
 

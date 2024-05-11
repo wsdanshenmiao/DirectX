@@ -66,32 +66,32 @@ void FreeCameraController::SetMoveSpeed(float speed)
 
 
 
-void FirstPersonCameraController::Update(float deltaTime, std::vector<DSM::BlockId> containBlock)
+void FirstPersonCameraController::Update(float deltaTime, std::vector<BoundingBox>& containBlock)
 {
     static int jump = 0;
     bool isHit = false;
     bool onGround = false;
     XMFLOAT3 cameraPosition = m_pCamera->GetPosition();    
-    if (!containBlock.size() || containBlock[(int)(cameraPosition.y) * CHUNKSIZE * CHUNKSIZE +
-        ((int)cameraPosition.z + 1) * CHUNKSIZE + (int)cameraPosition.x] != DSM::BlockId::Air ||
-        containBlock[(int)(cameraPosition.y) * CHUNKSIZE * CHUNKSIZE +
-        ((int)cameraPosition.z - 1) * CHUNKSIZE + (int)cameraPosition.x] != DSM::BlockId::Air ||
-        containBlock[(int)(cameraPosition.y) * CHUNKSIZE * CHUNKSIZE +
-        (int)cameraPosition.z * CHUNKSIZE + ((int)cameraPosition.x + 1)] != DSM::BlockId::Air ||
-        containBlock[(int)(cameraPosition.y) * CHUNKSIZE * CHUNKSIZE +
-        (int)cameraPosition.z * CHUNKSIZE + ((int)cameraPosition.x - 1)] != DSM::BlockId::Air ||
-        containBlock[(int)(cameraPosition.y) * CHUNKSIZE * CHUNKSIZE +
-        ((int)cameraPosition.z + 1) * CHUNKSIZE + ((int)cameraPosition.x + 1)] != DSM::BlockId::Air ||
-        containBlock[(int)(cameraPosition.y) * CHUNKSIZE * CHUNKSIZE +
-        ((int)cameraPosition.z - 1) * CHUNKSIZE + ((int)cameraPosition.x - 1)] != DSM::BlockId::Air ||
-        containBlock[(int)(cameraPosition.y) * CHUNKSIZE * CHUNKSIZE +
-        ((int)cameraPosition.z - 1) * CHUNKSIZE + ((int)cameraPosition.x + 1)] != DSM::BlockId::Air ||
-        containBlock[(int)(cameraPosition.y) * CHUNKSIZE * CHUNKSIZE +
-        ((int)cameraPosition.z + 1) * CHUNKSIZE + ((int)cameraPosition.x - 1)] != DSM::BlockId::Air ||
-        containBlock[(int)(cameraPosition.y) * CHUNKSIZE * CHUNKSIZE +
-        (int)cameraPosition.z * CHUNKSIZE + (int)cameraPosition.x] != DSM::BlockId::Air) {
-        onGround = true;
-    }
+    //if (!containBlock.size() || containBlock[(int)(cameraPosition.y) * CHUNKSIZE * CHUNKSIZE +
+    //    ((int)cameraPosition.z + 1) * CHUNKSIZE + (int)cameraPosition.x] != DSM::BlockId::Air ||
+    //    containBlock[(int)(cameraPosition.y) * CHUNKSIZE * CHUNKSIZE +
+    //    ((int)cameraPosition.z - 1) * CHUNKSIZE + (int)cameraPosition.x] != DSM::BlockId::Air ||
+    //    containBlock[(int)(cameraPosition.y) * CHUNKSIZE * CHUNKSIZE +
+    //    (int)cameraPosition.z * CHUNKSIZE + ((int)cameraPosition.x + 1)] != DSM::BlockId::Air ||
+    //    containBlock[(int)(cameraPosition.y) * CHUNKSIZE * CHUNKSIZE +
+    //    (int)cameraPosition.z * CHUNKSIZE + ((int)cameraPosition.x - 1)] != DSM::BlockId::Air ||
+    //    containBlock[(int)(cameraPosition.y) * CHUNKSIZE * CHUNKSIZE +
+    //    ((int)cameraPosition.z + 1) * CHUNKSIZE + ((int)cameraPosition.x + 1)] != DSM::BlockId::Air ||
+    //    containBlock[(int)(cameraPosition.y) * CHUNKSIZE * CHUNKSIZE +
+    //    ((int)cameraPosition.z - 1) * CHUNKSIZE + ((int)cameraPosition.x - 1)] != DSM::BlockId::Air ||
+    //    containBlock[(int)(cameraPosition.y) * CHUNKSIZE * CHUNKSIZE +
+    //    ((int)cameraPosition.z - 1) * CHUNKSIZE + ((int)cameraPosition.x + 1)] != DSM::BlockId::Air ||
+    //    containBlock[(int)(cameraPosition.y) * CHUNKSIZE * CHUNKSIZE +
+    //    ((int)cameraPosition.z + 1) * CHUNKSIZE + ((int)cameraPosition.x - 1)] != DSM::BlockId::Air ||
+    //    containBlock[(int)(cameraPosition.y) * CHUNKSIZE * CHUNKSIZE +
+    //    (int)cameraPosition.z * CHUNKSIZE + (int)cameraPosition.x] != DSM::BlockId::Air) {
+    //    onGround = true;
+    //}
     ImGuiIO& io = ImGui::GetIO();
     float yaw = 0.0f, pitch = 0.0f;
     if (ImGui::IsMouseDragging(ImGuiMouseButton_Right)){
