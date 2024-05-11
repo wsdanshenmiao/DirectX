@@ -29,7 +29,7 @@
 #include "InstrumentorMacro.h"
 #include "InstrumentorTimer.h"
 
-#define RAYRANGE 4
+#define RAYRANGE 5
 
 // 摄像机模式
 enum class CameraMode { FirstPerson, ThirdPerson, Free };

@@ -441,6 +441,7 @@ void GameApp::PlaceDestroyBlocks(DSM::Chunk* inChunk)
     }
     //放置方块
     if (ImGui::IsMouseClicked(ImGuiMouseButton_Right) && ImGui::IsKeyDown(ImGuiKey_LeftShift)) {
+#if 0
         bool Placing = true;
         GameObject tmpObject;
         tmpObject.SetModel(DSM::BlockModel().GetDirtModel(m_TextureManager.Get(), m_ModelManager.Get()));
@@ -460,11 +461,64 @@ void GameApp::PlaceDestroyBlocks(DSM::Chunk* inChunk)
     }
     if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
         for (size_t i = 0; i < m_SoilNum; i++) {
-            if (ray.Hit(m_Dirt[i].GetBlock().GetBoundingBox(), nullptr, 6.0f)) {
+            if (ray.Hit(m_Dirt[i].GetBlock().GetBoundingBox(), nullptr, RAYRANGE)) {
                 m_Dirt[i].GetBlock().SetModel(nullptr);
                 create = i;
             }
         }
+#else
+        // 射线打中的方块
+        std::vector<BoundingBox> hitBlock;
+        XMFLOAT3 extents = XMFLOAT3(0.5f, 0.5f, 0.5f);
+        GameObject tmpObject;
+        tmpObject.SetModel(DSM::BlockModel().GetDirtModel(m_TextureManager.Get(), m_ModelManager.Get()));
+        DirectX::XMFLOAT3 position = m_pFCamera->GetPosition();
+        // 筛选射线打中的方块
+        for (int Y = (int)position.y - RAYRANGE; 0 <= Y && Y < CHUNKHIGHEST && Y < (int)position.y + RAYRANGE; ++Y) {
+            for (int z = 0; z < CHUNKSIZE; ++z) {
+                for (int x = 0; x < CHUNKSIZE; ++x) {
+                    if (ray.Hit(blockBox[Y * CHUNKSIZE * CHUNKSIZE + z * CHUNKSIZE + x], nullptr, RAYRANGE)) {
+                        hitBlock.emplace_back(XMFLOAT3(x + 0.5f, Y + 0.5f, z + 0.5f), extents);
+                    }
+                }
+            }
+        }
+        // 选取最近的方块
+        float distance;
+        int pos = 0;
+        for (int i = 0; i < hitBlock.size(); ++i) {
+            XMVECTOR vDistance = XMVectorSubtract(XMLoadFloat3(&hitBlock[i].Center), XMLoadFloat3(&position));
+            vDistance = XMVectorMultiply(vDistance, vDistance);
+            float fDistance = (XMVectorGetX(vDistance) + XMVectorGetY(vDistance) + XMVectorGetZ(vDistance));
+            if (i == 0) {
+                distance = fDistance;
+            }
+            else if (distance > fDistance) {
+                distance = fDistance;
+                pos = i;
+            }
+        }
+        if (hitBlock.size() > 0) {
+            XMFLOAT3 boxPosition = hitBlock[pos].Center;
+            XMFLOAT3 newPosition = XMFLOAT3(boxPosition.x - 0.5f, boxPosition.y + 0.5f, boxPosition.z - 0.5f);
+            tmpObject.GetTransform().SetPosition(newPosition);
+            BasicEffect::InstancedData instanceData;
+            XMMATRIX W(tmpObject.GetTransform().GetLocalToWorldMatrixXM());
+            XMStoreFloat4x4(&instanceData.world, XMMatrixTranspose(W));
+            XMStoreFloat4x4(&instanceData.worldInvTranspose, XMMatrixTranspose(XMath::InverseTranspose(W)));
+            dirtData.push_back(instanceData);
+            blockBox[newPosition.y * CHUNKSIZE * CHUNKSIZE + newPosition.z * CHUNKSIZE + newPosition.x] =
+                BoundingBox(XMFLOAT3(newPosition.x + 0.5f, newPosition.y + 0.5f, newPosition.z + 0.5f), extents);
+        }
+    }
+    if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+        for (size_t i = 0; i < m_SoilNum; i++) {
+            if (ray.Hit(m_Dirt[i].GetBlock().GetBoundingBox(), nullptr, RAYRANGE)) {
+                m_Dirt[i].GetBlock().SetModel(nullptr);
+                create = i;
+            }
+        }
+#endif
     }
 }
 
