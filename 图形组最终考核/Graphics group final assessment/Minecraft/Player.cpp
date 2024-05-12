@@ -33,6 +33,16 @@ void Player::SetGroundState(bool grouneState)
 	m_OnGround = grouneState;
 }
 
+void Player::SetPosition(const XMFLOAT3& position)
+{
+	m_Entity.GetTransform().SetPosition(position);
+}
+
+XMFLOAT3 Player::GetPosition()
+{
+	return m_Entity.GetTransform().GetPosition();
+}
+
 void Player::SetModel(std::shared_ptr<FirstPersonCamera> pCamera, ModelManager& modelManager)
 {
 	Model* pModel = modelManager.CreateFromFile("..\\Model\\Player.obj");
@@ -44,4 +54,46 @@ void Player::SetModel(std::shared_ptr<FirstPersonCamera> pCamera, ModelManager& 
 	m_Entity.GetTransform().SetRotation(0.0f, pCamera->GetRotationY() - XM_PI, 0.0f);
 }
 
+
+void Player::SaveToFile()
+{
+	std::ofstream ofs;
+	ofs.open("Player.dat", std::ios::out | std::ios::binary | std::ios::trunc);
+	
+	Transform& transform = m_Entity.GetTransform();
+	ofs.write((char*)&GetPosition(), sizeof(XMFLOAT3));
+	ofs.write((char*)&transform.GetRotation(), sizeof(XMFLOAT3));
+
+	ofs.write((char*)&GetSpeed(), sizeof(float));
+
+	ofs.close();
 }
+	
+bool Player::InitFromFile()
+{
+	std::ifstream ifs;
+	ifs.open("Player.dat", std::ios::in | std::ios::binary);
+	if (!ifs.is_open()) {
+		return false;
+	}
+
+	XMFLOAT3 stream;
+	Transform& transform = m_Entity.GetTransform();
+	ifs.read((char*)&stream, sizeof(XMFLOAT3));
+	SetPosition(stream);
+
+	ifs.read((char*)&stream, sizeof(XMFLOAT3));
+	transform.SetRotation(stream);
+
+	float speed;
+	ifs.read((char*)&speed, sizeof(float));
+	SetSpeed(speed);
+
+	ifs.close();
+}
+
+
+
+}
+
+

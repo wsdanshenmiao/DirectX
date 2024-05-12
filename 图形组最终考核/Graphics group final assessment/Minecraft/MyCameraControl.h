@@ -5,8 +5,14 @@
 #include "Chunk.h"
 #include "CpuTimer.h"
 #include <vector>
+#include <Collision.h>
+
+#define RAYRANGE 5
 
 namespace DSM {
+
+static void PlaceDestroyBlocks(FirstPersonCamera* pCamera, DSM::Chunk& inChunk, TextureManager& tManager, ModelManager& mManager);
+
 
 class CameraController
 {
@@ -30,7 +36,8 @@ class FreeCameraController : public CameraController
 public:
 
     ~FreeCameraController() override {};
-    void Update(float deltaTime) override;
+    void Update(float deltaTime) override {};
+    void Update(float deltaTime, DSM::Chunk& inChunk, TextureManager& tManager, ModelManager& mManager);
 
     void InitCamera(FirstPersonCamera* pCamera);
 
@@ -48,6 +55,8 @@ private:
     float m_VelocityDrag = 0.0f;
     float m_TotalDragTimeToZero = 0.25f;
     float m_DragTimer = 0.0f;
+
+    friend void PlaceDestroyBlocks(FirstPersonCamera* pCamera, DSM::Chunk&, TextureManager&, ModelManager&);
 };
 
 
@@ -57,15 +66,19 @@ class FirstPersonCameraController : public CameraController
 public:
     ~FirstPersonCameraController() override {};
     void Update(float deltaTime) override {};
-    void Update(float deltaTime, std::vector<DirectX::BoundingBox>& containBlock);
+    void Update(float deltaTime, DSM::Chunk& inChunk, TextureManager& tManager, ModelManager& mManager);
 
     void InitCamera(FirstPersonCamera* pCamera);
 
     void SetMouseSensitivity(float x, float y);
     void SetMoveSpeed(float speed);
 
+
 private:
     FirstPersonCamera* m_pCamera = nullptr;
+
+    friend void PlaceDestroyBlocks(FirstPersonCamera* pCamera, DSM::Chunk&, TextureManager&, ModelManager&);
+
 };
 
 

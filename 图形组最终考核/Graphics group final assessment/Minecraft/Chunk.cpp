@@ -7,6 +7,22 @@ namespace DSM {
 bool Chunk::m_EnableFrustumCulling = false;				// 视锥体裁剪关闭
 int Chunk::m_Seed = 050113;								// 默认种子
 int Chunk::m_StoreChunkRadius = 2;						// 超过此半径的区块被卸载
+Block Chunk::m_Block[5] = {};
+
+void Chunk::InitBlock(TextureManager& tManager, ModelManager& mManager)
+{
+	// 初始化方块
+	m_Block[0].GetBlock().SetModel(nullptr);
+	m_Block[0].SetId(BlockId::Air);
+	m_Block[1].GetBlock().SetModel(m_Block[1].GetBlockModel().GetDirtModel(tManager, mManager));
+	m_Block[1].SetId(BlockId::Dirt);
+	m_Block[2].GetBlock().SetModel(m_Block[2].GetBlockModel().GetStoneModel(tManager, mManager));
+	m_Block[2].SetId(BlockId::Stone);
+	m_Block[3].GetBlock().SetModel(m_Block[3].GetBlockModel().GetBedRockModel(tManager, mManager));
+	m_Block[3].SetId(BlockId::BedRock);
+	m_Block[4].GetBlock().SetModel(m_Block[4].GetBlockModel().GetGressModel(tManager, mManager));
+	m_Block[4].SetId(BlockId::Gress);
+}
 
 
 Chunk::Chunk(DirectX::XMINT2 position)
@@ -147,20 +163,6 @@ BlockId Chunk::GetBlock(int x, int y, int z)
 }
 
 
-void Chunk::InitBlock(TextureManager& tManager, ModelManager& mManager)
-{
-	// 初始化方块
-	m_Block[0].GetBlock().SetModel(nullptr);
-	m_Block[0].SetId(BlockId::Air);
-	m_Block[1].GetBlock().SetModel(m_Block[1].GetBlockModel().GetDirtModel(tManager, mManager));
-	m_Block[1].SetId(BlockId::Dirt);
-	m_Block[2].GetBlock().SetModel(m_Block[2].GetBlockModel().GetStoneModel(tManager, mManager));
-	m_Block[2].SetId(BlockId::Stone);
-	m_Block[3].GetBlock().SetModel(m_Block[3].GetBlockModel().GetBedRockModel(tManager, mManager));
-	m_Block[3].SetId(BlockId::BedRock);
-	m_Block[4].GetBlock().SetModel(m_Block[4].GetBlockModel().GetGressModel(tManager, mManager));
-	m_Block[4].SetId(BlockId::Gress);
-}
 
 #if 0
 // 设置方块种类
@@ -224,10 +226,10 @@ void Chunk::LoadChunk()
 	// 生成方块
 	m_BlockInstancedData[0].reserve(2200);
 	m_BlockTransforms[0].reserve(2200);
-	m_BlockInstancedData[1].reserve(8820);
-	m_BlockTransforms[1].reserve(8820);
-	m_BlockInstancedData[2].reserve(650);
-	m_BlockTransforms[2].reserve(650);
+	m_BlockInstancedData[1].reserve(18000);
+	m_BlockTransforms[1].reserve(18000);
+	m_BlockInstancedData[2].reserve(680);
+	m_BlockTransforms[2].reserve(680);
 	m_BlockInstancedData[3].reserve(256);
 	m_BlockTransforms[3].reserve(256);
 
@@ -279,6 +281,16 @@ void Chunk::LoadChunk()
 			}
 		}
 	}
+	// 收缩内存方便存到文件
+	std::vector<BasicEffect::InstancedData>(m_BlockInstancedData[0]).swap(m_BlockInstancedData[0]);
+	std::vector<Transform>(m_BlockTransforms[0]).swap(m_BlockTransforms[0]);
+	std::vector<BasicEffect::InstancedData>(m_BlockInstancedData[1]).swap(m_BlockInstancedData[1]);
+	std::vector<Transform>(m_BlockTransforms[1]).swap(m_BlockTransforms[1]);
+	std::vector<BasicEffect::InstancedData>(m_BlockInstancedData[2]).swap(m_BlockInstancedData[2]);
+	std::vector<Transform>(m_BlockTransforms[2]).swap(m_BlockTransforms[2]);
+	std::vector<BasicEffect::InstancedData>(m_BlockInstancedData[3]).swap(m_BlockInstancedData[3]);
+	std::vector<Transform>(m_BlockTransforms[3]).swap(m_BlockTransforms[3]);
+
 }
 
 bool Chunk::UnloadChunk(const XMINT2& centerChunk)
@@ -330,6 +342,80 @@ void Chunk::DrawChunk(ID3D11Device* device, ID3D11DeviceContext* deviceContext, 
 		}
 	}
 }
+
+
+bool Chunk::InitFromFile()
+{
+	std::ifstream ifs;
+	ifs.open("Chunk.dat", std::ios::in | std::ios::binary);
+	if (!ifs.is_open()) {
+		return false;
+	}
+	if (!ifs.read((char*)&m_Positon, sizeof(XMINT2))) {
+		return false;
+	}
+	ifs.read((char*)&m_Loading, sizeof(bool));
+
+	size_t size;
+	for (int i = 0; i < 4; ++i) {
+		ifs.read((char*)&size, sizeof(size_t));
+		m_BlockInstancedData[i].reserve(size);
+		for (size_t j = 0; j < size; ++j) {
+			BasicEffect::InstancedData instanceData;
+			ifs.read((char*)&instanceData, sizeof(BasicEffect::InstancedData));
+			m_BlockInstancedData[i].push_back(std::move(instanceData));
+		}
+		ifs.read((char*)&size, sizeof(size_t));
+		m_BlockTransforms[i].reserve(size);
+		for (size_t j = 0; j < size; ++j) {
+			Transform transform;
+			ifs.read((char*)&transform, sizeof(Transform));
+			m_BlockTransforms[i].push_back(std::move(transform));
+		}
+	}
+
+	ifs.read((char*)&size, sizeof(size_t));
+	m_BlockBox.reserve(size);
+	for (size_t i = 0; i < size; ++i) {
+		BoundingBox box;
+		ifs.read((char*)&box, sizeof(BoundingBox));
+		m_BlockBox.push_back(std::move(box));
+	}
+
+	ifs.close();
+
+	return true;
+}
+
+// 区块只存储位置、状态、加载区块的到的方块数据和包围盒三维数组
+void Chunk::SaveToFile()
+{
+	std::ofstream ofs;
+	ofs.open("Chunk.dat", std::ios::out | std::ios::binary | std::ios::app);
+
+	ofs.write((char*)&m_Positon, sizeof(XMINT2));
+	ofs.write((char*)&m_Loading, sizeof(bool));
+
+	size_t size;
+	for (int i = 0; i < 4; ++i) {
+		size = m_BlockInstancedData[i].size();
+		ofs.write((char*)&size, sizeof(size_t));
+		ofs.write((char*)m_BlockInstancedData[i].data(), sizeof(BasicEffect::InstancedData) * size);
+
+		size = m_BlockTransforms[i].size();
+		ofs.write((char*)&size, sizeof(size_t));
+		ofs.write((char*)m_BlockTransforms[i].data(), sizeof(Transform) * size);
+	}
+
+	size = m_BlockBox.size();
+	ofs.write((char*)&size, sizeof(size_t));
+	ofs.write((char*)m_BlockBox.data(), sizeof(BoundingBox) * size);
+
+	ofs.close();
+}
+
+
+
 
 }
 

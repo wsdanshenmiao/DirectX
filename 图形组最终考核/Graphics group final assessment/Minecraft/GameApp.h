@@ -29,7 +29,6 @@
 #include "InstrumentorMacro.h"
 #include "InstrumentorTimer.h"
 
-#define RAYRANGE 5
 
 // 摄像机模式
 enum class CameraMode { FirstPerson, ThirdPerson, Free };
@@ -46,16 +45,18 @@ public:
     void DrawScene();
 
 private:
+    void SaveToFile();
+
     bool InitResource();
 
     void InitRain();
     void InitSkybox();
     void InitCamara();
     void InitMiniMap();
+    bool InitFromFile();
 
-    void CameraTransform(float dt, std::vector<DirectX::BoundingBox>& containBlock);
+    void CameraTransform(float dt, DSM::Chunk& inChunk);
     void ImGuiOperations(float dt);
-    void PlaceDestroyBlocks(DSM::Chunk* inChunk);
     void DrawScene(ID3D11RenderTargetView* pRTV, ID3D11DepthStencilView* pDSV, const D3D11_VIEWPORT& viewport);
     void DayAndNightChange(float dt);
     void EnemyManagement();
@@ -115,15 +116,7 @@ private:
 
     ParticleManager m_Rain;                                      // 雨水粒子系统
     ParticleEffect m_RainEffect;                                 // 雨水特效
-    bool m_EnableRain = true;                                           // 下雨
-
-
-    std::vector<DSM::Block> m_Dirt;                              // 泥土
-    size_t m_SoilNum = 64;
-
-
-
-
+    bool m_EnableRain = true;                                    // 下雨
 
 };
 

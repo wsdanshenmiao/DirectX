@@ -1,6 +1,7 @@
 #ifndef __PLAYER__H__
 #define __PLAYER__H__
 
+#include <fstream>
 #include "Entity.h"
 
 namespace DSM {
@@ -16,10 +17,16 @@ public:
     bool GetFlyState();
     bool GetSneakState();
     bool GetGroundState();
+    DirectX::XMFLOAT3 GetPosition();
+
     void SetFlyState(bool flyState);
     void SetSneakState(bool sneakState);
     void SetGroundState(bool grouneState);
+    void SetPosition(const DirectX::XMFLOAT3& position);
     void SetModel(std::shared_ptr<FirstPersonCamera> pCamera, ModelManager& modelManager);
+
+    void SaveToFile();
+    bool InitFromFile();
 
 private:
     bool m_OnGround = true;                //在地上

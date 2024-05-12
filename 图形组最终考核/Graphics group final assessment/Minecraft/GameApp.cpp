@@ -61,6 +61,31 @@ void GameApp::OnResize()
     }
 }
 
+void GameApp::SaveToFile()
+{
+    std::ofstream ofs;
+
+    //ofs.open("Chunk.dat", std::ios::out | std::ios::binary | std::ios::trunc);
+    //ofs.close();
+    //// 保存区块信息
+    //for (auto& chunk : m_Chunk) {
+    //    chunk.SaveToFile();
+    //}
+
+    m_Player.SaveToFile();
+
+    ofs.open("Camera.dat", std::ios::out | std::ios::binary | std::ios::trunc);
+    ofs.write((char*)&m_pFCamera->GetPosition(), sizeof(XMFLOAT3));
+    ofs.close();
+
+    ofs.open("DayAndNight.dat", std::ios::out | std::ios::binary | std::ios::trunc);
+    ofs.write((char*)&m_SkyColor, sizeof(float));
+    ofs.write((char*)&m_SkySign, sizeof(float));
+    ofs.write((char*)&m_DiffuseSign, sizeof(float));
+    ofs.write((char*)&m_Diffuse, sizeof(float));
+    ofs.close();
+}
+
 void GameApp::UpdateScene(float dt)
 {
     PROFILE_FUNCTION();
@@ -83,14 +108,11 @@ void GameApp::UpdateScene(float dt)
 
     // 获取人物可能触及的物块
     DSM::Chunk* inChunk = nullptr;
-    std::vector<BoundingBox>* containBlock;
     for (auto& chunk : m_Chunk) {
         XMINT2 chunkPosition = chunk.GetPositon();
         if (chunkPosition.x <= cameraPos.x && cameraPos.x < chunkPosition.x + CHUNKSIZE &&
             chunkPosition.y <= cameraPos.z && cameraPos.z < chunkPosition.y + CHUNKSIZE) {
             inChunk = &chunk;
-            containBlock = &chunk.GetBlockBox();
-            //containBlock = chunk.GetBlockId();
             break;
         }
     }
@@ -111,9 +133,7 @@ void GameApp::UpdateScene(float dt)
     else {
         XMINT2 inChunkPos = inChunk->GetPositon();
         LoadChunk(inChunkPos);
-        PlaceDestroyBlocks(inChunk);
-        CameraTransform(dt, *containBlock);
-        //CameraTransform(dt, containBlock);CameraTransform(dt, containBlock);
+        CameraTransform(dt, *inChunk);
     }
 
 
@@ -121,11 +141,13 @@ void GameApp::UpdateScene(float dt)
         ParticleSystem(dt);
     }
 
-    EnemyManagement();
+    EnemyManagement();  // 敌人管理
 
-    DayAndNightChange(dt);
+    DayAndNightChange(dt);  // 昼夜更替
 
     ImGuiOperations(dt);    // ImGui操作
+
+    SaveToFile();
 }
 
 void GameApp::DrawScene()
@@ -206,46 +228,8 @@ bool GameApp::InitResource()
 
     m_Player.SetModel(m_pFCamera, m_ModelManager);
 
-
-    int loadRadius = (int)sqrt(m_StoreChunkNum) / 2;
-    
-    // 加载区块
-    m_Chunk.reserve(m_StoreChunkNum);
-
-#define ASYNC 0
-#if ASYNC
-    DSM::Chunk initialChunk(0, 0);
-    initialChunk.InitBlock(m_TextureManager, m_ModelManager);
-    initialChunk.LoadChunk();
-    m_Chunk.push_back(std::move(initialChunk));
-    for (int i = -loadRadius; i < loadRadius; ++i) {
-        for (int j = -loadRadius; j < loadRadius; ++j) {
-            if (i == 0 && j == 0) {
-                continue;
-            }
-            DSM::Chunk chunk(0 + CHUNKSIZE * i, 0 + CHUNKSIZE * j);
-            chunk.InitBlock(m_TextureManager, m_ModelManager);
-            m_Futures.push_back(std::async(std::launch::async, ParallelLoadChunk, std::ref(m_Chunk), chunk, std::ref(m_TextureManager), std::ref(m_ModelManager)));
-        }
-    }
-
-#else
-    for (int i = -loadRadius; i < loadRadius; ++i) {
-        for (int j = -loadRadius; j < loadRadius; ++j) {
-            DSM::Chunk& chunk = m_Chunk.emplace_back(0 + CHUNKSIZE * i, 0 + CHUNKSIZE * j);
-            chunk.InitBlock(m_TextureManager, m_ModelManager);
-            chunk.LoadChunk();
-        }
-    }
-
-#endif
-
     XMINT4 treeRange(-m_ViewRange * CHUNKSIZE, m_ViewRange * CHUNKSIZE, -m_ViewRange * CHUNKSIZE, m_ViewRange * CHUNKSIZE);
     m_CherryTree.CreateRandomTree(treeRange, m_ModelManager, m_TextureManager);
-
-    GameObject object;
-    object.SetModel(nullptr);
-    m_Dirt.resize(64, DSM::Block(object, DSM::BlockId::Dirt));
     
 
     // ******************
@@ -266,6 +250,43 @@ bool GameApp::InitResource()
     for (int i = 0; i < 4; ++i)
         m_BasicEffect.SetDirLight(i, m_DirLight[i]);
     
+
+    InitFromFile();
+    
+    // 加载区块
+    m_Chunk.reserve(m_StoreChunkNum);
+    DSM::Chunk::InitBlock(m_TextureManager, m_ModelManager);
+    int loadRadius = (int)sqrt(m_StoreChunkNum) / 2;
+
+    int cameraPosX = (int)m_pFCamera->GetPosition().x;
+    int cameraPosZ = (int)m_pFCamera->GetPosition().z;
+    XMINT2 chunkPos(cameraPosX - cameraPosX % CHUNKSIZE, cameraPosZ - cameraPosZ % CHUNKSIZE);
+
+#define ASYNC 0
+#if ASYNC
+        DSM::Chunk initialChunk(0, 0);
+        initialChunk.LoadChunk();
+        m_Chunk.push_back(std::move(initialChunk));
+        for (int i = -loadRadius; i < loadRadius; ++i) {
+            for (int j = -loadRadius; j < loadRadius; ++j) {
+                if (i == 0 && j == 0) {
+                    continue;
+                }
+                DSM::Chunk chunk(0 + CHUNKSIZE * i, 0 + CHUNKSIZE * j);
+                m_Futures.push_back(std::async(std::launch::async, ParallelLoadChunk, std::ref(m_Chunk), chunk, std::ref(m_TextureManager), std::ref(m_ModelManager)));
+            }
+        }
+
+#else
+    for (int i = -loadRadius; i < loadRadius; ++i) {
+        for (int j = -loadRadius; j < loadRadius; ++j) {
+            DSM::Chunk& chunk = m_Chunk.emplace_back(chunkPos.x + CHUNKSIZE * i, chunkPos.y + CHUNKSIZE * j);
+            chunk.LoadChunk();
+        }
+    }
+#endif
+
+
     m_CherryTree.m_EnableTreeFC = false;
     m_EnableChunkFrustumCulling = false;
     // 要最后初始化小地图
@@ -278,6 +299,7 @@ bool GameApp::InitResource()
     m_BasicEffect.SetFogStart(m_FogStart);
     m_BasicEffect.SetFogRange(m_FogRange);
     m_BasicEffect.SetFogColor(XMFLOAT4(0.75f, 0.75f, 0.75f, 1.0f));
+
 
     return true;
 }
@@ -413,119 +435,8 @@ void GameApp::InitMiniMap()
 
 
 
-// 放置与破坏方块
-void GameApp::PlaceDestroyBlocks(DSM::Chunk* inChunk)
-{
-    std::vector<Transform>& dirtTransform = inChunk->GetDirtTransform();
-    std::vector<Transform>& bedRockTransform = inChunk->GetBedRockTransform();
-    std::vector<Transform>& stoneTransform = inChunk->GetStoneTransform();
-    std::vector<Transform>& gressTransform = inChunk->GetGressTransform();
-    std::vector<BasicEffect::InstancedData>& dirtData = inChunk->GetDirtInstancedData();
-    std::vector<BasicEffect::InstancedData>& bedRockData = inChunk->GetBedRockInstancedData();
-    std::vector<BasicEffect::InstancedData>& stoneData = inChunk->GetStoneInstancedData();
-    std::vector<BasicEffect::InstancedData>& gressData = inChunk->GetGressInstancedData();
-
-    std::vector<BoundingBox>& blockBox = inChunk->GetBlockBox();
-
-    //获取鼠标
-    ImVec2 mousePos = ImGui::GetMousePos();
-    // 将射线设置在鼠标处
-    Ray ray = Ray::ScreenToRay(*m_pFCamera, mousePos.x, mousePos.y);
-
-    static size_t create = 0;
-    for (size_t i = 0; i < m_SoilNum && m_Dirt[create].GetBlock().GetModel(); i++) {
-        if (!m_Dirt[i].GetBlock().GetModel()) {
-            create = i;
-            break;
-        }
-    }
-    //放置方块
-    if (ImGui::IsMouseClicked(ImGuiMouseButton_Right) && ImGui::IsKeyDown(ImGuiKey_LeftShift)) {
-#if 0
-        bool Placing = true;
-        GameObject tmpObject;
-        tmpObject.SetModel(DSM::BlockModel().GetDirtModel(m_TextureManager.Get(), m_ModelManager.Get()));
-        DirectX::XMFLOAT3 position = m_pFCamera->GetPosition();
-        DirectX::XMFLOAT3 lookAxis = m_pFCamera->GetLookAxis();
-        tmpObject.GetTransform().SetPosition(position.x + lookAxis.x * 4, position.y + lookAxis.y * 4, position.z + lookAxis.z * 4);
-        for (size_t i = 0; i < m_Dirt.size(); i++) {
-            if (m_Dirt[i].GetBlock().GetModel() && m_Dirt[i].GetBlock().GetBoundingBox().Intersects(tmpObject.GetBoundingBox())) {
-                Placing = false;
-                break;
-            }
-        }
-        if (Placing) {
-            m_Dirt[create] = (DSM::Block(tmpObject, DSM::BlockId::Dirt));
-            create++;
-        }
-    }
-    if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
-        for (size_t i = 0; i < m_SoilNum; i++) {
-            if (ray.Hit(m_Dirt[i].GetBlock().GetBoundingBox(), nullptr, RAYRANGE)) {
-                m_Dirt[i].GetBlock().SetModel(nullptr);
-                create = i;
-            }
-        }
-#else
-        // 射线打中的方块
-        std::vector<BoundingBox> hitBlock;
-        XMFLOAT3 extents = XMFLOAT3(0.5f, 0.5f, 0.5f);
-        GameObject tmpObject;
-        tmpObject.SetModel(DSM::BlockModel().GetDirtModel(m_TextureManager.Get(), m_ModelManager.Get()));
-        DirectX::XMFLOAT3 position = m_pFCamera->GetPosition();
-        // 筛选射线打中的方块
-        for (int Y = (int)position.y - RAYRANGE; 0 <= Y && Y < CHUNKHIGHEST && Y < (int)position.y + RAYRANGE; ++Y) {
-            for (int z = 0; z < CHUNKSIZE; ++z) {
-                for (int x = 0; x < CHUNKSIZE; ++x) {
-                    if (ray.Hit(blockBox[Y * CHUNKSIZE * CHUNKSIZE + z * CHUNKSIZE + x], nullptr, RAYRANGE)) {
-                        hitBlock.emplace_back(XMFLOAT3(x + 0.5f, Y + 0.5f, z + 0.5f), extents);
-                    }
-                }
-            }
-        }
-        // 选取最近的方块
-        float distance;
-        int pos = 0;
-        for (int i = 0; i < hitBlock.size(); ++i) {
-            XMVECTOR vDistance = XMVectorSubtract(XMLoadFloat3(&hitBlock[i].Center), XMLoadFloat3(&position));
-            vDistance = XMVectorMultiply(vDistance, vDistance);
-            float fDistance = (XMVectorGetX(vDistance) + XMVectorGetY(vDistance) + XMVectorGetZ(vDistance));
-            if (i == 0) {
-                distance = fDistance;
-            }
-            else if (distance > fDistance) {
-                distance = fDistance;
-                pos = i;
-            }
-        }
-        if (hitBlock.size() > 0) {
-            XMFLOAT3 boxPosition = hitBlock[pos].Center;
-            XMFLOAT3 newPosition = XMFLOAT3(boxPosition.x - 0.5f, boxPosition.y + 0.5f, boxPosition.z - 0.5f);
-            tmpObject.GetTransform().SetPosition(newPosition);
-            BasicEffect::InstancedData instanceData;
-            XMMATRIX W(tmpObject.GetTransform().GetLocalToWorldMatrixXM());
-            XMStoreFloat4x4(&instanceData.world, XMMatrixTranspose(W));
-            XMStoreFloat4x4(&instanceData.worldInvTranspose, XMMatrixTranspose(XMath::InverseTranspose(W)));
-            dirtData.push_back(instanceData);
-            blockBox[newPosition.y * CHUNKSIZE * CHUNKSIZE + newPosition.z * CHUNKSIZE + newPosition.x] =
-                BoundingBox(XMFLOAT3(newPosition.x + 0.5f, newPosition.y + 0.5f, newPosition.z + 0.5f), extents);
-        }
-    }
-    if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
-        for (size_t i = 0; i < m_SoilNum; i++) {
-            if (ray.Hit(m_Dirt[i].GetBlock().GetBoundingBox(), nullptr, RAYRANGE)) {
-                m_Dirt[i].GetBlock().SetModel(nullptr);
-                create = i;
-            }
-        }
-#endif
-    }
-}
-
-
-
 // 相机变换
-void GameApp::CameraTransform(float dt, std::vector<BoundingBox>& containBlock)
+void GameApp::CameraTransform(float dt, DSM::Chunk& inChunk)
 {
     PROFILE_FUNCTION();
 
@@ -535,7 +446,7 @@ void GameApp::CameraTransform(float dt, std::vector<BoundingBox>& containBlock)
     
     if (!(m_CameraMode == CameraMode::Free)) {
         m_TCameraControl.Update(dt);
-        m_FPCameraControl.Update(dt, containBlock);
+        m_FPCameraControl.Update(dt, inChunk, m_TextureManager, m_ModelManager);
         XMFLOAT3 fPosition = m_pFCamera->GetPosition();
         playerTransform.SetPosition(fPosition.x, fPosition.y - 1.8f, fPosition.z);
         if (m_CameraMode == CameraMode::ThirdPerson) {
@@ -557,13 +468,50 @@ void GameApp::CameraTransform(float dt, std::vector<BoundingBox>& containBlock)
         }
     }
     else {
-        m_FCameraControl.Update(dt);
+        m_FCameraControl.Update(dt, inChunk, m_TextureManager, m_ModelManager);
         // 更新观察矩阵
         m_BasicEffect.SetViewMatrix(m_pFCamera->GetViewMatrixXM());
         m_BasicEffect.SetEyePos(m_pFCamera->GetPosition());
         m_SkyboxEffect.SetViewMatrix(m_pFCamera->GetViewMatrixXM());
         m_PostProcessEffect.SetEyePos(m_pFCamera->GetPosition());
     }
+}
+
+
+// 读取文件中的信息
+bool GameApp::InitFromFile()
+{
+    std::ifstream ifs;
+    // 加载区块
+    //for (DSM::Chunk chunk; chunk.InitFromFile(); m_Chunk.push_back(std::move(chunk)));
+    //if (m_Chunk.size() <= 0) {
+    //    return false;
+    //}
+
+    m_Player.InitFromFile();
+
+    ifs.open("Camera.dat", std::ios::in | std::ios::binary);
+    XMFLOAT3 position;
+    if (ifs.read((char*)&position, sizeof(position))) {
+        m_pFCamera->SetPosition(position);
+    }
+    ifs.close();
+
+    ifs.open("DayAndNight.dat", std::ios::in | std::ios::binary);
+    float dayNight;
+    if (ifs.read((char*)&dayNight, sizeof(float))) {
+        m_SkyColor = dayNight;
+        ifs.read((char*)&dayNight, sizeof(float));
+        m_SkySign = dayNight;
+        ifs.read((char*)&dayNight, sizeof(float));
+        m_DiffuseSign = dayNight;
+        ifs.read((char*)&dayNight, sizeof(float));
+        m_Diffuse = dayNight;
+    }
+    
+    ifs.close();
+
+    return true;
 }
 
 
@@ -696,12 +644,6 @@ void GameApp::DrawScene(ID3D11RenderTargetView* pRTV, ID3D11DepthStencilView* pD
      }
 
      m_CherryTree.DrawTree(m_pd3dDevice.Get(), m_pd3dImmediateContext.Get(), m_BasicEffect, m_pFCamera);
-
-    for (auto& dirt : m_Dirt) {
-        if (dirt.GetBlock().GetModel()) {
-            dirt.GetBlock().Draw(m_pd3dImmediateContext.Get(), m_BasicEffect);
-        }
-    }
 
     // 绘制天空盒
     m_SkyboxEffect.SetRenderDefault();
@@ -882,7 +824,6 @@ void GameApp::LoadChunk(const XMINT2& inChunkPos)
     // 每帧加载一个区块
     if (shouldLoad.size() > 0) {
         DSM::Chunk& chunk = m_Chunk.emplace_back(std::move(shouldLoad.front()));
-        chunk.InitBlock(m_TextureManager, m_ModelManager);
         chunk.LoadChunk();
     }
 

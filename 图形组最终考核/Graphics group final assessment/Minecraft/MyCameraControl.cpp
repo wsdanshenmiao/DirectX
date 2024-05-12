@@ -3,10 +3,117 @@
 
 using namespace DirectX;
 
-namespace DSM {
+namespace DSM{
 
-void FreeCameraController::Update(float deltaTime)
+void PlaceDestroyBlocks(FirstPersonCamera* pCamera, DSM::Chunk& inChunk, TextureManager& tManager, ModelManager& mManager)
 {
+    std::vector<Transform>& dirtTransform = inChunk.GetDirtTransform();
+    std::vector<Transform>& bedRockTransform = inChunk.GetBedRockTransform();
+    std::vector<Transform>& stoneTransform = inChunk.GetStoneTransform();
+    std::vector<Transform>& gressTransform = inChunk.GetGressTransform();
+
+    std::vector<BasicEffect::InstancedData>& dirtData = inChunk.GetDirtInstancedData();
+    std::vector<BasicEffect::InstancedData>& bedRockData = inChunk.GetBedRockInstancedData();
+    std::vector<BasicEffect::InstancedData>& stoneData = inChunk.GetStoneInstancedData();
+    std::vector<BasicEffect::InstancedData>& gressData = inChunk.GetGressInstancedData();
+
+    std::vector<BoundingBox>& blockBox = inChunk.GetBlockBox();
+
+    //获取鼠标
+    ImVec2 mousePos = ImGui::GetMousePos();
+    // 将射线设置在鼠标处
+    Ray ray = Ray::ScreenToRay(*pCamera, mousePos.x, mousePos.y);
+
+    //放置方块
+    if (ImGui::IsMouseClicked(ImGuiMouseButton_Right) && ImGui::IsKeyDown(ImGuiKey_LeftShift)) {
+#if 0
+        bool Placing = true;
+        GameObject tmpObject;
+        tmpObject.SetModel(DSM::BlockModel().GetDirtModel(m_TextureManager.Get(), m_ModelManager.Get()));
+        DirectX::XMFLOAT3 position = m_pFCamera->GetPosition();
+        DirectX::XMFLOAT3 lookAxis = m_pFCamera->GetLookAxis();
+        tmpObject.GetTransform().SetPosition(position.x + lookAxis.x * 4, position.y + lookAxis.y * 4, position.z + lookAxis.z * 4);
+        for (size_t i = 0; i < m_Dirt.size(); i++) {
+            if (m_Dirt[i].GetBlock().GetModel() && m_Dirt[i].GetBlock().GetBoundingBox().Intersects(tmpObject.GetBoundingBox())) {
+                Placing = false;
+                break;
+            }
+        }
+        if (Placing) {
+            m_Dirt[create] = (DSM::Block(tmpObject, DSM::BlockId::Dirt));
+            create++;
+        }
+    }
+    if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+        for (size_t i = 0; i < m_SoilNum; i++) {
+            if (ray.Hit(m_Dirt[i].GetBlock().GetBoundingBox(), nullptr, RAYRANGE)) {
+                m_Dirt[i].GetBlock().SetModel(nullptr);
+                create = i;
+            }
+        }
+    }
+#else
+        // 射线打中的方块
+        GameObject tmpObject;
+        tmpObject.SetModel(DSM::BlockModel().GetDirtModel(tManager, mManager));
+
+        std::vector<BoundingBox> hitBlock;
+        XMFLOAT3 extents = XMFLOAT3(0.5f, 0.5f, 0.5f);
+        XMFLOAT3 position = pCamera->GetPosition();
+        XMINT2 chunkPosition = inChunk.GetPositon();
+        // 筛选射线打中的方块
+        for (int Y = (int)position.y - RAYRANGE; 0 <= Y && Y < CHUNKHIGHEST && Y < (int)position.y + RAYRANGE; ++Y) {
+            for (int z = 0; z < CHUNKSIZE; ++z) {
+                for (int x = 0; x < CHUNKSIZE; ++x) {
+                    if (ray.Hit(blockBox[Y * CHUNKSIZE * CHUNKSIZE + z * CHUNKSIZE + x], nullptr, RAYRANGE)) {
+                        float X = x + 0.5f;
+                        float Z = z + 0.5f;
+                        hitBlock.emplace_back(XMFLOAT3(X, Y + 0.5f, Z), extents);
+                    }
+                }
+            }
+        }
+
+        // 选取最近的方块
+        float distance;
+        int pos = 0;
+        for (int i = 0; i < hitBlock.size(); ++i) {
+            XMVECTOR vDistance = XMVectorSubtract(XMLoadFloat3(&hitBlock[i].Center), XMLoadFloat3(&position));
+            vDistance = XMVectorMultiply(vDistance, vDistance);
+            float fDistance = (XMVectorGetX(vDistance) + XMVectorGetY(vDistance) + XMVectorGetZ(vDistance));
+            if (i == 0) {
+                distance = fDistance;
+            }
+            else if (distance > fDistance) {
+                distance = fDistance;
+                pos = i;
+            }
+        }
+
+        if (hitBlock.size() > 0) {
+            XMFLOAT3 localPosition = XMFLOAT3(hitBlock[pos].Center.x - 0.5f, hitBlock[pos].Center.y + 0.5f, hitBlock[pos].Center.z - 0.5f);
+            XMFLOAT3 worldPosition = XMFLOAT3(localPosition.x + chunkPosition.x, localPosition.y, localPosition.z + chunkPosition.y);
+            Transform objectTransform = tmpObject.GetTransform();
+            objectTransform.SetPosition(worldPosition);
+
+            BasicEffect::InstancedData instanceData;
+            XMMATRIX W(objectTransform.GetLocalToWorldMatrixXM());
+            XMStoreFloat4x4(&instanceData.world, XMMatrixTranspose(W));
+            XMStoreFloat4x4(&instanceData.worldInvTranspose, XMMatrixTranspose(XMath::InverseTranspose(W)));
+            dirtData.push_back(instanceData);
+            dirtTransform.push_back(objectTransform);
+
+            blockBox[localPosition.y * CHUNKSIZE * CHUNKSIZE + localPosition.z * CHUNKSIZE + localPosition.x] =
+                BoundingBox(XMFLOAT3(worldPosition.x + 0.5f, worldPosition.y + 0.5f, worldPosition.z + 0.5f), extents);
+        }
+}
+#endif
+}
+
+void FreeCameraController::Update(float deltaTime, DSM::Chunk& inChunk, TextureManager& tManager, ModelManager& mManager)
+{
+    PlaceDestroyBlocks(m_pCamera, inChunk, tManager, mManager);
+
     ImGuiIO& io = ImGui::GetIO();
 
     float yaw = 0.0f, pitch = 0.0f;
@@ -66,11 +173,15 @@ void FreeCameraController::SetMoveSpeed(float speed)
 
 
 
-void FirstPersonCameraController::Update(float deltaTime, std::vector<BoundingBox>& containBlock)
+
+void FirstPersonCameraController::Update(float deltaTime, DSM::Chunk& inChunk, TextureManager& tManager, ModelManager& mManager)
 {
+    PlaceDestroyBlocks(m_pCamera, inChunk, tManager, mManager);
+
     static int jump = 0;
     bool isHit = false;
     bool onGround = false;
+    std::vector<BoundingBox>& containBlock = inChunk.GetBlockBox();
     XMFLOAT3 cameraPosition = m_pCamera->GetPosition();    
     //if (!containBlock.size() || containBlock[(int)(cameraPosition.y) * CHUNKSIZE * CHUNKSIZE +
     //    ((int)cameraPosition.z + 1) * CHUNKSIZE + (int)cameraPosition.x] != DSM::BlockId::Air ||
@@ -108,8 +219,8 @@ void FirstPersonCameraController::Update(float deltaTime, std::vector<BoundingBo
         (ImGui::IsKeyDown(ImGuiKey_A) ? -1 : 0) +
         (ImGui::IsKeyDown(ImGuiKey_D) ? 1 : 0)
         );
-    m_pCamera->Walk(forward * m_MoveSpeed * 0.016);
-    m_pCamera->Strafe(strafe * m_MoveSpeed * 0.016);
+    m_pCamera->Walk(forward * m_MoveSpeed * 0.016f);
+    m_pCamera->Strafe(strafe * m_MoveSpeed * 0.016f);
     if (ImGui::IsKeyDown(ImGuiKey_Space) && onGround) {
         jump = 50;
     }
