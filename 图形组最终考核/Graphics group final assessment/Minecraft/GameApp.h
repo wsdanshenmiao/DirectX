@@ -98,6 +98,8 @@ private:
     bool m_EnableChunkFrustumCulling = true;                    // 区块的视锥体剔除
     std::vector<std::future<void>> m_Futures;
 
+    DSM::BlockId m_PlaceType = DSM::BlockId::Dirt;              // 放置方块的种类
+
     DSM::CherryTree m_CherryTree;                               // 树
 
     DSM::Player m_Player;                                       // 玩家

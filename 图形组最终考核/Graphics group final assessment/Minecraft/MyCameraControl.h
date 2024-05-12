@@ -11,7 +11,7 @@
 
 namespace DSM {
 
-static void PlaceDestroyBlocks(FirstPersonCamera* pCamera, DSM::Chunk& inChunk, TextureManager& tManager, ModelManager& mManager);
+static void PlaceDestroyBlocks(FirstPersonCamera* pCamera, DSM::Chunk& inChunk, const DSM::BlockId& blockType, Model* model);
 
 
 class CameraController
@@ -37,7 +37,7 @@ public:
 
     ~FreeCameraController() override {};
     void Update(float deltaTime) override {};
-    void Update(float deltaTime, DSM::Chunk& inChunk, TextureManager& tManager, ModelManager& mManager);
+    void Update(float deltaTime, DSM::Chunk& inChunk, const DSM::BlockId& blockType, Model* model);
 
     void InitCamera(FirstPersonCamera* pCamera);
 
@@ -56,7 +56,7 @@ private:
     float m_TotalDragTimeToZero = 0.25f;
     float m_DragTimer = 0.0f;
 
-    friend void PlaceDestroyBlocks(FirstPersonCamera* pCamera, DSM::Chunk&, TextureManager&, ModelManager&);
+    friend void PlaceDestroyBlocks(FirstPersonCamera* pCamera, DSM::Chunk&, const DSM::BlockId&, Model*);
 };
 
 
@@ -66,7 +66,7 @@ class FirstPersonCameraController : public CameraController
 public:
     ~FirstPersonCameraController() override {};
     void Update(float deltaTime) override {};
-    void Update(float deltaTime, DSM::Chunk& inChunk, TextureManager& tManager, ModelManager& mManager);
+    void Update(float deltaTime, DSM::Chunk& inChunk, const DSM::BlockId& blockType, Model* model);
 
     void InitCamera(FirstPersonCamera* pCamera);
 
@@ -77,7 +77,7 @@ public:
 private:
     FirstPersonCamera* m_pCamera = nullptr;
 
-    friend void PlaceDestroyBlocks(FirstPersonCamera* pCamera, DSM::Chunk&, TextureManager&, ModelManager&);
+    friend void PlaceDestroyBlocks(FirstPersonCamera* pCamera, DSM::Chunk&, const DSM::BlockId&, Model*);
 
 };
 

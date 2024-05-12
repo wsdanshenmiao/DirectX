@@ -5,19 +5,37 @@ using namespace DirectX;
 
 namespace DSM{
 
-void PlaceDestroyBlocks(FirstPersonCamera* pCamera, DSM::Chunk& inChunk, TextureManager& tManager, ModelManager& mManager)
+void PlaceDestroyBlocks(FirstPersonCamera* pCamera, DSM::Chunk& inChunk, const DSM::BlockId& blockType, Model* model)
 {
-    std::vector<Transform>& dirtTransform = inChunk.GetDirtTransform();
-    std::vector<Transform>& bedRockTransform = inChunk.GetBedRockTransform();
-    std::vector<Transform>& stoneTransform = inChunk.GetStoneTransform();
-    std::vector<Transform>& gressTransform = inChunk.GetGressTransform();
-
-    std::vector<BasicEffect::InstancedData>& dirtData = inChunk.GetDirtInstancedData();
-    std::vector<BasicEffect::InstancedData>& bedRockData = inChunk.GetBedRockInstancedData();
-    std::vector<BasicEffect::InstancedData>& stoneData = inChunk.GetStoneInstancedData();
-    std::vector<BasicEffect::InstancedData>& gressData = inChunk.GetGressInstancedData();
-
+    std::vector<Transform>* transform;
+    std::vector<BasicEffect::InstancedData>* data;
     std::vector<BoundingBox>& blockBox = inChunk.GetBlockBox();
+
+    switch (blockType)
+    {
+    case DSM::BlockId::Dirt: {
+        transform = &inChunk.GetDirtTransform();
+        data = &inChunk.GetDirtInstancedData();
+        break;
+    }
+    case DSM::BlockId::Stone: {
+        transform = &inChunk.GetStoneTransform();
+        data = &inChunk.GetStoneInstancedData();
+        break;
+    }
+    case DSM::BlockId::Gress: {
+        transform = &inChunk.GetGressTransform();
+        data = &inChunk.GetGressInstancedData();
+        break;
+    }
+    case DSM::BlockId::BedRock: {
+        transform = &inChunk.GetBedRockTransform();
+        data = &inChunk.GetBedRockInstancedData();
+        break;
+    }
+    default:
+        break;
+    }
 
     //获取鼠标
     ImVec2 mousePos = ImGui::GetMousePos();
@@ -55,7 +73,7 @@ void PlaceDestroyBlocks(FirstPersonCamera* pCamera, DSM::Chunk& inChunk, Texture
 #else
         // 射线打中的方块
         GameObject tmpObject;
-        tmpObject.SetModel(DSM::BlockModel().GetDirtModel(tManager, mManager));
+        tmpObject.SetModel(model);
 
         std::vector<BoundingBox> hitBlock;
         XMFLOAT3 extents = XMFLOAT3(0.5f, 0.5f, 0.5f);
@@ -100,19 +118,21 @@ void PlaceDestroyBlocks(FirstPersonCamera* pCamera, DSM::Chunk& inChunk, Texture
             XMMATRIX W(objectTransform.GetLocalToWorldMatrixXM());
             XMStoreFloat4x4(&instanceData.world, XMMatrixTranspose(W));
             XMStoreFloat4x4(&instanceData.worldInvTranspose, XMMatrixTranspose(XMath::InverseTranspose(W)));
-            dirtData.push_back(instanceData);
-            dirtTransform.push_back(objectTransform);
 
-            blockBox[localPosition.y * CHUNKSIZE * CHUNKSIZE + localPosition.z * CHUNKSIZE + localPosition.x] =
-                BoundingBox(XMFLOAT3(worldPosition.x + 0.5f, worldPosition.y + 0.5f, worldPosition.z + 0.5f), extents);
+            int pos = localPosition.y * CHUNKSIZE * CHUNKSIZE + localPosition.z * CHUNKSIZE + localPosition.x;
+            if (blockBox[pos].Extents.x == 0.0f) {  // 判断是否有方块
+                (*data).push_back(instanceData);
+                (*transform).push_back(objectTransform);
+                blockBox[pos] = BoundingBox(XMFLOAT3(worldPosition.x + 0.5f, worldPosition.y + 0.5f, worldPosition.z + 0.5f), extents);
+            }
         }
 }
 #endif
 }
 
-void FreeCameraController::Update(float deltaTime, DSM::Chunk& inChunk, TextureManager& tManager, ModelManager& mManager)
+void FreeCameraController::Update(float deltaTime, DSM::Chunk& inChunk, const DSM::BlockId& blockType, Model* model)
 {
-    PlaceDestroyBlocks(m_pCamera, inChunk, tManager, mManager);
+    PlaceDestroyBlocks(m_pCamera, inChunk, blockType, model);
 
     ImGuiIO& io = ImGui::GetIO();
 
@@ -174,9 +194,9 @@ void FreeCameraController::SetMoveSpeed(float speed)
 
 
 
-void FirstPersonCameraController::Update(float deltaTime, DSM::Chunk& inChunk, TextureManager& tManager, ModelManager& mManager)
+void FirstPersonCameraController::Update(float deltaTime, DSM::Chunk& inChunk, const DSM::BlockId& blockType, Model* model)
 {
-    PlaceDestroyBlocks(m_pCamera, inChunk, tManager, mManager);
+    PlaceDestroyBlocks(m_pCamera, inChunk, blockType, model);
 
     static int jump = 0;
     bool isHit = false;

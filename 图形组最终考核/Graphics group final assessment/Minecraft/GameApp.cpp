@@ -443,10 +443,11 @@ void GameApp::CameraTransform(float dt, DSM::Chunk& inChunk)
     // 获取玩家变换
     Transform& playerTransform = m_Player.GetEntity().GetTransform();
     XMFLOAT3 FCPosition = m_pFCamera->GetPosition();
+    Model* model = inChunk.m_Block[0].GetBlockModel().GetDirtModel(m_TextureManager, m_ModelManager);
     
     if (!(m_CameraMode == CameraMode::Free)) {
         m_TCameraControl.Update(dt);
-        m_FPCameraControl.Update(dt, inChunk, m_TextureManager, m_ModelManager);
+        m_FPCameraControl.Update(dt, inChunk, m_PlaceType, model);
         XMFLOAT3 fPosition = m_pFCamera->GetPosition();
         playerTransform.SetPosition(fPosition.x, fPosition.y - 1.8f, fPosition.z);
         if (m_CameraMode == CameraMode::ThirdPerson) {
@@ -468,7 +469,7 @@ void GameApp::CameraTransform(float dt, DSM::Chunk& inChunk)
         }
     }
     else {
-        m_FCameraControl.Update(dt, inChunk, m_TextureManager, m_ModelManager);
+        m_FCameraControl.Update(dt, inChunk, m_PlaceType, model);
         // 更新观察矩阵
         m_BasicEffect.SetViewMatrix(m_pFCamera->GetViewMatrixXM());
         m_BasicEffect.SetEyePos(m_pFCamera->GetPosition());
@@ -521,13 +522,6 @@ void GameApp::ImGuiOperations(float dt)
 {
     PROFILE_FUNCTION();
 
-    static float thirdDistance = 3.5f;
-    static int cameraMode = 0;
-    static const char* cModes[] = {
-        "Free Camera",
-        "First Person",
-        "Third Person"
-    };
     if (ImGui::Begin("Minecraft")) {
         if (ImGui::Button("Exit")||ImGui::IsKeyPressed(ImGuiKey_Escape)) {
             m_FadeUsed = true;  //开始淡出
@@ -541,6 +535,28 @@ void GameApp::ImGuiOperations(float dt)
         ImGui::Checkbox("Enable Tree Frustum Culling", &DSM::CherryTree::m_EnableTreeFC);
         ImGui::Checkbox("Enable Rain", &m_EnableRain);
         ImGui::Checkbox("Enemy tracking", &m_EnemyTrack);
+
+        static int blockType = 0;
+        static const char* bTypes[] = {
+            "Dirt",
+            "Stone",
+            "Gress",
+            "BedRock"
+        };
+        ImGui::Combo("Fog Mode", &blockType, bTypes, ARRAYSIZE(bTypes));
+        if (blockType == 0) {
+            m_PlaceType = DSM::BlockId::Dirt;
+        }
+        else if (blockType == 1) {
+            m_PlaceType = DSM::BlockId::Stone;
+        }
+        else if (blockType == 2) {
+            m_PlaceType = DSM::BlockId::Gress;
+        }
+        else if (blockType == 3) {
+            m_PlaceType = DSM::BlockId::BedRock;
+        }
+
         static int fogMode = 0;
         static const char* fModes[] = {
             "Auto",
@@ -579,6 +595,13 @@ void GameApp::ImGuiOperations(float dt)
             ImGui::Text("Fog: %.0f-%.0f", fog_start, m_FogRange + fog_start);
         }
 
+        static float thirdDistance = 3.5f;
+        static int cameraMode = 0;
+        static const char* cModes[] = {
+            "Free Camera",
+            "First Person",
+            "Third Person"
+        };
         ImGui::Combo("Camera Mode", &cameraMode, cModes, ARRAYSIZE(cModes));
         if (0 == cameraMode) {
             m_CameraMode = CameraMode::Free;
@@ -594,6 +617,7 @@ void GameApp::ImGuiOperations(float dt)
         }
         ImGui::SliderFloat("Speed", &m_Player.GetSpeed(), 0.5f, 4.0f);
         ImGui::SliderFloat("Third Person Distance", &thirdDistance, 2.0f, 6.0f);
+        m_pTCamera->SetDistance(thirdDistance);
 
         ImGui::Text("X: %f",m_pFCamera->GetPosition().x);
         ImGui::Text("Y: %f", m_pFCamera->GetPosition().y);
@@ -603,7 +627,6 @@ void GameApp::ImGuiOperations(float dt)
     }
     ImGui::Render();
 
-    m_pTCamera->SetDistance(thirdDistance);
     m_FCameraControl.SetMoveSpeed(m_Player.GetSpeed());
     m_TCameraControl.SetMoveSpeed(m_Player.GetSpeed());
     m_FPCameraControl.SetMoveSpeed(m_Player.GetSpeed());
