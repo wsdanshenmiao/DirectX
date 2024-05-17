@@ -54,7 +54,7 @@ private:
     void InitSkybox();
     void InitCamara();
     void InitMiniMap();
-    bool InitFromFile();
+    bool InitFromFile(int feature = 0);
 
     void CameraTransform(float dt, DSM::Chunk& inChunk);
     void ImGuiOperations(float dt);

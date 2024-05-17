@@ -75,7 +75,7 @@ void GameApp::SaveToFile()
 
     m_Player.SaveToFile();
 
-    ofs.open(fileName + "\\Seed.dat", std::ios::out | std::ios::binary | std::ios::trunc);
+    ofs.open("Seed.dat", std::ios::out | std::ios::binary | std::ios::trunc);
     ofs.write((char*)&DSM::Chunk::m_Seed, sizeof(int));
     ofs.close();
 
@@ -495,10 +495,9 @@ void GameApp::CameraTransform(float dt, DSM::Chunk& inChunk)
 
 
 // 读取文件中的信息
-bool GameApp::InitFromFile()
+bool GameApp::InitFromFile(int seed)
 {
     std::ifstream ifs;
-    std::string fileName = "World\\" + std::to_string(DSM::Chunk::m_Seed);
 
     // 加载区块
     //for (DSM::Chunk chunk; chunk.InitFromFile(); m_Chunk.push_back(std::move(chunk)));
@@ -507,13 +506,15 @@ bool GameApp::InitFromFile()
     //}
 
     m_Player.InitFromFile();
-
-    ifs.open(fileName + "\\Seed.dat", std::ios::in | std::ios::binary);
-    int seed;
-    if (ifs.read((char*)&seed, sizeof(int))) {
-        DSM::Chunk::m_Seed = seed;
+    if (seed == 0) {    // 开启游戏时初始化种子
+        ifs.open("Seed.dat", std::ios::in | std::ios::binary);
+        if (ifs.read((char*)&seed, sizeof(int))) {
+            DSM::Chunk::m_Seed = seed;
+        }
+        ifs.close();
     }
-    ifs.close();
+
+    std::string fileName = "World\\" + std::to_string(DSM::Chunk::m_Seed);
 
     ifs.open(fileName + "\\Camera.dat", std::ios::in | std::ios::binary);
     XMFLOAT3 position;
@@ -548,15 +549,14 @@ void GameApp::ImGuiOperations(float dt)
 
     if (ImGui::Begin("Minecraft")) {
         static bool changeSeed = false;
-        static std::string preSeed = std::to_string(DSM::Chunk::m_Seed);
+        static std::string preSeed = std::to_string(DSM::Chunk::m_Seed + '\0');
         ImGui::InputText("Chunk Seed", m_ChunkSeed, sizeof(m_ChunkSeed));
         if (ImGui::Button("Change Seed") && m_ChunkSeed[0] != '\0') {
             // 若种子改变
-            if (preSeed != std::string(m_ChunkSeed, sizeof(m_ChunkSeed) - 1)) {
-                DSM::Chunk::m_Seed = std::stoi(std::string(m_ChunkSeed));
+            if (preSeed != std::string(m_ChunkSeed, sizeof(m_ChunkSeed))) {
                 // 重新记录种子
-                InitFromFile();
                 DSM::Chunk::m_Seed = std::stoi(std::string(m_ChunkSeed));
+                InitFromFile(DSM::Chunk::m_Seed);
                 preSeed = m_ChunkSeed;
                 m_Chunk.clear();
             }
