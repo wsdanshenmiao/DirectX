@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CustomBuild Include="D:\Git版本管理\QG-Homework-Group-Work\build\CMakeFiles\110172b35cc181a3bf45e68778bd9b4d\INSTALL_force.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="CMake Rules">
+      <UniqueIdentifier>{394CDD6B-3616-36FC-ABB9-766C311CBC7A}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

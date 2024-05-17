@@ -1,0 +1,10 @@
+# CMake generation dependency list for this directory.
+D:/Git版本管理/QG-Homework-Group-Work/assimp/contrib/zlib/CMakeLists.txt
+D:/Git版本管理/QG-Homework-Group-Work/assimp/contrib/zlib/zconf.h.cmakein
+D:/Git版本管理/QG-Homework-Group-Work/assimp/contrib/zlib/zlib.pc.cmakein
+D:/Program Files (x86)/CMake/share/cmake-3.28/Modules/CheckCSourceCompiles.cmake
+D:/Program Files (x86)/CMake/share/cmake-3.28/Modules/CheckFunctionExists.cmake
+D:/Program Files (x86)/CMake/share/cmake-3.28/Modules/CheckIncludeFile.cmake
+D:/Program Files (x86)/CMake/share/cmake-3.28/Modules/CheckIncludeFileCXX.cmake
+D:/Program Files (x86)/CMake/share/cmake-3.28/Modules/CheckTypeSize.cmake
+D:/Program Files (x86)/CMake/share/cmake-3.28/Modules/Internal/CheckSourceCompiles.cmake
