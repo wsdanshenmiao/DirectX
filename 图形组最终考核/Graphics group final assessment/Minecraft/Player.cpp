@@ -57,8 +57,10 @@ void Player::SetModel(std::shared_ptr<FirstPersonCamera> pCamera, ModelManager& 
 
 void Player::SaveToFile()
 {
+	std::string fileName = "World\\" + std::to_string(DSM::Chunk::m_Seed);
+
 	std::ofstream ofs;
-	ofs.open("Player.dat", std::ios::out | std::ios::binary | std::ios::trunc);
+	ofs.open(fileName + "\\Player.dat", std::ios::out | std::ios::binary | std::ios::trunc);
 	
 	Transform& transform = m_Entity.GetTransform();
 	ofs.write((char*)&GetPosition(), sizeof(XMFLOAT3));
@@ -71,8 +73,10 @@ void Player::SaveToFile()
 	
 bool Player::InitFromFile()
 {
+	std::string seedName = "World\\" + std::to_string(DSM::Chunk::m_Seed);
+
 	std::ifstream ifs;
-	ifs.open("Player.dat", std::ios::in | std::ios::binary);
+	ifs.open(seedName + "\\Player.dat", std::ios::in | std::ios::binary);
 	if (!ifs.is_open()) {
 		return false;
 	}

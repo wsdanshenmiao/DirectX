@@ -64,6 +64,7 @@ void GameApp::OnResize()
 void GameApp::SaveToFile()
 {
     std::ofstream ofs;
+    std::string fileName = "World\\" + std::to_string(DSM::Chunk::m_Seed);
 
     //ofs.open("Chunk.dat", std::ios::out | std::ios::binary | std::ios::trunc);
     //ofs.close();
@@ -74,11 +75,15 @@ void GameApp::SaveToFile()
 
     m_Player.SaveToFile();
 
-    ofs.open("Camera.dat", std::ios::out | std::ios::binary | std::ios::trunc);
+    ofs.open(fileName + "\\Seed.dat", std::ios::out | std::ios::binary | std::ios::trunc);
+    ofs.write((char*)&DSM::Chunk::m_Seed, sizeof(int));
+    ofs.close();
+
+    ofs.open(fileName + "\\Camera.dat", std::ios::out | std::ios::binary | std::ios::trunc);
     ofs.write((char*)&m_pFCamera->GetPosition(), sizeof(XMFLOAT3));
     ofs.close();
 
-    ofs.open("DayAndNight.dat", std::ios::out | std::ios::binary | std::ios::trunc);
+    ofs.open(fileName + "\\DayAndNight.dat", std::ios::out | std::ios::binary | std::ios::trunc);
     ofs.write((char*)&m_SkyColor, sizeof(float));
     ofs.write((char*)&m_SkySign, sizeof(float));
     ofs.write((char*)&m_DiffuseSign, sizeof(float));
@@ -144,6 +149,7 @@ void GameApp::UpdateScene(float dt)
     EnemyManagement();  // 敌人管理
 
     DayAndNightChange(dt);  // 昼夜更替
+
 
     ImGuiOperations(dt);    // ImGui操作
 
@@ -254,6 +260,15 @@ bool GameApp::InitResource()
     InitFromFile();
     
     // 加载区块
+    strncpy(m_ChunkSeed, std::to_string(DSM::Chunk::m_Seed).c_str(), sizeof(m_ChunkSeed) - 1);
+
+    std::string folderPath = "World";
+    // 使用exists函数判断文件夹是否存在
+    if (!std::filesystem::exists(folderPath) || !std::filesystem::is_directory(folderPath)) {
+        // 创建文件夹
+        std::filesystem::create_directory(folderPath);
+    }
+
     m_Chunk.reserve(m_StoreChunkNum);
     DSM::Chunk::InitBlock(m_TextureManager, m_ModelManager);
     int loadRadius = (int)sqrt(m_StoreChunkNum) / 2;
@@ -483,6 +498,8 @@ void GameApp::CameraTransform(float dt, DSM::Chunk& inChunk)
 bool GameApp::InitFromFile()
 {
     std::ifstream ifs;
+    std::string fileName = "World\\" + std::to_string(DSM::Chunk::m_Seed);
+
     // 加载区块
     //for (DSM::Chunk chunk; chunk.InitFromFile(); m_Chunk.push_back(std::move(chunk)));
     //if (m_Chunk.size() <= 0) {
@@ -491,14 +508,21 @@ bool GameApp::InitFromFile()
 
     m_Player.InitFromFile();
 
-    ifs.open("Camera.dat", std::ios::in | std::ios::binary);
+    ifs.open(fileName + "\\Seed.dat", std::ios::in | std::ios::binary);
+    int seed;
+    if (ifs.read((char*)&seed, sizeof(int))) {
+        DSM::Chunk::m_Seed = seed;
+    }
+    ifs.close();
+
+    ifs.open(fileName + "\\Camera.dat", std::ios::in | std::ios::binary);
     XMFLOAT3 position;
-    if (ifs.read((char*)&position, sizeof(position))) {
+    if (ifs.read((char*)&position, sizeof(XMFLOAT3))) {
         m_pFCamera->SetPosition(position);
     }
     ifs.close();
 
-    ifs.open("DayAndNight.dat", std::ios::in | std::ios::binary);
+    ifs.open(fileName + "\\DayAndNight.dat", std::ios::in | std::ios::binary);
     float dayNight;
     if (ifs.read((char*)&dayNight, sizeof(float))) {
         m_SkyColor = dayNight;
@@ -523,6 +547,22 @@ void GameApp::ImGuiOperations(float dt)
     PROFILE_FUNCTION();
 
     if (ImGui::Begin("Minecraft")) {
+        static bool changeSeed = false;
+        static std::string preSeed = std::to_string(DSM::Chunk::m_Seed);
+        ImGui::InputText("Chunk Seed", m_ChunkSeed, sizeof(m_ChunkSeed));
+        if (ImGui::Button("Change Seed") && m_ChunkSeed[0] != '\0') {
+            // 若种子改变
+            if (preSeed != std::string(m_ChunkSeed, sizeof(m_ChunkSeed) - 1)) {
+                DSM::Chunk::m_Seed = std::stoi(std::string(m_ChunkSeed));
+                // 重新记录种子
+                InitFromFile();
+                DSM::Chunk::m_Seed = std::stoi(std::string(m_ChunkSeed));
+                preSeed = m_ChunkSeed;
+                m_Chunk.clear();
+            }
+        }
+
+
         if (ImGui::Button("Exit")||ImGui::IsKeyPressed(ImGuiKey_Escape)) {
             m_FadeUsed = true;  //开始淡出
             m_FadeSign = -1.0f;
@@ -588,7 +628,7 @@ void GameApp::ImGuiOperations(float dt)
                 m_BasicEffect.SetFogColor(XMFLOAT4(m_Diffuse - 0.1f, m_Diffuse - 0.1f, m_Diffuse - 0.1f, 1.0f));
                 m_BasicEffect.SetFogStart(10.0f);
             }
-            if (ImGui::SliderFloat("Fog Range", &m_FogRange, 40.0f, 175.0f, "%.0f")) {
+            if (ImGui::SliderFloat("Fog Range", &m_FogRange, 150.0f, 250.0f, "%.0f")) {
                 m_BasicEffect.SetFogRange(m_FogRange);
             }
             float fog_start = m_IsNight ? 5.0f : 15.0f;
@@ -666,7 +706,7 @@ void GameApp::DrawScene(ID3D11RenderTargetView* pRTV, ID3D11DepthStencilView* pD
          enemy.DrawEnemy(m_pd3dImmediateContext.Get(), m_BasicEffect.Get());
      }
 
-     m_CherryTree.DrawTree(m_pd3dDevice.Get(), m_pd3dImmediateContext.Get(), m_BasicEffect, m_pFCamera);
+     //m_CherryTree.DrawTree(m_pd3dDevice.Get(), m_pd3dImmediateContext.Get(), m_BasicEffect, m_pFCamera);
 
     // 绘制天空盒
     m_SkyboxEffect.SetRenderDefault();

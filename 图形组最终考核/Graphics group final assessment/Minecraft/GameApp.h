@@ -1,6 +1,7 @@
 #ifndef GAMEAPP_H
 #define GAMEAPP_H
 
+#include <filesystem>
 #include <set>
 #include <future>
 #include <random>
@@ -93,7 +94,8 @@ private:
     float m_Diffuse = 0.5f;                                     // 方向光漫反射的系数
 
     std::vector<DSM::Chunk> m_Chunk;                            // 区块
-    int m_ViewRange = 2;                                        // 视距半径
+    char m_ChunkSeed[9] = {};                                          // 区块种子的字符串
+    int m_ViewRange = 7;                                        // 视距半径
     int m_StoreChunkNum;                                        // 存储的区块个数
     bool m_EnableChunkFrustumCulling = true;                    // 区块的视锥体剔除
     std::vector<std::future<void>> m_Futures;
@@ -109,7 +111,7 @@ private:
     bool m_IsNight = false;                                     // 是否为黑夜
     bool m_FogEnabled = false;                                  // 雾效
     float m_FogStart = 5.0f;                                    // 雾效起点    
-    float m_FogRange = 100.0f;                                  // 雾效范围
+    float m_FogRange = 200.0f;                                  // 雾效范围
 
     bool m_FadeUsed = true;                                     // 淡入淡出
     bool m_PrintScreenStarted = false;                          // 截取当前帧

@@ -3,6 +3,7 @@
 
 #include <fstream>
 #include "Entity.h"
+#include "Chunk.h"
 
 namespace DSM {
 

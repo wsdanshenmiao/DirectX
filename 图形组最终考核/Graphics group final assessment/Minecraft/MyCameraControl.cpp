@@ -124,6 +124,24 @@ void PlaceDestroyBlocks(FirstPersonCamera* pCamera, DSM::Chunk& inChunk, const D
                 (*data).push_back(instanceData);
                 (*transform).push_back(objectTransform);
                 blockBox[pos] = BoundingBox(XMFLOAT3(worldPosition.x + 0.5f, worldPosition.y + 0.5f, worldPosition.z + 0.5f), extents);
+
+                std::string seedName = "World\\" + std::to_string(DSM::Chunk::m_Seed);
+                if (!std::filesystem::exists(seedName) || !std::filesystem::is_directory(seedName)) {
+                    // 创建文件夹
+                    std::filesystem::create_directory(seedName);
+                }
+                // 将放置的方块存入文件
+                std::ofstream ofs;
+                std::string fileName = std::string(seedName + "\\") + 'x' + std::to_string(chunkPosition.x) + 'y' + std::to_string(chunkPosition.y);
+                // 以区块坐标命名文件
+                ofs.open(fileName, std::ios::out | std::ios::binary | std::ios::app);
+                
+                // 写入方块种类
+                ofs.write((char*)&blockType, sizeof(DSM::BlockId));
+                // 写入坐标
+                ofs.write((char*)&worldPosition, sizeof(XMFLOAT3));
+
+                ofs.close();
             }
         }
 }

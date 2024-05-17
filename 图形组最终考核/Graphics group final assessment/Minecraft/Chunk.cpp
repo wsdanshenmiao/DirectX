@@ -5,8 +5,8 @@ using namespace DirectX;
 namespace DSM {
 
 bool Chunk::m_EnableFrustumCulling = false;				// 视锥体裁剪关闭
-int Chunk::m_Seed = 050113;								// 默认种子
-int Chunk::m_StoreChunkRadius = 2;						// 超过此半径的区块被卸载
+int Chunk::m_Seed = 20050113;								// 默认种子
+int Chunk::m_StoreChunkRadius = 8;						// 超过此半径的区块被卸载
 Block Chunk::m_Block[5] = {};
 
 void Chunk::InitBlock(TextureManager& tManager, ModelManager& mManager)
@@ -236,7 +236,6 @@ void Chunk::LoadChunk()
 	m_BlockBox.resize(CHUNKSIZE * CHUNKSIZE * CHUNKHIGHEST);
 
 	Transform transform;
-	size_t pos = 0;
 	for (int y = 0; y < CHUNKHIGHEST; y++) {	//每一层 16 * 16
 		for (int z = 0; z < CHUNKSIZE; z++) {
 			for (int x = 0; x < CHUNKSIZE; x++) {
@@ -247,40 +246,75 @@ void Chunk::LoadChunk()
 				XMMATRIX W = transform.GetLocalToWorldMatrixXM();
 				XMStoreFloat4x4(&instanceData.world, XMMatrixTranspose(W));
 				XMStoreFloat4x4(&instanceData.worldInvTranspose, XMMatrixTranspose(XMath::InverseTranspose(W)));
-				;
+				
+				XMFLOAT3 center(mx + x + 0.5f, y + 0.5f, mz + z + 0.5f);
+				XMFLOAT3 extents(0.5f, 0.5f, 0.5f);
 				switch (GetBlock(mx + x, y, mz + z)){
 				case BlockId::Air:
 					m_BlockBox[y * CHUNKSIZE * CHUNKSIZE + z * CHUNKSIZE + x] = 
-						BoundingBox(XMFLOAT3(mx + x + 0.5f, y + 0.5f, mz + z + 0.5f), XMFLOAT3(0.0f, 0.0f, 0.0f));
+						BoundingBox(center, XMFLOAT3(0.0f, 0.0f, 0.0f));
 					break;
 				case BlockId::Dirt:
 					m_BlockTransforms[0].push_back(transform);
 					m_BlockInstancedData[0].push_back(instanceData);
-					m_BlockBox[y * CHUNKSIZE * CHUNKSIZE + z * CHUNKSIZE + x] =
-						BoundingBox(XMFLOAT3(mx + x + 0.5f, y + 0.5f, mz + z + 0.5f), XMFLOAT3(0.5f, 0.5f, 0.5f));
+					m_BlockBox[y * CHUNKSIZE * CHUNKSIZE + z * CHUNKSIZE + x] = BoundingBox(center, extents);
 					break;
 				case BlockId::Stone:
 					m_BlockTransforms[1].push_back(transform);
 					m_BlockInstancedData[1].push_back(instanceData);
-					m_BlockBox[y * CHUNKSIZE * CHUNKSIZE + z * CHUNKSIZE + x] =
-						BoundingBox(XMFLOAT3(mx + x + 0.5f, y + 0.5f, mz + z + 0.5f), XMFLOAT3(0.5f, 0.5f, 0.5f));
+					m_BlockBox[y * CHUNKSIZE * CHUNKSIZE + z * CHUNKSIZE + x] = BoundingBox(center, extents);
 					break;
 				case BlockId::BedRock:
 					m_BlockTransforms[2].push_back(transform);
 					m_BlockInstancedData[2].push_back(instanceData);
-					m_BlockBox[y * CHUNKSIZE * CHUNKSIZE + z * CHUNKSIZE + x] =
-						BoundingBox(XMFLOAT3(mx + x + 0.5f, y + 0.5f, mz + z + 0.5f), XMFLOAT3(0.5f, 0.5f, 0.5f));
+					m_BlockBox[y * CHUNKSIZE * CHUNKSIZE + z * CHUNKSIZE + x] = BoundingBox(center, extents);
 					break;
 				case BlockId::Gress:
 					m_BlockTransforms[3].push_back(transform);
 					m_BlockInstancedData[3].push_back(instanceData);
-					m_BlockBox[y * CHUNKSIZE * CHUNKSIZE + z * CHUNKSIZE + x] =
-						BoundingBox(XMFLOAT3(mx + x + 0.5f, y + 0.5f, mz + z + 0.5f), XMFLOAT3(0.5f, 0.5f, 0.5f));
+					m_BlockBox[y * CHUNKSIZE * CHUNKSIZE + z * CHUNKSIZE + x] = BoundingBox(center, extents);
 					break;
 				}
 			}
 		}
 	}
+
+	std::ifstream ifs;
+	std::string fileName = std::string("World\\" + std::to_string(DSM::Chunk::m_Seed) + "\\") + 'x' + std::to_string(m_Positon.x) + 'y' + std::to_string(m_Positon.y);
+	ifs.open(fileName, std::ios::in | std::ios::binary);
+
+	for (DSM::BlockId blockId; ifs.read((char*)&blockId, sizeof(DSM::BlockId));) {
+		int pos = 0;
+		switch (blockId)
+		{
+		case DSM::BlockId::Dirt:
+			pos = 0;break;
+		case DSM::BlockId::Stone:
+			pos = 1;break;
+		case DSM::BlockId::BedRock:
+			pos = 2;break;
+		case DSM::BlockId::Gress:
+			pos = 3;break;
+		default:
+			break;
+		}
+		XMFLOAT3 position;
+		ifs.read((char*)&position, sizeof(XMFLOAT3));
+		Transform transform;
+		transform.SetPosition(position);
+		BasicEffect::InstancedData instanceData;
+		XMMATRIX W = transform.GetLocalToWorldMatrixXM();
+		XMStoreFloat4x4(&instanceData.world, XMMatrixTranspose(W));
+		XMStoreFloat4x4(&instanceData.worldInvTranspose, XMMatrixTranspose(XMath::InverseTranspose(W)));
+		m_BlockTransforms[pos].push_back(transform);
+		m_BlockInstancedData[pos].push_back(instanceData);
+		XMFLOAT3 localPosition(position.x - m_Positon.x, position.y, position.z - m_Positon.y);
+		m_BlockBox[localPosition.y * CHUNKSIZE * CHUNKSIZE + localPosition.z * CHUNKSIZE + localPosition.x] =
+			BoundingBox(XMFLOAT3(position.x + 0.5f, position.y + 0.5f, position.z + 0.5f), XMFLOAT3(0.5f, 0.5f, 0.5f));
+	}
+
+	ifs.close();
+
 	// 收缩内存方便存到文件
 	std::vector<BasicEffect::InstancedData>(m_BlockInstancedData[0]).swap(m_BlockInstancedData[0]);
 	std::vector<Transform>(m_BlockTransforms[0]).swap(m_BlockTransforms[0]);
@@ -290,7 +324,6 @@ void Chunk::LoadChunk()
 	std::vector<Transform>(m_BlockTransforms[2]).swap(m_BlockTransforms[2]);
 	std::vector<BasicEffect::InstancedData>(m_BlockInstancedData[3]).swap(m_BlockInstancedData[3]);
 	std::vector<Transform>(m_BlockTransforms[3]).swap(m_BlockTransforms[3]);
-
 }
 
 bool Chunk::UnloadChunk(const XMINT2& centerChunk)
@@ -347,7 +380,9 @@ void Chunk::DrawChunk(ID3D11Device* device, ID3D11DeviceContext* deviceContext, 
 bool Chunk::InitFromFile()
 {
 	std::ifstream ifs;
-	ifs.open("Chunk.dat", std::ios::in | std::ios::binary);
+	std::string fileName = "World\\" + std::to_string(DSM::Chunk::m_Seed);
+
+	ifs.open(fileName + "\\Chunk.dat", std::ios::in | std::ios::binary);
 	if (!ifs.is_open()) {
 		return false;
 	}
@@ -391,7 +426,9 @@ bool Chunk::InitFromFile()
 void Chunk::SaveToFile()
 {
 	std::ofstream ofs;
-	ofs.open("Chunk.dat", std::ios::out | std::ios::binary | std::ios::app);
+	std::string fileName = "World\\" + std::to_string(DSM::Chunk::m_Seed);
+
+	ofs.open(fileName + "\\Chunk.dat", std::ios::out | std::ios::binary | std::ios::app);
 
 	ofs.write((char*)&m_Positon, sizeof(XMINT2));
 	ofs.write((char*)&m_Loading, sizeof(bool));
