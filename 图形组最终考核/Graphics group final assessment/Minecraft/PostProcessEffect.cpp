@@ -9,13 +9,13 @@ using namespace DirectX;
 
 
 //
-// PostProcessEffect::Impl ĞèÒªÏÈÓÚPostProcessEffectµÄ¶¨Òå
+// PostProcessEffect::Impl éœ€è¦å…ˆäºPostProcessEffectçš„å®šä¹‰
 //
 
 class PostProcessEffect::Impl
 {
 public:
-    // ±ØĞëÏÔÊ½Ö¸¶¨
+    // å¿…é¡»æ˜¾å¼æŒ‡å®š
     Impl() {}
     ~Impl() = default;
 
@@ -33,7 +33,7 @@ public:
 
 namespace
 {
-    // PostProcessEffectµ¥Àı
+    // PostProcessEffectå•ä¾‹
     static PostProcessEffect* g_pInstance = nullptr;
 }
 
@@ -79,15 +79,15 @@ bool PostProcessEffect::InitAll(ID3D11Device* device)
 
 
     Microsoft::WRL::ComPtr<ID3DBlob> blob;
-    // ´´½¨¶¥µã×ÅÉ«Æ÷
+    // åˆ›å»ºé¡¶ç‚¹ç€è‰²å™¨
     pImpl->m_pEffectHelper->CreateShaderFromFile("MinimapVS", L"Shaders/Minimap_VS.cso", device);
     pImpl->m_pEffectHelper->CreateShaderFromFile("ScreenFadeVS", L"Shaders/ScreenFade_VS.cso", device);
 
-    // ´´½¨ÏñËØ×ÅÉ«Æ÷
+    // åˆ›å»ºåƒç´ ç€è‰²å™¨
     pImpl->m_pEffectHelper->CreateShaderFromFile("MinimapPS", L"Shaders/Minimap_PS.cso", device);
     pImpl->m_pEffectHelper->CreateShaderFromFile("ScreenFadePS", L"Shaders/ScreenFade_PS.cso", device);
 
-    // ´´½¨Í¨µÀ
+    // åˆ›å»ºé€šé“
     EffectPassDesc passDesc;
     passDesc.nameVS = "MinimapVS";
     passDesc.namePS = "MinimapPS";
@@ -121,7 +121,7 @@ void PostProcessEffect::RenderScreenFade(
     pPass->Apply(deviceContext);
     deviceContext->Draw(3, 0);
 
-    // Çå¿Õ
+    // æ¸…ç©º
     output = nullptr;
     input = nullptr;
     deviceContext->OMSetRenderTargets(0, &output, nullptr);
@@ -157,7 +157,7 @@ void PostProcessEffect::RenderMinimap(
     pPass->Apply(deviceContext);
     deviceContext->Draw(3, 0);
 
-    // Çå¿Õ
+    // æ¸…ç©º
     output = nullptr;
     input = nullptr;
     deviceContext->OMSetRenderTargets(0, &output, nullptr);

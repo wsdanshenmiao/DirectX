@@ -8,7 +8,7 @@
 #include <Collision.h>
 #include <filesystem>
 
-#define RAYRANGE 5
+#define RAYRANGE 6
 
 namespace DSM {
 

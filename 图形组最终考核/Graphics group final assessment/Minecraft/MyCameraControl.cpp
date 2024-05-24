@@ -96,9 +96,11 @@ void PlaceDestroyBlocks(FirstPersonCamera* pCamera, DSM::Chunk& inChunk, const D
         float distance;
         int pos = 0;
         for (int i = 0; i < hitBlock.size(); ++i) {
-            XMVECTOR vDistance = XMVectorSubtract(XMLoadFloat3(&hitBlock[i].Center), XMLoadFloat3(&position));
-            vDistance = XMVectorMultiply(vDistance, vDistance);
-            float fDistance = (XMVectorGetX(vDistance) + XMVectorGetY(vDistance) + XMVectorGetZ(vDistance));
+            // XMVECTOR vDistance = XMVectorSubtract(XMLoadFloat3(&hitBlock[i].Center), XMLoadFloat3(&position));
+            // vDistance = XMVectorMultiply(vDistance, vDistance);
+            // float fDistance = (XMVectorGetX(vDistance) + XMVectorGetY(vDistance) + XMVectorGetZ(vDistance));
+            XMFLOAT3 vector(hitBlock[i].Center.x - position.x, hitBlock[i].Center.y - position.y, hitBlock[i].Center.z - position.z);
+            float fDistance = pow(vector.x, 2) + pow(vector.y, 2) + pow(vector.z, 2);
             if (i == 0) {
                 distance = fDistance;
             }
