@@ -27,10 +27,10 @@ float3 HS(
     |   |
    3-----2
     */
-    newPoint[0] = float3(0, weight, 0) + origin;  // 加上原点后为绝对坐标
-    newPoint[1] = float3(length, weight, 0) + origin;
-    newPoint[2] = float3(length, 0, 0) + origin;
-    newPoint[3] = normal;   // 传递法向量
+    newPoint[0] = float3(0, weight, 0);  // 加上原点后为绝对坐标
+    newPoint[1] = float3(length, weight, 0);
+    newPoint[2] = float3(length, 0, 0);
+    newPoint[3] = normalize(normal);   // 传递法向量
 
     return newPoint[i];
 }

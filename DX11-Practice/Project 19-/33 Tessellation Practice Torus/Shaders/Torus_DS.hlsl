@@ -58,6 +58,7 @@ float4 DS(QuadPatchTess patchTess,
     p = mul(rotate, p);
 
     float4 posH = mul(float4(p, 1.0f), g_WorldViewProj);
+    //float4 posH = float4(p,1.0f);
 
     return posH;
 }
