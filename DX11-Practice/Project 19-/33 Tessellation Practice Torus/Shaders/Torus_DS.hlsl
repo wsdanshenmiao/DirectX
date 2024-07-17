@@ -3,7 +3,7 @@
 [domain("quad")]
 float4 DS(QuadPatchTess patchTess,
     float2 uv : SV_DomainLocation,
-    const OutputPatch<VertexPos, 4> quad) : SV_POSITION
+    const OutputPatch<VertexPos, 5> quad) : SV_POSITION
 {
     /*
    0-----1
@@ -12,6 +12,7 @@ float4 DS(QuadPatchTess patchTess,
    3-----2
     */
     float3 normal = quad[3].posL;
+    float3 origin = quad[4].posL;
     float3 v10 = quad[0].posL - quad[1].posL;
     float3 v12 = quad[2].posL - quad[1].posL;
     float3 v3 = quad[1].posL + v10 + v12;    // 求第四个点 
@@ -44,6 +45,7 @@ float4 DS(QuadPatchTess patchTess,
         float3(sin(theta), 0, cos(theta))
     );
 
+    // 绕z轴旋转 
     theta = acos(normal.z);
     float lengthxy = sin(theta);
     theta = acos(normal.x / lengthxy);
@@ -53,9 +55,9 @@ float4 DS(QuadPatchTess patchTess,
         float3(0, 0, 1)
     );
 
-    float3x3 rotate = mul(rotate2, rotate1);
+    float3x3 rotate = mul(rotate2, rotate1);    // 两次旋转即可
 
-    p = mul(rotate, p);
+    p = mul(rotate, p) + origin;    // 移动到绝对位置需要在域着色器中进行
 
     float4 posH = mul(float4(p, 1.0f), g_WorldViewProj);
     //float4 posH = float4(p,1.0f);
