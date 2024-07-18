@@ -32,7 +32,7 @@ float4 DS(QuadPatchTess patchTess,
     p = float3(p.x, sin(theta) * torusR, cos(theta) * torusR);  // 面成柱
 
     float newR = r + torusR * 2 * (p.y + weight / 2) / weight;
-    theta = p.x / r;
+    theta = p.x / (r + torusR);
     p = float3(cos(M_PI / 2 - theta) * newR, sin(M_PI / 2 - theta) * newR, p.z);    // 柱成环
 
     // 绕y轴旋转
