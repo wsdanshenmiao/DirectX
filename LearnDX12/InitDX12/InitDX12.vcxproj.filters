@@ -15,7 +15,30 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Source File\main.cpp">
+    <ClInclude Include="D3D12.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="D3DUtil.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="CpuTimer.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="d3dx12.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="D3D12.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="main.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="D3DUtil.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="CpuTimer.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
