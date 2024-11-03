@@ -1,5 +1,7 @@
 #include "D3D12.h"
 
+using namespace DirectX;
+
 namespace DSM {
 
 	namespace {
@@ -47,6 +49,8 @@ namespace DSM {
 
 		ThrowIfFailed(m_CommandList->Reset(m_DirectCmdListAlloc.Get(), nullptr));
 
+		CreateMsaaResources();
+
 		// 释放先前创建的资源
 		for (int i = 0; i < SwapChainBufferCount; ++i) {
 			m_SwapChainBuffer[i].Reset();
@@ -84,17 +88,18 @@ namespace DSM {
 		depthStencilDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
 		depthStencilDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
 		depthStencilDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
-		depthStencilDesc.SampleDesc.Count = m_Enable4xMsaa ? 4 : 1;
-		depthStencilDesc.SampleDesc.Quality = m_Enable4xMsaa ? (m_4xMsaaQuality - 1) : 0;
+		depthStencilDesc.SampleDesc.Count = 1;
+		depthStencilDesc.SampleDesc.Quality = 0;
 
 		// 清除资源
 		D3D12_CLEAR_VALUE clearValue{};
 		clearValue.Format = m_DepthStencilFormat;
 		clearValue.DepthStencil.Depth = 1.f;
 		clearValue.DepthStencil.Stencil = 0;
+		auto heapProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
 		// 创建缓冲区
 		ThrowIfFailed(m_D3D12Device->CreateCommittedResource(
-			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+			&heapProperties,
 			D3D12_HEAP_FLAG_NONE,
 			&depthStencilDesc,
 			D3D12_RESOURCE_STATE_COMMON,
@@ -112,11 +117,12 @@ namespace DSM {
 			&dsvDesc,
 			GetDepthStencilView());
 
-		// 将资源从初始状态转换为深度缓冲区
-		m_CommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(
+		auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(
 			m_DepthStencilBuffer.Get(),
 			D3D12_RESOURCE_STATE_COMMON,
-			D3D12_RESOURCE_STATE_DEPTH_WRITE));
+			D3D12_RESOURCE_STATE_DEPTH_WRITE);
+		// 将资源从初始状态转换为深度缓冲区
+		m_CommandList->ResourceBarrier(1, &barrier);
 
 		ThrowIfFailed(m_CommandList->Close());
 
@@ -134,7 +140,7 @@ namespace DSM {
 		m_ScreenViewport.MinDepth = 0.0f;
 		m_ScreenViewport.MaxDepth = 1.0f;
 
-		m_ScissorRect = { 0,0,m_ClientWidth / 2,m_ClientHeight / 2 };
+		m_ScissorRect = { 0,0,m_ClientWidth,m_ClientHeight };
 	}
 
 	void D3D12App::OnUpdate(const CpuTimer& timer) {}
@@ -342,15 +348,15 @@ namespace DSM {
 			}
 			return 0;
 
-			// WM_EXITSIZEMOVE is sent when the user grabs the resize bars.
+			// 用户抓取调整栏
 		case WM_ENTERSIZEMOVE:
 			m_AppPaused = true;
 			m_Resizing = true;
 			m_Timer.Stop();
 			return 0;
 
-			// WM_EXITSIZEMOVE is sent when the user releases the resize bars.
-			// Here we reset everything based on the new window dimensions.
+			// 用户释放调整栏
+			// 根据窗口大小重新设置相关对象
 		case WM_EXITSIZEMOVE:
 			m_AppPaused = false;
 			m_Resizing = false;
@@ -358,7 +364,7 @@ namespace DSM {
 			OnResize();
 			return 0;
 
-			// WM_DESTROY is sent when the window is being destroyed.
+			// 当窗口被销毁
 		case WM_DESTROY:
 			PostQuitMessage(0);
 			return 0;
@@ -369,7 +375,7 @@ namespace DSM {
 			// Don't beep when we alt-enter.
 			return MAKELRESULT(0, MNC_CLOSE);
 
-			// Catch this message so to prevent the window from becoming too small.
+			// 捕获此消息以防窗口变的过小
 		case WM_GETMINMAXINFO:
 			((MINMAXINFO*)lParam)->ptMinTrackSize.x = 200;
 			((MINMAXINFO*)lParam)->ptMinTrackSize.y = 200;
@@ -424,7 +430,7 @@ namespace DSM {
 
 		// 等待GPU完成这个栅栏点的命令。
 		if (m_D3D12Fence->GetCompletedValue() < m_CurrentFence) {
-			HANDLE eventHandle = CreateEventEx(nullptr, false, false, EVENT_ALL_ACCESS);
+			HANDLE eventHandle = CreateEvent(nullptr, false, false, nullptr);
 
 			// 当GPU碰到当前栅栏时触发事件
 			ThrowIfFailed(m_D3D12Fence->SetEventOnCompletion(m_CurrentFence, eventHandle));
@@ -435,6 +441,7 @@ namespace DSM {
 		}
 	}
 
+	// DX12不支持直接在交换链上开启Msaa，
 	void D3D12App::CreateSwapChain()
 	{
 		m_DxgiSwapChain.Reset();
@@ -446,7 +453,7 @@ namespace DSM {
 		swapChainDesc.BufferCount = SwapChainBufferCount;
 		swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
 		swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
-		swapChainDesc.SampleDesc.Count = m_Enable4xMsaa ? 4 : 1;
+		swapChainDesc.SampleDesc.Count = 1;
 		swapChainDesc.SampleDesc.Quality = m_Enable4xMsaa ? (m_4xMsaaQuality - 1) : 0;
 
 		DXGI_SWAP_CHAIN_FULLSCREEN_DESC fullscreenDesc{};
@@ -464,6 +471,91 @@ namespace DSM {
 			&fullscreenDesc,
 			nullptr,
 			m_DxgiSwapChain.GetAddressOf()));
+	}
+
+	void D3D12App::CreateMsaaResources()
+	{
+		// 创建描述符堆
+		D3D12_DESCRIPTOR_HEAP_DESC msaaRtvHeapDesc{};
+		msaaRtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
+		msaaRtvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+		msaaRtvHeapDesc.NumDescriptors = 1;
+		msaaRtvHeapDesc.NodeMask = 0;
+		ThrowIfFailed(m_D3D12Device->CreateDescriptorHeap(&msaaRtvHeapDesc, IID_PPV_ARGS(m_MsaaRtvHeap.GetAddressOf())));
+
+		// 创建RT资源
+		D3D12_RESOURCE_DESC msaaRtDesc =
+			CD3DX12_RESOURCE_DESC::Tex2D(
+				m_BackBufferFormat,
+				m_ClientWidth,
+				m_ClientHeight,
+				1, 1, 4);
+		msaaRtDesc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+
+		D3D12_CLEAR_VALUE rtClearValue{};
+		rtClearValue.Format = m_BackBufferFormat;
+		memcpy(rtClearValue.Color, Colors::Pink, sizeof(float) * 4);
+
+		auto heapProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
+		ThrowIfFailed(m_D3D12Device->CreateCommittedResource(
+			&heapProperties,
+			D3D12_HEAP_FLAG_NONE,
+			&msaaRtDesc,
+			D3D12_RESOURCE_STATE_RESOLVE_SOURCE,	// 这里资源状态是RESOLVE_SOURCE，而不是RENDER_TARGET
+			&rtClearValue,
+			IID_PPV_ARGS(m_MsaaRenderTarget.GetAddressOf())));
+		m_MsaaRenderTarget->SetName(L"Msaa Render Target");
+
+		// 创建RT视图
+		D3D12_RENDER_TARGET_VIEW_DESC rtvDesc{};
+		rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DMS;
+		rtvDesc.Format = m_BackBufferFormat;
+		m_D3D12Device->CreateRenderTargetView(
+			m_MsaaRenderTarget.Get(),
+			&rtvDesc,
+			m_MsaaRtvHeap->GetCPUDescriptorHandleForHeapStart());
+
+
+
+		D3D12_DESCRIPTOR_HEAP_DESC msaaDsvHeapDesc{};
+		msaaDsvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
+		msaaDsvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+		msaaDsvHeapDesc.NumDescriptors = 1;
+		msaaDsvHeapDesc.NodeMask = 0;
+		ThrowIfFailed(m_D3D12Device->CreateDescriptorHeap(&msaaDsvHeapDesc, IID_PPV_ARGS(m_MsaaDsvHeap.GetAddressOf())));
+
+		// 创建RT资源
+		D3D12_RESOURCE_DESC msaaDsDesc =
+			CD3DX12_RESOURCE_DESC::Tex2D(
+				m_DepthStencilFormat,
+				m_ClientWidth,
+				m_ClientHeight,
+				1, 1, 4);
+		msaaDsDesc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+
+		D3D12_CLEAR_VALUE dsClearValue{};
+		dsClearValue.Format = m_DepthStencilFormat;
+		dsClearValue.DepthStencil.Depth = 1.f;
+		dsClearValue.DepthStencil.Stencil = 0;
+
+		ThrowIfFailed(m_D3D12Device->CreateCommittedResource(
+			&heapProperties,
+			D3D12_HEAP_FLAG_NONE,
+			&msaaDsDesc,
+			D3D12_RESOURCE_STATE_DEPTH_WRITE,
+			&dsClearValue,
+			IID_PPV_ARGS(m_MsaaDepthStencil.GetAddressOf())));
+		m_MsaaDepthStencil->SetName(L"Msaa Depth Stencil");
+
+		// 创建Ds视图
+		D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc{};
+		dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2DMS;
+		dsvDesc.Format = m_DepthStencilFormat;
+		m_D3D12Device->CreateDepthStencilView(
+			m_MsaaDepthStencil.Get(),
+			&dsvDesc,
+			m_MsaaDsvHeap->GetCPUDescriptorHandleForHeapStart());
+
 	}
 
 	void D3D12App::CreateDescriptorHeap()
@@ -507,10 +599,6 @@ namespace DSM {
 		if (m_Enable4xMsaa != value)
 		{
 			m_Enable4xMsaa = value;
-
-			// Recreate the swapchain and buffers with new multisample settings.
-			CreateSwapChain();
-			OnResize();
 		}
 	}
 

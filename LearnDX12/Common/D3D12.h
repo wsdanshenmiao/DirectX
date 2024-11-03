@@ -42,6 +42,7 @@ namespace DSM {
 		bool InitDirectX3D();
 
 		void CreateSwapChain();
+		void CreateMsaaResources();
 		void CreateCommandObjects();
 		void FlushCommandQueue();		// 刷新命令队列
 
@@ -74,6 +75,11 @@ namespace DSM {
 		ComPtr<IDXGISwapChain1>	m_DxgiSwapChain;						// 交换链
 		ComPtr<ID3D12Resource> m_SwapChainBuffer[SwapChainBufferCount];	// 后台缓冲区
 		ComPtr<ID3D12Resource> m_DepthStencilBuffer;					// 深度模板缓冲区
+
+		ComPtr<ID3D12DescriptorHeap> m_MsaaRtvHeap;						// 开启Msaa的渲染目标描述符堆
+		ComPtr<ID3D12DescriptorHeap> m_MsaaDsvHeap;						// 开启Msaa的深度模板描述符堆
+		ComPtr<ID3D12Resource> m_MsaaRenderTarget;						// 开启Msaa的渲染目标缓冲区
+		ComPtr<ID3D12Resource> m_MsaaDepthStencil;						// 开启Msaa的深度模板缓冲区
 
 		ComPtr<ID3D12Fence> m_D3D12Fence;								// CPU/GPU同步围栏
 		UINT64 m_CurrentFence = 0;										// 当前围栏值
