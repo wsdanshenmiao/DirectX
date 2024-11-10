@@ -27,6 +27,9 @@
     <ClCompile Include="..\Common\D3DUtil.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="DrawBox.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
     <ClCompile Include="..\Common\Mesh.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
@@ -47,14 +50,23 @@
     <ClInclude Include="..\Common\d3dx12.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="..\Common\Mesh.h">
+    <ClInclude Include="DrawBox.h">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="..\Common\UploadBuffer.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="..\Common\Mesh.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
     <ClInclude Include="..\Common\Math\MathHelper.h">
       <Filter>头文件</Filter>
     </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="Shader\Color.hlsl" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Shader\Color.hlsli" />
   </ItemGroup>
 </Project>

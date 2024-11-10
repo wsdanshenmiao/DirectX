@@ -40,6 +40,10 @@ GameApp::GameApp(HINSTANCE hAppInst, const std::wstring& mainWndCaption, int cli
 
 void GameApp::OnUpdate(const CpuTimer& timer)
 {
+	bool showDemoWindow = true;
+	if (showDemoWindow)
+		ImGui::ShowDemoWindow(&showDemoWindow);
+	ImGui::Render();
 }
 
 void GameApp::OnRender(const CpuTimer& timer)
@@ -130,6 +134,10 @@ void GameApp::OnRender(const CpuTimer& timer)
 				D3D12_RESOURCE_STATE_PRESENT);
 		m_CommandList->ResourceBarrier(1, &rtToPresent);
 	}
+
+	// 绘制ImGui
+	m_CommandList->SetDescriptorHeaps(1, m_ImGuiSrvHeap.GetAddressOf());
+	ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), m_CommandList.Get());
 
 	// 完成命令的记录
 	ThrowIfFailed(m_CommandList->Close());
