@@ -1,12 +1,16 @@
-#include "D3D12.h"
+﻿#include "D3D12.h"
 
 using namespace DirectX;
+using Microsoft::WRL::ComPtr;
+
+extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 namespace DSM {
 
 	namespace {
 		D3D12App* g_pD3D12App = nullptr;
 	}
+
 
 	LRESULT CALLBACK MainWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 	{
@@ -15,7 +19,10 @@ namespace DSM {
 
 
 	D3D12App::D3D12App(HINSTANCE hAppInst, const std::wstring& mainWndCaption, int clientWidth, int clientHeight)
-		:m_hAppInst(hAppInst), m_MainWndCaption(mainWndCaption), m_ClientWidth(clientWidth), m_ClientHeight(clientHeight)
+		:m_hAppInst(hAppInst),
+		m_MainWndCaption(mainWndCaption),
+		m_ClientWidth(clientWidth),
+		m_ClientHeight(clientHeight)
 	{
 		assert(g_pD3D12App == nullptr);
 		g_pD3D12App = this;
@@ -25,6 +32,10 @@ namespace DSM {
 	{
 		if (m_D3D12Device != nullptr)
 			FlushCommandQueue();
+
+		ImGui_ImplDX12_Shutdown();
+		ImGui_ImplWin32_Shutdown();
+		ImGui::DestroyContext();
 	}
 
 	bool D3D12App::OnInit()
@@ -32,6 +43,8 @@ namespace DSM {
 		if (!InitMainWindow())
 			return false;
 		if (!InitDirectX3D())
+			return false;
+		if (!InitImGui())
 			return false;
 
 		OnResize();
@@ -161,6 +174,9 @@ namespace DSM {
 
 				if (!m_AppPaused) {
 					CalculateFrameStats();
+					ImGui_ImplDX12_NewFrame();
+					ImGui_ImplWin32_NewFrame();
+					ImGui::NewFrame();
 					OnUpdate(m_Timer);
 					OnRender(m_Timer);
 				}
@@ -242,6 +258,35 @@ namespace DSM {
 	return true;
 	}
 
+	bool D3D12App::InitImGui()
+	{
+		IMGUI_CHECKVERSION();
+		ImGui::CreateContext();
+		ImGuiIO io = ImGui::GetIO();
+		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;	// 允许键盘控制
+
+		ImGui::StyleColorsDark();
+
+		D3D12_DESCRIPTOR_HEAP_DESC desc = {};
+		desc.NodeMask = 0;
+		desc.NumDescriptors = 1;
+		desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+		desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+		if (m_D3D12Device->CreateDescriptorHeap(&desc, IID_PPV_ARGS(m_ImGuiSrvHeap.GetAddressOf())) != S_OK)
+			return false;
+
+		ImGui_ImplWin32_Init(m_hMainWnd);
+		ImGui_ImplDX12_Init(
+			m_D3D12Device.Get(),
+			SwapChainBufferCount,
+			m_BackBufferFormat,
+			m_ImGuiSrvHeap.Get(),
+			m_ImGuiSrvHeap->GetCPUDescriptorHandleForHeapStart(),
+			m_ImGuiSrvHeap->GetGPUDescriptorHandleForHeapStart());
+
+		return true;
+	}
+
 	bool D3D12App::InitMainWindow()
 	{
 		WNDCLASS wc;
@@ -284,6 +329,9 @@ namespace DSM {
 
 	LRESULT D3D12App::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 	{
+		if (ImGui_ImplWin32_WndProcHandler(hwnd, msg, wParam, lParam))
+			return true;
+
 		switch (msg) {
 			// WM_ACTIVATE is sent when the window is activated or deactivated.  
 			// We pause the game when the window is deactivated and unpause it 
@@ -416,7 +464,7 @@ namespace DSM {
 			IID_PPV_ARGS(m_CommandList.GetAddressOf())));
 
 		// 第一次引用需要重置命令列表，重置前需要关闭列表
-		m_CommandList->Close();
+		ThrowIfFailed(m_CommandList->Close());
 	}
 
 	void D3D12App::FlushCommandQueue()
@@ -436,8 +484,10 @@ namespace DSM {
 			ThrowIfFailed(m_D3D12Fence->SetEventOnCompletion(m_CurrentFence, eventHandle));
 
 			// 等待直到GPU触发当前栅栏事件
-			WaitForSingleObject(eventHandle, INFINITE);
-			CloseHandle(eventHandle);
+			if (eventHandle != 0) {
+				WaitForSingleObject(eventHandle, INFINITE);
+				CloseHandle(eventHandle);
+			}
 		}
 	}
 
@@ -454,7 +504,7 @@ namespace DSM {
 		swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
 		swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
 		swapChainDesc.SampleDesc.Count = 1;
-		swapChainDesc.SampleDesc.Quality = m_Enable4xMsaa ? (m_4xMsaaQuality - 1) : 0;
+		swapChainDesc.SampleDesc.Quality = 0;
 
 		DXGI_SWAP_CHAIN_FULLSCREEN_DESC fullscreenDesc{};
 		fullscreenDesc.RefreshRate.Numerator = 60;

@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #ifndef __D3D12__H__
 #define __D3D12__H__
 
@@ -9,14 +9,19 @@
 #include "D3DUtil.h"
 #include "CpuTimer.h"
 
+#include "imgui.h"
+#include "imgui_impl_dx12.h"
+#include "imgui_impl_win32.h"
 
 namespace DSM {
 
-	using Microsoft::WRL::ComPtr;
 
 	class D3D12App
 	{
 	public:
+		template <class T>
+		using ComPtr = Microsoft::WRL::ComPtr<T>;
+
 		D3D12App(HINSTANCE hAppInst, const std::wstring& mainWndCaption, int clientWidth = 512, int clientHeight = 512);
 		D3D12App(const D3D12App& other) = delete;
 		D3D12App& operator=(const D3D12App& other) = delete;
@@ -40,6 +45,7 @@ namespace DSM {
 
 		bool InitMainWindow();
 		bool InitDirectX3D();
+		bool InitImGui();
 
 		void CreateSwapChain();
 		void CreateMsaaResources();
@@ -71,6 +77,7 @@ namespace DSM {
 
 		ComPtr<ID3D12DescriptorHeap> m_RtvHeap;							// 渲染目标描述符堆
 		ComPtr<ID3D12DescriptorHeap> m_DsvHeap;							// 深度模板描述符堆
+		ComPtr<ID3D12DescriptorHeap> m_ImGuiSrvHeap;					// 提供给ImGui的着色器资源描述符堆
 
 		ComPtr<IDXGISwapChain1>	m_DxgiSwapChain;						// 交换链
 		ComPtr<ID3D12Resource> m_SwapChainBuffer[SwapChainBufferCount];	// 后台缓冲区
@@ -84,8 +91,8 @@ namespace DSM {
 		ComPtr<ID3D12Fence> m_D3D12Fence;								// CPU/GPU同步围栏
 		UINT64 m_CurrentFence = 0;										// 当前围栏值
 
-		D3D12_VIEWPORT m_ScreenViewport;		// 屏幕视口
-		D3D12_RECT m_ScissorRect;				// 裁剪矩形
+		D3D12_VIEWPORT m_ScreenViewport{};		// 屏幕视口
+		D3D12_RECT m_ScissorRect{};				// 裁剪矩形
 
 		DXGI_FORMAT m_BackBufferFormat = DXGI_FORMAT_R8G8B8A8_UNORM;		// 后台缓冲区格式
 		DXGI_FORMAT m_DepthStencilFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;	// 深度模板缓冲区格式
@@ -105,7 +112,7 @@ namespace DSM {
 		bool      m_Minimized = false;		// is the application minimized?
 		bool      m_Maximized = false;		// is the application maximized?
 		bool      m_Resizing = false;		// are the resize bars being dragged?
-		bool      m_FullscreenState = false;	// fullscreen enabled
+		bool      m_FullscreenState = false;// fullscreen enabled
 
 		int m_ClientWidth = 512;
 		int m_ClientHeight = 512;
