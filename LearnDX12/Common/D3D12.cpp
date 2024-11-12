@@ -77,7 +77,6 @@ namespace DSM {
 			m_ClientHeight,
 			m_BackBufferFormat,
 			DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH));
-
 		m_CurrBackBuffer = 0;
 
 		// 创建渲染目标视图

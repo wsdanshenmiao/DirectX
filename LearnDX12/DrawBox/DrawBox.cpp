@@ -127,19 +127,81 @@ namespace DSM {
 		m_CommandList->RSSetViewports(1, &m_ScreenViewport);
 		m_CommandList->RSSetScissorRects(1, &m_ScissorRect);
 
-		auto presentToRt = CD3DX12_RESOURCE_BARRIER::Transition(
-			GetCurrentBackBuffer(),
-			D3D12_RESOURCE_STATE_PRESENT,
-			D3D12_RESOURCE_STATE_RENDER_TARGET);
-		m_CommandList->ResourceBarrier(1, &presentToRt);
+		if (m_Enable4xMsaa) {
+			auto resolveToRt = CD3DX12_RESOURCE_BARRIER::Transition(
+				m_MsaaRenderTarget.Get(),
+				D3D12_RESOURCE_STATE_RESOLVE_SOURCE,
+				D3D12_RESOURCE_STATE_RENDER_TARGET);
+			m_CommandList->ResourceBarrier(1, &resolveToRt);
 
-		auto currentBbv = GetCurrentBackBufferView();
-		auto dsv = GetDepthStencilView();
-		m_CommandList->ClearRenderTargetView(currentBbv, Colors::Pink, 0, nullptr);
-		m_CommandList->ClearDepthStencilView(dsv, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.f, 0, 0, nullptr);
+			auto msaaRtv = m_MsaaRtvHeap->GetCPUDescriptorHandleForHeapStart();
+			auto msaaDsv = m_MsaaDsvHeap->GetCPUDescriptorHandleForHeapStart();
+			m_CommandList->ClearRenderTargetView(msaaRtv, Colors::Pink, 0, nullptr);
+			m_CommandList->ClearDepthStencilView(msaaDsv, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.f, 0, 0, nullptr);
 
-		m_CommandList->OMSetRenderTargets(1, &currentBbv, true, &dsv);
+			m_CommandList->OMSetRenderTargets(1, &msaaRtv, true, &msaaDsv);
 
+			OnRenderScene(timer);
+
+			// 转换资源状态
+			D3D12_RESOURCE_BARRIER barriers[2] = {
+				CD3DX12_RESOURCE_BARRIER::Transition(
+					m_MsaaRenderTarget.Get(),
+					D3D12_RESOURCE_STATE_RENDER_TARGET,
+					D3D12_RESOURCE_STATE_RESOLVE_SOURCE),
+				CD3DX12_RESOURCE_BARRIER::Transition(
+					GetCurrentBackBuffer(),
+					D3D12_RESOURCE_STATE_PRESENT,
+					D3D12_RESOURCE_STATE_RESOLVE_DEST)
+			};
+			m_CommandList->ResourceBarrier(2, barriers);
+
+			// 将Rt解析到后台缓冲区
+			m_CommandList->ResolveSubresource(GetCurrentBackBuffer(), 0, m_MsaaRenderTarget.Get(), 0, m_BackBufferFormat);
+
+			// 转换后台缓冲区
+			auto destToPresent = CD3DX12_RESOURCE_BARRIER::Transition(
+				GetCurrentBackBuffer(),
+				D3D12_RESOURCE_STATE_RESOLVE_DEST,
+				D3D12_RESOURCE_STATE_PRESENT);
+			m_CommandList->ResourceBarrier(1, &destToPresent);
+		}
+		else {
+			auto presentToRt = CD3DX12_RESOURCE_BARRIER::Transition(
+				GetCurrentBackBuffer(),
+				D3D12_RESOURCE_STATE_PRESENT,
+				D3D12_RESOURCE_STATE_RENDER_TARGET);
+			m_CommandList->ResourceBarrier(1, &presentToRt);
+
+			auto currentBbv = GetCurrentBackBufferView();
+			auto dsv = GetDepthStencilView();
+			m_CommandList->ClearRenderTargetView(currentBbv, Colors::Pink, 0, nullptr);
+			m_CommandList->ClearDepthStencilView(dsv, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.f, 0, 0, nullptr);
+
+			m_CommandList->OMSetRenderTargets(1, &currentBbv, true, &dsv);
+
+			OnRenderScene(timer);
+
+			auto RtToPresent = CD3DX12_RESOURCE_BARRIER::Transition(
+				GetCurrentBackBuffer(),
+				D3D12_RESOURCE_STATE_RENDER_TARGET,
+				D3D12_RESOURCE_STATE_PRESENT);
+			m_CommandList->ResourceBarrier(1, &RtToPresent);
+		}
+
+		ThrowIfFailed(m_CommandList->Close());
+
+		ID3D12CommandList* cmdsLists[] = { m_CommandList.Get() };
+		m_CommandQueue->ExecuteCommandLists(1, cmdsLists);
+
+		ThrowIfFailed(m_DxgiSwapChain->Present(0, 0));
+		m_CurrBackBuffer = (m_CurrBackBuffer + 1) % SwapChainBufferCount;
+
+		FlushCommandQueue();
+	}
+
+	void DrawBox::OnRenderScene(const CpuTimer& timer)
+	{
 		// 设置根签名
 		ID3D12DescriptorHeap* descriptorHeaps[] = { m_CbvHeap.Get() };
 		m_CommandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
@@ -158,25 +220,8 @@ namespace DSM {
 			box.m_StarIndexLocation,
 			0);
 
-
 		m_CommandList->SetDescriptorHeaps(1, m_ImGuiSrvHeap.GetAddressOf());
 		ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), m_CommandList.Get());
-
-		auto RtToPresent = CD3DX12_RESOURCE_BARRIER::Transition(
-			GetCurrentBackBuffer(),
-			D3D12_RESOURCE_STATE_RENDER_TARGET,
-			D3D12_RESOURCE_STATE_PRESENT);
-		m_CommandList->ResourceBarrier(1, &RtToPresent);
-
-		ThrowIfFailed(m_CommandList->Close());
-
-		ID3D12CommandList* cmdsLists[] = { m_CommandList.Get() };
-		m_CommandQueue->ExecuteCommandLists(1, cmdsLists);
-
-		ThrowIfFailed(m_DxgiSwapChain->Present(0, 0));
-		m_CurrBackBuffer = (m_CurrBackBuffer + 1) % SwapChainBufferCount;
-
-		FlushCommandQueue();
 	}
 
 	bool DrawBox::InitResource()

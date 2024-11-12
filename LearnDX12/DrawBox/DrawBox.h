@@ -34,6 +34,7 @@ namespace DSM {
 		void OnResize() override;
 		void OnUpdate(const CpuTimer& timer) override;
 		void OnRender(const CpuTimer& timer) override;
+		void OnRenderScene(const CpuTimer& timer);
 
 		bool InitResource();
 		bool CreateBox();
