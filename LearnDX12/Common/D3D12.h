@@ -3,15 +3,11 @@
 #define __D3D12__H__
 
 #pragma comment(lib,"d3dcompiler.lib")
-#pragma comment(lib, "D3D12.lib")
+#pragma comment(lib, "d3d12.lib")
 #pragma comment(lib, "dxgi.lib")
 
 #include "D3DUtil.h"
 #include "CpuTimer.h"
-
-#include "imgui.h"
-#include "imgui_impl_dx12.h"
-#include "imgui_impl_win32.h"
 
 namespace DSM {
 
@@ -77,7 +73,6 @@ namespace DSM {
 
 		ComPtr<ID3D12DescriptorHeap> m_RtvHeap;							// 渲染目标描述符堆
 		ComPtr<ID3D12DescriptorHeap> m_DsvHeap;							// 深度模板描述符堆
-		ComPtr<ID3D12DescriptorHeap> m_ImGuiSrvHeap;					// 提供给ImGui的着色器资源描述符堆
 
 		ComPtr<IDXGISwapChain1>	m_DxgiSwapChain;						// 交换链
 		ComPtr<ID3D12Resource> m_SwapChainBuffer[SwapChainBufferCount];	// 后台缓冲区

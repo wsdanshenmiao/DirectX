@@ -4,7 +4,7 @@
 
 #include "../Common/D3D12.h"
 #include "../Common/Mesh.h"
-#include "../Common/Math/MathHelper.h"
+#include "../Common/MathHelper.h"
 #include "../Common/UploadBuffer.h"
 
 namespace DSM {

@@ -18,6 +18,12 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="main.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="Shapes.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
     <ClCompile Include="..\Common\CpuTimer.cpp">
       <Filter>Common</Filter>
     </ClCompile>
@@ -36,17 +42,14 @@
     <ClCompile Include="..\Common\Mesh.cpp">
       <Filter>Common</Filter>
     </ClCompile>
-    <ClCompile Include="DrawBox.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
     <ClCompile Include="ImGuiManager.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="main.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Shapes.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
     <ClInclude Include="..\Common\ConstantData.h">
       <Filter>Common</Filter>
     </ClInclude>
@@ -65,9 +68,6 @@
     <ClInclude Include="..\Common\FrameResource.h">
       <Filter>Common</Filter>
     </ClInclude>
-    <ClInclude Include="..\Common\BaseImGuiManager.h">
-      <Filter>Common</Filter>
-    </ClInclude>
     <ClInclude Include="..\Common\MathHelper.h">
       <Filter>Common</Filter>
     </ClInclude>
@@ -80,14 +80,14 @@
     <ClInclude Include="..\Common\UploadBuffer.h">
       <Filter>Common</Filter>
     </ClInclude>
-    <ClInclude Include="ImGuiManager.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="DrawBox.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
     <ClInclude Include="..\Common\Vertex.h">
       <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\BaseImGuiManager.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="ImGuiManager.h">
+      <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

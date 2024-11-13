@@ -1,20 +1,17 @@
-﻿#include "DrawBox.h"
+#include "Shapes.h"
 #include "ImGuiManager.h"
+#include "../Common/Vertex.h"
+#include "../Common/Mesh.h"
 
 using namespace DirectX;
 using namespace DSM::Geometry;
 
 namespace DSM {
-
-	DrawBox::DrawBox(HINSTANCE hAppInst, const std::wstring& mainWndCaption, int clientWidth, int clientHeight)
+	Shapes::Shapes(HINSTANCE hAppInst, const std::wstring& mainWndCaption, int clientWidth, int clientHeight)
 		:D3D12App(hAppInst, mainWndCaption, clientWidth, clientHeight) {
 	}
 
-	DrawBox::~DrawBox()
-	{
-	}
-
-	bool DrawBox::OnInit()
+	bool Shapes::OnInit()
 	{
 		if (!D3D12App::OnInit())
 			return false;
@@ -40,30 +37,44 @@ namespace DSM {
 		return true;
 	}
 
-	void DrawBox::OnResize()
+	void Shapes::OnResize()
 	{
 		D3D12App::OnResize();
 	}
 
-	void DrawBox::OnUpdate(const CpuTimer& timer)
+	void Shapes::OnUpdate(const CpuTimer& timer)
 	{
 		auto& imgui = ImGuiManager::GetInstance();
 		imgui.Update(timer);
 
-		XMMATRIX view = XMMatrixLookAtLH(
-			XMVectorSet(0.0f, 0.0f, -5.0f, 1.0f),
-			XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f),
-			XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f));
-		ObjConstants objConstants;
-		auto world = XMMatrixScalingFromVector(XMVectorReplicate(imgui.m_Scale)) *
-			XMMatrixRotationX(imgui.m_Phi) * XMMatrixRotationY(imgui.m_Theta) *
-			XMMatrixTranslation(imgui.m_Dx, imgui.m_Dy, 0.0f);
-		auto proj = XMMatrixPerspectiveFovLH(imgui.m_Fov, GetAspectRatio(), 1.0f, 1000.0f);
-		XMStoreFloat4x4(&objConstants.gWorldViewProj, XMMatrixTranspose(world * view * proj));
-		m_ObjCB->CopyData(0, &objConstants);
+		//XMMATRIX view = XMMatrixLookAtLH(
+		//	XMVectorSet(0.0f, 0.0f, -5.0f, 1.0f),
+		//	XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f),
+		//	XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f));
+		//ObjConstants objConstants;
+		//auto world = XMMatrixScalingFromVector(XMVectorReplicate(imgui.m_Scale)) *
+		//	XMMatrixRotationX(imgui.m_Phi) * XMMatrixRotationY(imgui.m_Theta) *
+		//	XMMatrixTranslation(imgui.m_Dx, imgui.m_Dy, 0.0f);
+		//auto proj = XMMatrixPerspectiveFovLH(imgui.m_Fov, GetAspectRatio(), 1.0f, 1000.0f);
+		//XMStoreFloat4x4(&objConstants.gWorldViewProj, XMMatrixTranspose(world * view * proj));
+		//m_ObjCB->CopyData(0, &objConstants);
+
+
+		m_CurrFRIndex = (m_CurrFRIndex + 1) % FrameCount;
+		m_CurrFrameResource = m_FrameResources[m_CurrFRIndex].get();
+
+		// 若CPU过快，可能会超前一个循环，此时需要CPU等待
+		if (m_CurrFrameResource->m_Fence != 0 &&
+			m_D3D12Fence->GetCompletedValue() < m_CurrFrameResource->m_Fence) {
+			WaitForGpu();
+		}
+
+		UpdateFrameResource(timer);
+
+		ImGui::Render();
 	}
 
-	void DrawBox::OnRender(const CpuTimer& timer)
+	void Shapes::OnRender(const CpuTimer& timer)
 	{
 		FlushCommandQueue();
 
@@ -146,7 +157,7 @@ namespace DSM {
 		FlushCommandQueue();
 	}
 
-	void DrawBox::OnRenderScene(const CpuTimer& timer)
+	void Shapes::OnRenderScene(const CpuTimer& timer)
 	{
 		// 设置根签名
 		ID3D12DescriptorHeap* descriptorHeaps[] = { m_CbvHeap.Get() };
@@ -165,11 +176,10 @@ namespace DSM {
 			box.m_BaseVertexLocation,
 			box.m_StarIndexLocation,
 			0);
-
 		ImGuiManager::GetInstance().RenderImGui(m_CommandList.Get());
 	}
 
-	bool DrawBox::InitResource()
+	bool Shapes::InitResource()
 	{
 		CreateBox();
 
@@ -181,30 +191,22 @@ namespace DSM {
 		cbvHeapDesc.NodeMask = 0;
 		ThrowIfFailed(m_D3D12Device->CreateDescriptorHeap(&cbvHeapDesc, IID_PPV_ARGS(m_CbvHeap.GetAddressOf())));
 
-		// 创建常量缓冲区及其视图
-		m_ObjCB = std::make_unique<UploadBuffer<ObjConstants>>(m_D3D12Device.Get(), sizeof(ObjConstants), 1, true);
-
-		D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc{};
-		cbvDesc.BufferLocation = m_ObjCB->GetResource()->GetGPUVirtualAddress();;
-		cbvDesc.SizeInBytes = D3DUtil::CalcConstantBufferByteSize(sizeof(ObjConstants));
-		m_D3D12Device->CreateConstantBufferView(&cbvDesc, m_CbvHeap->GetCPUDescriptorHandleForHeapStart());
-
 		m_VSByteCode = D3DUtil::CompileShader(L"Shader\\Color.hlsl", nullptr, "VS", "vs_5_0");
 		m_PSByteCode = D3DUtil::CompileShader(L"Shader\\Color.hlsl", nullptr, "PS", "ps_5_0");
-		m_InputLayout = {
-			{"POSITION",0,DXGI_FORMAT_R32G32B32_FLOAT,0,0,D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,0},
-			{"COLOR",0,DXGI_FORMAT_R32G32B32A32_FLOAT,0,12,D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,0}
-		};
 
 		CreateRootSignature();
 
-		CreatedPSO();
+		CreatePSO();
 
 		return true;
 	}
 
-	bool DrawBox::CreateBox()
+	bool Shapes::CreateBox()
 	{
+		for (auto i = 0; i < FrameCount; ++i) {
+			m_FrameResources[i] = std::make_unique<FrameResource>(m_D3D12Device.Get());
+		}
+
 		// 设置顶点
 		std::array<VertexPosColor, 8> vertexs = {
 			VertexPosColor({ XMFLOAT3(-1.0f, -1.0f, -1.0f),XMFLOAT4(Colors::White) }),
@@ -274,7 +276,7 @@ namespace DSM {
 		return true;
 	}
 
-	bool DrawBox::CreateRootSignature()
+	bool Shapes::CreateRootSignature()
 	{
 		// 创建根签名
 		// 创建一个根参数来将含有一个CBV的描述符表绑定到 HLSL 中的 register(0)
@@ -320,7 +322,7 @@ namespace DSM {
 		return true;
 	}
 
-	bool DrawBox::CreatedPSO()
+	bool Shapes::CreatePSO()
 	{
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc{};
 		ZeroMemory(&psoDesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
@@ -338,8 +340,8 @@ namespace DSM {
 		psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
 		psoDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
 		psoDesc.InputLayout = {
-			m_InputLayout.data(),
-			(UINT)m_InputLayout.size()
+			VertexPosColor::GetInputLayOut().data(),
+			(UINT)VertexPosColor::GetInputLayOut().size()
 		};
 		psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 		psoDesc.NumRenderTargets = 1;
@@ -352,6 +354,31 @@ namespace DSM {
 		return true;
 	}
 
+	void Shapes::WaitForGpu()
+	{
+		HANDLE eventHandle = CreateEvent(nullptr, false, false, nullptr);
+		ThrowIfFailed(m_D3D12Fence->SetEventOnCompletion(m_CurrFrameResource->m_Fence, eventHandle));
+		if (eventHandle != 0) {
+			WaitForSingleObject(eventHandle, INFINITE);
+			CloseHandle(eventHandle);
+		}
+	}
+
+	void Shapes::UpdateFrameResource(const CpuTimer& timer)
+	{
+		//XMMATRIX view = XMMatrixLookAtLH(
+		//	XMVectorSet(0.0f, 0.0f, -5.0f, 1.0f),
+		//	XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f),
+		//	XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f));
+		//ObjConstants objConstants;
+		//auto world = XMMatrixScalingFromVector(XMVectorReplicate(scale)) *
+		//	XMMatrixRotationX(phi) * XMMatrixRotationY(theta) *
+		//	XMMatrixTranslation(dx, dy, 0.0f);
+		//auto proj = XMMatrixPerspectiveFovLH(fov, GetAspectRatio(), 1.0f, 1000.0f);
+		//XMStoreFloat4x4(&objConstants.gWorldViewProj, XMMatrixTranspose(world * view * proj));
+		//m_ObjCB->CopyData(0, &objConstants);
+
+	}
 
 
 }

@@ -1,4 +1,5 @@
 ﻿#include "D3D12.h"
+#include "BaseImGuiManager.h"
 
 using namespace DirectX;
 using Microsoft::WRL::ComPtr;
@@ -32,10 +33,6 @@ namespace DSM {
 	{
 		if (m_D3D12Device != nullptr)
 			FlushCommandQueue();
-
-		ImGui_ImplDX12_Shutdown();
-		ImGui_ImplWin32_Shutdown();
-		ImGui::DestroyContext();
 	}
 
 	bool D3D12App::OnInit()
@@ -43,8 +40,6 @@ namespace DSM {
 		if (!InitMainWindow())
 			return false;
 		if (!InitDirectX3D())
-			return false;
-		if (!InitImGui())
 			return false;
 
 		OnResize();
@@ -173,9 +168,6 @@ namespace DSM {
 
 				if (!m_AppPaused) {
 					CalculateFrameStats();
-					ImGui_ImplDX12_NewFrame();
-					ImGui_ImplWin32_NewFrame();
-					ImGui::NewFrame();
 					OnUpdate(m_Timer);
 					OnRender(m_Timer);
 				}
@@ -255,35 +247,6 @@ namespace DSM {
 	CreateDescriptorHeap();
 
 	return true;
-	}
-
-	bool D3D12App::InitImGui()
-	{
-		IMGUI_CHECKVERSION();
-		ImGui::CreateContext();
-		ImGuiIO io = ImGui::GetIO();
-		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;	// 允许键盘控制
-
-		ImGui::StyleColorsDark();
-
-		D3D12_DESCRIPTOR_HEAP_DESC desc = {};
-		desc.NodeMask = 0;
-		desc.NumDescriptors = 1;
-		desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-		desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-		if (m_D3D12Device->CreateDescriptorHeap(&desc, IID_PPV_ARGS(m_ImGuiSrvHeap.GetAddressOf())) != S_OK)
-			return false;
-
-		ImGui_ImplWin32_Init(m_hMainWnd);
-		ImGui_ImplDX12_Init(
-			m_D3D12Device.Get(),
-			SwapChainBufferCount,
-			m_BackBufferFormat,
-			m_ImGuiSrvHeap.Get(),
-			m_ImGuiSrvHeap->GetCPUDescriptorHandleForHeapStart(),
-			m_ImGuiSrvHeap->GetGPUDescriptorHandleForHeapStart());
-
-		return true;
 	}
 
 	bool D3D12App::InitMainWindow()

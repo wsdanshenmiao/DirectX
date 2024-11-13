@@ -11,7 +11,7 @@ namespace DSM {
 	public:
 		template <class P>
 		using ComPtr = Microsoft::WRL::ComPtr<P>;
-		UploadBuffer(ID3D12Device* device, UINT elementCount, bool isConstantBuffer);
+		UploadBuffer(ID3D12Device* device, UINT elementByteSize, UINT elementCount, bool isConstantBuffer);
 		UploadBuffer(const UploadBuffer& other) = delete;
 		UploadBuffer(UploadBuffer&& other) = default;
 		UploadBuffer& operator=(const UploadBuffer& other) = delete;
@@ -19,7 +19,7 @@ namespace DSM {
 		~UploadBuffer();
 
 		ID3D12Resource* GetResource();
-		void CopyData(int elementIndex, const T& data);
+		void CopyData(int elementIndex, const T* const data);
 
 	private:
 		ComPtr<ID3D12Resource> m_UploadBuffer;
@@ -30,9 +30,14 @@ namespace DSM {
 
 
 	template<typename T>
-	inline UploadBuffer<T>::UploadBuffer(ID3D12Device* device, UINT elementCount, bool isConstantBuffer)
+	inline UploadBuffer<T>::UploadBuffer(
+		ID3D12Device* device,
+		UINT elementByteSize,
+		UINT elementCount,
+		bool isConstantBuffer)
 		:m_IsConstantBuffer(isConstantBuffer) {
-		m_ElementByteSize = m_IsConstantBuffer ? D3DUtil::CalcConstantBufferByteSize(sizeof(T)) : sizeof(T);
+		m_ElementByteSize = m_IsConstantBuffer ?
+			D3DUtil::CalcConstantBufferByteSize(elementByteSize) : elementByteSize;
 		auto heapProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
 		auto bufferDesc = CD3DX12_RESOURCE_DESC::Buffer(m_ElementByteSize * elementCount);
 		ThrowIfFailed(device->CreateCommittedResource(
@@ -63,9 +68,9 @@ namespace DSM {
 	}
 
 	template<typename T>
-	inline void UploadBuffer<T>::CopyData(int elementIndex, const T& data)
+	inline void UploadBuffer<T>::CopyData(int elementIndex, const T* const data)
 	{
-		memcpy(&m_MappedData[m_ElementByteSize * elementIndex], &data, sizeof(T));
+		memcpy(&m_MappedData[m_ElementByteSize * elementIndex], data, sizeof(T));
 	}
 
 

@@ -1,4 +1,5 @@
 #include "../Common/D3D12.h"
+#include "ImGuiManager.h"
 
 using namespace DSM;
 using namespace DirectX;
@@ -7,6 +8,9 @@ class GameApp : public D3D12App
 {
 public:
 	GameApp(HINSTANCE hAppInst, const std::wstring& mainWndCaption, int clientWidth = 512, int clientHeight = 512);
+
+	bool OnInit() override;
+
 private:
 	void OnUpdate(const CpuTimer& timer) override;
 	void OnRender(const CpuTimer& timer) override;
@@ -36,14 +40,28 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance,
 }
 
 GameApp::GameApp(HINSTANCE hAppInst, const std::wstring& mainWndCaption, int clientWidth, int clientHeight)
-	:D3D12App(hAppInst, mainWndCaption, clientWidth, clientHeight) {}
+	:D3D12App(hAppInst, mainWndCaption, clientWidth, clientHeight) {
+}
+
+bool GameApp::OnInit()
+{
+	if (!D3D12App::OnInit())
+		return false;
+
+	ImGuiManager::Create();
+	if (!ImGuiManager::GetInstance().InitImGui(
+		m_D3D12Device.Get(),
+		m_hMainWnd,
+		SwapChainBufferCount,
+		m_BackBufferFormat))
+		return false;
+
+	return true;
+}
 
 void GameApp::OnUpdate(const CpuTimer& timer)
 {
-	bool showDemoWindow = true;
-	if (showDemoWindow)
-		ImGui::ShowDemoWindow(&showDemoWindow);
-	ImGui::Render();
+	ImGuiManager::GetInstance().Update(timer);
 }
 
 void GameApp::OnRender(const CpuTimer& timer)
@@ -136,8 +154,7 @@ void GameApp::OnRender(const CpuTimer& timer)
 	}
 
 	// 绘制ImGui
-	m_CommandList->SetDescriptorHeaps(1, m_ImGuiSrvHeap.GetAddressOf());
-	ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), m_CommandList.Get());
+	ImGuiManager::GetInstance().RenderImGui(m_CommandList.Get());
 
 	// 完成命令的记录
 	ThrowIfFailed(m_CommandList->Close());

@@ -1,7 +1,7 @@
 #ifndef __MATRIX__H__
 #define __MATRIX__H__
 
-#include "../D3DUtil.h"
+#include "D3DUtil.h"
 
 namespace DSM {
 	struct MathHelper
