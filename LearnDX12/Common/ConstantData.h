@@ -10,24 +10,24 @@ namespace DSM {
 
 	struct ObjectConstants : public ConstantData
 	{
-		DirectX::XMFLOAT4X4 World = MathHelper::Identity();
-		DirectX::XMFLOAT4X4 WorldInvTranspos = MathHelper::Identity();
+		DirectX::XMFLOAT4X4 m_World = MathHelper::Identity();
+		DirectX::XMFLOAT4X4 m_WorldInvTranspos = MathHelper::Identity();
 	};
 
 	struct PassConstants : public ConstantData
 	{
-		DirectX::XMFLOAT4X4 View = MathHelper::Identity();
-		DirectX::XMFLOAT4X4 InvView = MathHelper::Identity();
-		DirectX::XMFLOAT4X4 Proj = MathHelper::Identity();
-		DirectX::XMFLOAT4X4 InvProj = MathHelper::Identity();
-		DirectX::XMFLOAT3 EyePosW = { 0.0f, 0.0f, 0.0f };
-		float cbPerObjectPad1 = 0.0f;
-		DirectX::XMFLOAT2 RenderTargetSize = { 0.0f, 0.0f };
-		DirectX::XMFLOAT2 InvRenderTargetSize = { 0.0f, 0.0f };
-		float NearZ = 0.0f;
-		float FarZ = 0.0f;
-		float TotalTime = 0.0f;
-		float DeltaTime = 0.0f;
+		DirectX::XMFLOAT4X4 m_View = MathHelper::Identity();
+		DirectX::XMFLOAT4X4 m_InvView = MathHelper::Identity();
+		DirectX::XMFLOAT4X4 m_Proj = MathHelper::Identity();
+		DirectX::XMFLOAT4X4 m_InvProj = MathHelper::Identity();
+		DirectX::XMFLOAT3 m_EyePosW = { 0.0f, 0.0f, 0.0f };
+		float m_cbPerObjectPad1 = 0.0f;
+		DirectX::XMFLOAT2 m_RenderTargetSize = { 0.0f, 0.0f };
+		DirectX::XMFLOAT2 m_InvRenderTargetSize = { 0.0f, 0.0f };
+		float m_NearZ = 0.0f;
+		float m_FarZ = 0.0f;
+		float m_TotalTime = 0.0f;
+		float m_DeltaTime = 0.0f;
 	};
 }
 

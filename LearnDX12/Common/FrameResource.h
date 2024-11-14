@@ -8,6 +8,7 @@
 
 namespace DSM {
 
+	// 帧资源
 	struct FrameResource
 	{
 		template <class T>
@@ -19,6 +20,7 @@ namespace DSM {
 		FrameResource& operator=(const FrameResource& other) = delete;
 		~FrameResource() = default;
 
+		// 添加常量缓冲区
 		void AddConstantBuffer(
 			ID3D12Device* device,
 			UINT byteSize,
@@ -26,8 +28,8 @@ namespace DSM {
 			const std::string& bufferName);
 
 		ComPtr<ID3D12CommandAllocator> m_CmdListAlloc;						// 每个帧资源都有一个命令列表分配器
-		std::unordered_map<std::string, PConstantBuffer> m_ConstantBuffers;
-		UINT64 m_Fence = 0;
+		std::unordered_map<std::string, PConstantBuffer> m_ConstantBuffers;	// 常量缓冲区
+		UINT64 m_Fence = 0;													// 当前帧资源的围栏值
 	};
 }
 

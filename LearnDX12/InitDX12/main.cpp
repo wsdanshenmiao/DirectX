@@ -8,6 +8,7 @@ class GameApp : public D3D12App
 {
 public:
 	GameApp(HINSTANCE hAppInst, const std::wstring& mainWndCaption, int clientWidth = 512, int clientHeight = 512);
+	virtual ~GameApp();
 
 	bool OnInit() override;
 
@@ -41,6 +42,13 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance,
 
 GameApp::GameApp(HINSTANCE hAppInst, const std::wstring& mainWndCaption, int clientWidth, int clientHeight)
 	:D3D12App(hAppInst, mainWndCaption, clientWidth, clientHeight) {
+}
+
+GameApp::~GameApp()
+{
+	if (m_D3D12Device)
+		FlushCommandQueue();
+	ImGuiManager::GetInstance().ShutDown();
 }
 
 bool GameApp::OnInit()

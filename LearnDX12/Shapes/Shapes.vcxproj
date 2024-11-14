@@ -150,9 +150,12 @@
     <ClCompile Include="..\Common\FrameResource.cpp" />
     <ClCompile Include="..\Common\MathHelper.cpp" />
     <ClCompile Include="..\Common\Mesh.cpp" />
+    <ClCompile Include="Geometry.cpp" />
     <ClCompile Include="ImGuiManager.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="Model.cpp" />
     <ClCompile Include="Shapes.cpp" />
+    <ClCompile Include="Transform.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Common\BaseImGuiManager.h" />
@@ -167,8 +170,19 @@
     <ClInclude Include="..\Common\Singleton.h" />
     <ClInclude Include="..\Common\UploadBuffer.h" />
     <ClInclude Include="..\Common\Vertex.h" />
+    <ClInclude Include="Geometry.h" />
     <ClInclude Include="ImGuiManager.h" />
+    <ClInclude Include="Model.h" />
     <ClInclude Include="Shapes.h" />
+    <ClInclude Include="Transform.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Shader\Color.hlsl">
+      <FileType>Document</FileType>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Shader\Color.hlsli" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

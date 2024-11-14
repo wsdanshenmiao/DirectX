@@ -19,7 +19,7 @@ namespace DSM {
 		~UploadBuffer();
 
 		ID3D12Resource* GetResource();
-		void CopyData(int elementIndex, const T* const data);
+		void CopyData(int elementIndex, const T* const data, const std::size_t& byteSize);
 
 	private:
 		ComPtr<ID3D12Resource> m_UploadBuffer;
@@ -68,9 +68,9 @@ namespace DSM {
 	}
 
 	template<typename T>
-	inline void UploadBuffer<T>::CopyData(int elementIndex, const T* const data)
+	inline void UploadBuffer<T>::CopyData(int elementIndex, const T* const data, const std::size_t& byteSize)
 	{
-		memcpy(&m_MappedData[m_ElementByteSize * elementIndex], data, sizeof(T));
+		memcpy(&m_MappedData[m_ElementByteSize * elementIndex], data, byteSize);
 	}
 
 
