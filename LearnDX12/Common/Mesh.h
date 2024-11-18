@@ -1,7 +1,7 @@
 #ifndef __MESH__H__
 #define __MESH__H__
 
-#include "D3DUtil.h"
+#include "Pubh.h"
 
 namespace DSM {
 

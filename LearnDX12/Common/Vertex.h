@@ -2,7 +2,7 @@
 #ifndef __VERTEX__H__
 #define __VERTEX__H__
 
-#include "D3DUtil.h"
+#include "Pubh.h"
 
 namespace DSM {
 

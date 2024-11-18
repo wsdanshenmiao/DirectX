@@ -21,8 +21,9 @@ namespace DSM {
 			m_Fov = DirectX::XM_PIDIV2,
 			m_Dx = 0,
 			m_Dy = 0;
-		bool m_Animate = true;
-
+		bool m_Animate = false;
+		bool m_EnableWireFrame = true;
+		int m_Subdivision = 0;
 	};
 }
 

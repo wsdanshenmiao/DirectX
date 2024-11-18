@@ -17,13 +17,14 @@ void DSM::ImGuiManager::UpdateImGui(const CpuTimer& timer)
 	if (ImGui::Begin("Use ImGui"))
 	{
 		ImGui::Checkbox("Animate Cube", &m_Animate);
-		ImGui::SameLine(0.0f, 25.0f);
+		ImGui::Checkbox("Enable Wire Frame", &m_EnableWireFrame);
 		if (ImGui::Button("Reset Params"))
 		{
 			m_Dx = m_Dy = m_Phi = m_Theta = 0.0f;
 			m_Scale = 1.0f;
 			m_Fov = XM_PIDIV2;
 		}
+		ImGui::SliderInt("Subdivision", &m_Subdivision, 0, 6);
 		ImGui::SliderFloat("Scale", &m_Scale, 0.2f, 2.0f);
 
 		ImGui::Text("Phi: %.2f degrees", XMConvertToDegrees(m_Phi));

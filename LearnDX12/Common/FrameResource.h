@@ -2,7 +2,7 @@
 #ifndef __FRAMERESOURCE__H__
 #define __FRAMERESOURCE__H__
 
-#include "D3DUtil.h"
+#include "Pubh.h"
 #include "ConstantData.h"
 #include "UploadBuffer.h"
 

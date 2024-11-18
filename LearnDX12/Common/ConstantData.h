@@ -2,7 +2,7 @@
 #ifndef __CONSTANTDATA__H__
 #define __CONSTANTDATA__H__
 
-#include "D3DUtil.h"
+#include <DirectXMath.h>
 #include "MathHelper.h"
 
 namespace DSM {

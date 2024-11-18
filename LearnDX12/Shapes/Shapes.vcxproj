@@ -167,6 +167,7 @@
     <ClInclude Include="..\Common\FrameResource.h" />
     <ClInclude Include="..\Common\MathHelper.h" />
     <ClInclude Include="..\Common\Mesh.h" />
+    <ClInclude Include="..\Common\Pubh.h" />
     <ClInclude Include="..\Common\Singleton.h" />
     <ClInclude Include="..\Common\UploadBuffer.h" />
     <ClInclude Include="..\Common\Vertex.h" />

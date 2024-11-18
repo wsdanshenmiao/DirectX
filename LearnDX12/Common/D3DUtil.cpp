@@ -23,8 +23,7 @@ namespace DSM {
 			&resourceState,
 			D3D12_RESOURCE_STATE_COMMON,
 			nullptr,
-			IID_PPV_ARGS(defaultBuffer.GetAddressOf())
-		));
+			IID_PPV_ARGS(defaultBuffer.GetAddressOf())));
 
 		// 创建一个中介的上传堆来将Cpu内存复制到默认缓冲区
 		auto heapPropertiesUpLoad = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);

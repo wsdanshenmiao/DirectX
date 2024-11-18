@@ -47,9 +47,9 @@ namespace DSM {
 
 	private:
 		ComPtr<ID3D12RootSignature> m_RootSignature = nullptr;			// 根签名
-		ComPtr<ID3D12PipelineState> m_PSO = nullptr;
-		ComPtr<ID3DBlob> m_VSByteCode = nullptr;
-		ComPtr<ID3DBlob> m_PSByteCode = nullptr;
+		std::unordered_map<std::string, ComPtr<ID3D12PipelineState>> m_PSOs;
+		std::unordered_map<std::string, ComPtr<ID3DBlob>> m_VSByteCodes;
+		std::unordered_map<std::string, ComPtr<ID3DBlob>> m_PSByteCodes;
 		ComPtr<ID3D12DescriptorHeap> m_CbvHeap = nullptr;
 
 		std::array<std::unique_ptr<FrameResource>, FrameCount> m_FrameResources;	// 帧资源循环数组

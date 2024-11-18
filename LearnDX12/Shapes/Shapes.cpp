@@ -1,6 +1,7 @@
 #include "Shapes.h"
 #include "ImGuiManager.h"
 #include "../Common/ConstantData.h"
+#include "Geometry.h"
 #include "../Common/Vertex.h"
 #include "../Common/Mesh.h"
 
@@ -118,7 +119,15 @@ namespace DSM {
 	{
 		auto cmdListAlloc = m_CurrFrameResource->m_CmdListAlloc;
 		ThrowIfFailed(cmdListAlloc->Reset());
-		ThrowIfFailed(m_CommandList->Reset(cmdListAlloc.Get(), m_PSO.Get()));
+
+		if (ImGuiManager::GetInstance().m_EnableWireFrame) {
+			auto& pso = m_Enable4xMsaa ? m_PSOs["WireFrameMSAA"] : m_PSOs["WireFrame"];
+			ThrowIfFailed(m_CommandList->Reset(cmdListAlloc.Get(), pso.Get()));
+		}
+		else {
+			auto& pso = m_Enable4xMsaa ? m_PSOs["OpaqueMSAA"] : m_PSOs["Opaque"];
+			ThrowIfFailed(m_CommandList->Reset(cmdListAlloc.Get(), pso.Get()));
+		}
 
 		m_CommandList->RSSetViewports(1, &m_ScreenViewport);
 		m_CommandList->RSSetScissorRects(1, &m_ScissorRect);
@@ -229,7 +238,7 @@ namespace DSM {
 			m_CommandList->IASetVertexBuffers(0, 1, &vertexBV);
 			m_CommandList->IASetIndexBuffer(&indexBV);
 
-			UINT objCbvIndex = m_CurrFRIndex * m_Geometrys.size();
+			UINT objCbvIndex = m_CurrFRIndex * (UINT)m_Geometrys.size();
 			auto objCbvHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(m_CbvHeap->GetGPUDescriptorHandleForHeapStart());
 			objCbvHandle.Offset(objCbvIndex, m_CbvSrvUavDescriptorSize);
 			m_CommandList->SetGraphicsRootDescriptorTable(0, objCbvHandle);
@@ -250,8 +259,10 @@ namespace DSM {
 	{
 		m_EyePos = { 0.0f, 0.0f, -5.0f };
 
-		m_VSByteCode = D3DUtil::CompileShader(L"Shader\\Color.hlsl", nullptr, "VS", "vs_5_0");
-		m_PSByteCode = D3DUtil::CompileShader(L"Shader\\Color.hlsl", nullptr, "PS", "ps_5_0");
+		auto colorVS = D3DUtil::CompileShader(L"Shader\\Color.hlsl", nullptr, "VS", "vs_5_0");
+		auto colorPS = D3DUtil::CompileShader(L"Shader\\Color.hlsl", nullptr, "PS", "ps_5_0");
+		m_VSByteCodes.insert(std::make_pair("Color", colorVS));
+		m_PSByteCodes.insert(std::make_pair("Color", colorPS));
 
 		CreateBox();
 		InitFrameResourceCB();
@@ -280,8 +291,16 @@ namespace DSM {
 		}
 
 		for (auto& resource : m_FrameResources) {
-			resource->AddConstantBuffer(m_D3D12Device.Get(), sizeof(ObjectConstants), 1, "ObjectConstants");
-			resource->AddConstantBuffer(m_D3D12Device.Get(), sizeof(PassConstants), 1, "PassConstants");
+			resource->AddConstantBuffer(
+				m_D3D12Device.Get(),
+				sizeof(ObjectConstants),
+				(UINT)m_Geometrys.size(),
+				"ObjectConstants");
+			resource->AddConstantBuffer(
+				m_D3D12Device.Get(),
+				sizeof(PassConstants),
+				1,
+				"PassConstants");
 		}
 
 		return true;
@@ -301,9 +320,9 @@ namespace DSM {
 			auto objCB = currFrameResource->m_ConstantBuffers.find("ObjectConstants")->second->GetResource();
 			for (std::size_t i = 0; i < objCount; ++i) {
 				auto objCbvAdress = objCB->GetGPUVirtualAddress();	// 常量缓冲区的GPU虚拟首地址
-				objCbvAdress += i * objByteSize;	// 对首地址进行便宜
+				objCbvAdress += i * objByteSize;	// 对首地址进行偏移
 
-				UINT objHeapIndex = frameIndex * objCount + i;
+				UINT objHeapIndex = (UINT)(frameIndex * objCount + i);
 				// 获取描述符堆的首地址
 				auto objHandle = CD3DX12_CPU_DESCRIPTOR_HANDLE(m_CbvHeap->GetCPUDescriptorHandleForHeapStart());
 				objHandle.Offset(objHeapIndex, m_CbvSrvUavDescriptorSize);
@@ -336,47 +355,27 @@ namespace DSM {
 
 	bool Shapes::CreateBox()
 	{
+		//auto mesh = GeometryGenerator::CreateBox(2, 2, 2, 2);
+		auto mesh = GeometryGenerator::CreateCylinder(1.f, 2.f, 3.0f, 20, 20);
+		//auto mesh = GeometryGenerator::CreatePolygon(2, 10);
+		//auto mesh = GeometryGenerator::CreateGeosphere(2, 3);
+
+
 		// 设置顶点
-		std::array<VertexPosColor, 8> vertexs = {
-			VertexPosColor({ XMFLOAT3(-1.0f, -1.0f, -1.0f),XMFLOAT4(Colors::White) }),
-			VertexPosColor({ XMFLOAT3(-1.0f, +1.0f, -1.0f),XMFLOAT4(Colors::Black) }),
-			VertexPosColor({ XMFLOAT3(+1.0f, +1.0f, -1.0f),XMFLOAT4(Colors::Red) }),
-			VertexPosColor({ XMFLOAT3(+1.0f, -1.0f, -1.0f),XMFLOAT4(Colors::Green) }),
-			VertexPosColor({ XMFLOAT3(-1.0f, -1.0f, +1.0f),XMFLOAT4(Colors::Blue) }),
-			VertexPosColor({ XMFLOAT3(-1.0f, +1.0f, +1.0f),XMFLOAT4(Colors::Yellow) }),
-			VertexPosColor({ XMFLOAT3(+1.0f, +1.0f, +1.0f),XMFLOAT4(Colors::Cyan) }),
-			VertexPosColor({ XMFLOAT3(+1.0f, -1.0f, +1.0f),XMFLOAT4(Colors::Magenta) })
-		};
+		auto meshVertexs = mesh.m_Vertices;
+		std::vector<VertexPosColor> vertexs;
+		vertexs.reserve(meshVertexs.size());
+		for (const auto& vertex : meshVertexs) {
+			vertexs.emplace_back(vertex.m_Position, XMFLOAT4(DirectX::Colors::DarkGreen));
+		}
 
 		// 设置索引
-		std::array<std::uint16_t, 36> indices =
-		{
-			// front face
-			0, 1, 2,
-			0, 2, 3,
-			// back face
-			4, 6, 5,
-			4, 7, 6,
-			// left face
-			4, 5, 1,
-			4, 1, 0,
-			// right face
-			3, 2, 6,
-			3, 6, 7,
-			// top face
-			1, 5, 6,
-			1, 6, 2,
-			// bottom face
-			4, 0, 3,
-			4, 3, 7
-		};
+		auto indices = mesh.GetIndices16();
 
+		const UINT vbByteSize = UINT(vertexs.size() * sizeof(VertexPosColor));
+		const UINT ibByteSize = UINT(indices.size() * sizeof(std::uint16_t));
 
-		const UINT64 vbByteSize = vertexs.size() * sizeof(VertexPosColor);
-		const UINT64 ibByteSize = indices.size() * sizeof(std::uint16_t);
-
-		m_Geometrys.insert(std::make_pair("Box", MeshData{}));
-		auto& box = m_Geometrys["Box"];
+		auto& box = m_Geometrys["Box"] = MeshData{};
 
 		ThrowIfFailed(D3DCreateBlob(vbByteSize, box.m_VertexBufferCPU.GetAddressOf()));
 		memcpy(box.m_VertexBufferCPU->GetBufferPointer(), vertexs.data(), vbByteSize);
@@ -400,7 +399,7 @@ namespace DSM {
 		subMesh.m_StarIndexLocation = 0;
 		subMesh.m_BaseVertexLocation = 0;
 
-		box.m_DrawArgs.emplace(std::make_pair("Box", subMesh));
+		box.m_DrawArgs["Box"] = subMesh;
 
 		return true;
 	}
@@ -457,12 +456,12 @@ namespace DSM {
 		ZeroMemory(&psoDesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
 		psoDesc.pRootSignature = m_RootSignature.Get();
 		psoDesc.VS = {
-			m_VSByteCode->GetBufferPointer(),
-			m_VSByteCode->GetBufferSize()
+			m_VSByteCodes["Color"]->GetBufferPointer(),
+			m_VSByteCodes["Color"]->GetBufferSize()
 		};
 		psoDesc.PS = {
-			m_PSByteCode->GetBufferPointer(),
-			m_PSByteCode->GetBufferSize()
+			m_PSByteCodes["Color"]->GetBufferPointer(),
+			m_PSByteCodes["Color"]->GetBufferSize()
 		};
 		psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
 		psoDesc.SampleMask = UINT_MAX;
@@ -475,10 +474,24 @@ namespace DSM {
 		psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 		psoDesc.NumRenderTargets = 1;
 		psoDesc.RTVFormats[0] = m_BackBufferFormat;
-		psoDesc.SampleDesc.Count = m_Enable4xMsaa ? 4 : 1;
-		psoDesc.SampleDesc.Quality = m_Enable4xMsaa ? (m_4xMsaaQuality - 1) : 0;
+		psoDesc.SampleDesc.Count = 1;
+		psoDesc.SampleDesc.Quality = 0;
 		psoDesc.DSVFormat = m_DepthStencilFormat;
-		m_D3D12Device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(m_PSO.GetAddressOf()));
+		ThrowIfFailed(m_D3D12Device->CreateGraphicsPipelineState(
+			&psoDesc, IID_PPV_ARGS(m_PSOs["Opaque"].GetAddressOf())));
+
+		psoDesc.RasterizerState.FillMode = D3D12_FILL_MODE_WIREFRAME;
+		ThrowIfFailed(m_D3D12Device->CreateGraphicsPipelineState(
+			&psoDesc, IID_PPV_ARGS(m_PSOs["WireFrame"].GetAddressOf())));
+
+		psoDesc.SampleDesc.Count = 4;
+		psoDesc.SampleDesc.Quality = (m_4xMsaaQuality - 1);
+		ThrowIfFailed(m_D3D12Device->CreateGraphicsPipelineState(
+			&psoDesc, IID_PPV_ARGS(m_PSOs["WireFrameMSAA"].GetAddressOf())));
+
+		psoDesc.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
+		ThrowIfFailed(m_D3D12Device->CreateGraphicsPipelineState(
+			&psoDesc, IID_PPV_ARGS(m_PSOs["OpaqueMSAA"].GetAddressOf())));
 
 		return true;
 	}
