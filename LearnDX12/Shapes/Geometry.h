@@ -21,8 +21,8 @@ namespace DSM {
 			std::vector<Vertex> m_Vertices;
 			std::vector<std::uint32_t> m_Indices32;
 
-			std::vector<std::uint16_t>& GetIndices16() {
-				if (m_Indices16.empty()) {
+			std::vector<std::uint16_t>& GetIndices16() noexcept {
+				if (m_Indices16.empty() || m_Indices16.size() != m_Indices32.size()) {
 					m_Indices16.reserve(m_Indices32.size());
 					for (const auto& index : m_Indices32) {
 						m_Indices16.push_back(static_cast<std::uint16_t>(index));
@@ -93,7 +93,7 @@ namespace DSM {
 		private:
 			// 将网格按三角形细分
 			static void Subdivide(GeometryMesh& mesh) noexcept;
-			static Vertex MidPoint(const Vertex& v0, const Vertex& v1);
+			static Vertex MidPoint(const Vertex& v0, const Vertex& v1) noexcept;
 		};
 
 	}

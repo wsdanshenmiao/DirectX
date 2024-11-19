@@ -5,17 +5,9 @@
 #include "../Common/D3D12.h"
 #include "../Common/Mesh.h"
 #include "../Common/FrameResource.h"
-#include "Model.h"
+#include "Object.h"
 
 namespace DSM {
-
-	struct RenderItem
-	{
-		UINT m_ObjCBIndex = -1;
-		UINT m_NumFramesDirty = 0;
-		std::unique_ptr<Model> m_Model;
-	};
-
 
 	class Shapes : public D3D12App
 	{
@@ -36,11 +28,13 @@ namespace DSM {
 		bool InitResource();
 		bool InitFrameResourceCB();
 		bool CreateCBV();
-		bool CreateBox();
+		bool CreateGeometry();
 		bool CreateRootSignature();
 		bool CreatePSO();
 		void WaitForGpu();
 		void UpdateFrameResource(const CpuTimer& timer);
+
+		std::size_t GetObjectSize() const noexcept;
 
 	private:
 		inline static constexpr UINT FrameCount = 3;
@@ -56,10 +50,8 @@ namespace DSM {
 		FrameResource* m_CurrFrameResource = nullptr;
 		UINT m_CurrFRIndex = 0;
 
-		std::unordered_map<std::string, Geometry::MeshData> m_Geometrys;
+		std::unique_ptr<Geometry::MeshData> m_ObjMeshData;
 		UINT m_PassCbvOffset = 0;
-		std::vector<RenderItem> m_AllRenderItem;
-		std::vector<RenderItem> m_OpaqueRenderItem;
 
 		DirectX::XMFLOAT3 m_EyePos{};
 	};

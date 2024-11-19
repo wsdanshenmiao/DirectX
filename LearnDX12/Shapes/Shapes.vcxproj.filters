@@ -51,10 +51,13 @@
     <ClCompile Include="Transform.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="Model.cpp">
+    <ClCompile Include="Object.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="Geometry.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="ObjectManager.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
@@ -104,7 +107,7 @@
     <ClInclude Include="Transform.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="Model.h">
+    <ClInclude Include="Object.h">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="Geometry.h">
@@ -112,6 +115,9 @@
     </ClInclude>
     <ClInclude Include="..\Common\Pubh.h">
       <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="ObjectManager.h">
+      <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

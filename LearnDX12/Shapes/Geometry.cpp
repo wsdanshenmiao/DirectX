@@ -393,12 +393,12 @@ namespace DSM {
 			//       v1
 			//       *
 			//      / \
-				//     /   \
-				//  m0*-----*m1
-				//   / \   / \
-				//  /   \ /   \
-				// *-----*-----*
-				// v0    m2     v2
+			//     /   \
+			//  m0*-----*m1
+			//   / \   / \
+			//  /   \ /   \
+			// *-----*-----*
+			// v0    m2     v2
 			GeometryMesh copyMesh = mesh;
 			mesh.m_Vertices.resize(0);
 			mesh.m_Indices32.resize(0);
@@ -433,7 +433,7 @@ namespace DSM {
 
 		}
 
-		Vertex GeometryGenerator::MidPoint(const Vertex& v0, const Vertex& v1)
+		Vertex GeometryGenerator::MidPoint(const Vertex& v0, const Vertex& v1) noexcept
 		{
 			XMVECTOR p0 = XMLoadFloat3(&v0.m_Position);
 			XMVECTOR p1 = XMLoadFloat3(&v1.m_Position);

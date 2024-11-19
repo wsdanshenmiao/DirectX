@@ -14,6 +14,6 @@ void DSM::FrameResource::AddConstantBuffer(
 	UINT elementSize,
 	const std::string& bufferName)
 {
-	auto pCB = std::make_unique<UploadBuffer<ConstantData>>(device, byteSize, elementSize, true);
+	auto pCB = std::make_unique<UploadBuffer<BufferData>>(device, byteSize, elementSize, true);
 	m_ConstantBuffers[bufferName] = std::move(pCB);
 }

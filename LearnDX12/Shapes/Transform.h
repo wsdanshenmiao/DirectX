@@ -2,7 +2,7 @@
 #ifndef __TRANSFORM__H__
 #define __TRANSFORM__H__
 
-#include "../Common/D3DUtil.h"
+#include <DirectXMath.h>
 
 namespace DSM {
 	class Transform
@@ -11,13 +11,16 @@ namespace DSM {
 		Transform() = default;
 		Transform(const DirectX::XMFLOAT3& scale,
 			const DirectX::XMFLOAT3& rotate,
-			const DirectX::XMFLOAT3& translate);
+			const DirectX::XMFLOAT3& translate) noexcept;
 
-		void SetRotate(const DirectX::XMFLOAT3& rotation);
-		void SetPosition(const DirectX::XMFLOAT3& position);
-		void SetScale(const DirectX::XMFLOAT3& scale);
+		void SetRotate(const DirectX::XMFLOAT3& rotation) noexcept;
+		void SetPosition(const DirectX::XMFLOAT3& position) noexcept;
+		void SetScale(const DirectX::XMFLOAT3& scale) noexcept;
 
-		DirectX::XMMATRIX GetWorldMatrix() const;
+		DirectX::XMMATRIX GetScaleMatrix() const noexcept;
+		DirectX::XMMATRIX GetRotateMatrix() const noexcept;
+		DirectX::XMVECTOR GetTranslation() const noexcept;
+		DirectX::XMMATRIX GetWorldMatrix() const noexcept;
 
 	private:
 		DirectX::XMFLOAT3 m_Scale = { 1,1,1 };

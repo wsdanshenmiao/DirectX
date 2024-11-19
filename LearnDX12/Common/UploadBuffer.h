@@ -5,6 +5,8 @@
 
 namespace DSM {
 
+	struct BufferData {};
+
 	template<typename T>
 	class UploadBuffer
 	{
@@ -20,6 +22,9 @@ namespace DSM {
 
 		ID3D12Resource* GetResource();
 		void CopyData(int elementIndex, const T* const data, const std::size_t& byteSize);
+
+	public:
+		bool m_IsDirty = false;
 
 	private:
 		ComPtr<ID3D12Resource> m_UploadBuffer;
@@ -47,17 +52,11 @@ namespace DSM {
 			D3D12_RESOURCE_STATE_GENERIC_READ,
 			nullptr,
 			IID_PPV_ARGS(m_UploadBuffer.GetAddressOf())));
-
-		ThrowIfFailed(m_UploadBuffer->Map(0, nullptr, reinterpret_cast<void**>(&m_MappedData)));
-		// 只要还需修改资源就无需取消映射，在被GPU使用期间不可进行写操作
 	}
 
 	template<typename T>
 	inline UploadBuffer<T>::~UploadBuffer()
 	{
-		if (m_UploadBuffer != nullptr) {
-			m_UploadBuffer->Unmap(0, nullptr);
-		}
 		m_MappedData = nullptr;
 	}
 
@@ -70,7 +69,11 @@ namespace DSM {
 	template<typename T>
 	inline void UploadBuffer<T>::CopyData(int elementIndex, const T* const data, const std::size_t& byteSize)
 	{
-		memcpy(&m_MappedData[m_ElementByteSize * elementIndex], data, byteSize);
+		if (m_IsDirty) {
+			ThrowIfFailed(m_UploadBuffer->Map(0, nullptr, reinterpret_cast<void**>(&m_MappedData)));
+			memcpy(&m_MappedData[m_ElementByteSize * elementIndex], data, byteSize);
+			m_UploadBuffer->Unmap(0, nullptr);
+		}
 	}
 
 

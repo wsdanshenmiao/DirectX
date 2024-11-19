@@ -153,7 +153,8 @@
     <ClCompile Include="Geometry.cpp" />
     <ClCompile Include="ImGuiManager.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="Model.cpp" />
+    <ClCompile Include="Object.cpp" />
+    <ClCompile Include="ObjectManager.cpp" />
     <ClCompile Include="Shapes.cpp" />
     <ClCompile Include="Transform.cpp" />
   </ItemGroup>
@@ -173,7 +174,8 @@
     <ClInclude Include="..\Common\Vertex.h" />
     <ClInclude Include="Geometry.h" />
     <ClInclude Include="ImGuiManager.h" />
-    <ClInclude Include="Model.h" />
+    <ClInclude Include="Object.h" />
+    <ClInclude Include="ObjectManager.h" />
     <ClInclude Include="Shapes.h" />
     <ClInclude Include="Transform.h" />
   </ItemGroup>

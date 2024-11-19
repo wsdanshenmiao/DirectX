@@ -4,17 +4,16 @@
 
 #include <DirectXMath.h>
 #include "MathHelper.h"
+#include "UploadBuffer.h"
 
 namespace DSM {
-	struct ConstantData {};
-
-	struct ObjectConstants : public ConstantData
+	struct ObjectConstants : public BufferData
 	{
 		DirectX::XMFLOAT4X4 m_World = MathHelper::Identity();
 		DirectX::XMFLOAT4X4 m_WorldInvTranspos = MathHelper::Identity();
 	};
 
-	struct PassConstants : public ConstantData
+	struct PassConstants : public BufferData
 	{
 		DirectX::XMFLOAT4X4 m_View = MathHelper::Identity();
 		DirectX::XMFLOAT4X4 m_InvView = MathHelper::Identity();

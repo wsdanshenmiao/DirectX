@@ -4,6 +4,7 @@
 #include "Geometry.h"
 #include "../Common/Vertex.h"
 #include "../Common/Mesh.h"
+#include "ObjectManager.h"
 
 using namespace DirectX;
 using namespace DSM::Geometry;
@@ -32,6 +33,8 @@ namespace DSM {
 			SwapChainBufferCount,
 			m_BackBufferFormat))
 			return false;
+
+		ObjectManager::Create();
 
 		// 为初始化资源重置命令列表
 		ThrowIfFailed(m_CommandList->Reset(m_DirectCmdListAlloc.Get(), nullptr));
@@ -104,15 +107,22 @@ namespace DSM {
 		passConstants.m_DeltaTime = timer.DeltaTime();
 
 		auto& currPassCB = m_CurrFrameResource->m_ConstantBuffers.find("PassConstants")->second;
+		currPassCB->m_IsDirty = true;
 		currPassCB->CopyData(0, &passConstants, sizeof(PassConstants));
 
 		ObjectConstants objectConstants;
 		XMStoreFloat4x4(&objectConstants.m_World, XMMatrixTranspose(world));
 		XMStoreFloat4x4(&objectConstants.m_WorldInvTranspos, invWorld);
 		auto& currObjCB = m_CurrFrameResource->m_ConstantBuffers.find("ObjectConstants")->second;
-		for (auto i = 0; i < m_Geometrys.size(); ++i) {
+		for (auto i = 0; i < GetObjectSize(); ++i) {
+			currObjCB->m_IsDirty = true;
 			currObjCB->CopyData(i, &objectConstants, sizeof(ObjectConstants));
 		}
+	}
+
+	std::size_t Shapes::GetObjectSize() const noexcept
+	{
+		return ObjectManager::GetInstance().GetObjectSize();
 	}
 
 	void Shapes::OnRender(const CpuTimer& timer)
@@ -230,25 +240,24 @@ namespace DSM {
 		passCbvHandle.Offset(passCbvIndex, m_CbvSrvUavDescriptorSize);
 		m_CommandList->SetGraphicsRootDescriptorTable(1, passCbvHandle);
 
-
-		for (auto& geometry : m_Geometrys) {
-			auto& g = geometry.second;
-			auto vertexBV = g.GetVertexBufferView();
-			auto indexBV = g.GetIndexBufferView();
+		auto& objManager = ObjectManager::GetInstance();
+		for (std::size_t i = 0; i < objManager.GetObjectSize(); ++i) {
+			auto vertexBV = m_ObjMeshData->GetVertexBufferView();
+			auto indexBV = m_ObjMeshData->GetIndexBufferView();
 			m_CommandList->IASetVertexBuffers(0, 1, &vertexBV);
 			m_CommandList->IASetIndexBuffer(&indexBV);
 
-			UINT objCbvIndex = m_CurrFRIndex * (UINT)m_Geometrys.size();
+			UINT objCbvIndex = (UINT)(m_CurrFRIndex * GetObjectSize() + i);
 			auto objCbvHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(m_CbvHeap->GetGPUDescriptorHandleForHeapStart());
 			objCbvHandle.Offset(objCbvIndex, m_CbvSrvUavDescriptorSize);
 			m_CommandList->SetGraphicsRootDescriptorTable(0, objCbvHandle);
 
-			auto& boxSubMesh = g.m_DrawArgs[geometry.first];
+			auto& submesh = m_ObjMeshData->m_DrawArgs[objManager.GetObjectByIndex(i)->m_Name];
 			m_CommandList->DrawIndexedInstanced(
-				boxSubMesh.m_IndexCount,
+				submesh.m_IndexCount,
 				1,
-				boxSubMesh.m_BaseVertexLocation,
-				boxSubMesh.m_StarIndexLocation,
+				submesh.m_StarIndexLocation,
+				submesh.m_BaseVertexLocation,
 				0);
 		}
 
@@ -264,7 +273,7 @@ namespace DSM {
 		m_VSByteCodes.insert(std::make_pair("Color", colorVS));
 		m_PSByteCodes.insert(std::make_pair("Color", colorPS));
 
-		CreateBox();
+		CreateGeometry();
 		InitFrameResourceCB();
 		CreateCBV();
 		CreateRootSignature();
@@ -275,7 +284,7 @@ namespace DSM {
 
 	bool Shapes::InitFrameResourceCB()
 	{
-		auto objCount = (UINT)m_Geometrys.size();
+		auto objCount = (UINT)GetObjectSize();
 		m_PassCbvOffset = objCount * FrameCount;	// 帧常量的偏移量
 
 		// 创建常量缓冲区描述符堆
@@ -294,7 +303,7 @@ namespace DSM {
 			resource->AddConstantBuffer(
 				m_D3D12Device.Get(),
 				sizeof(ObjectConstants),
-				(UINT)m_Geometrys.size(),
+				(UINT)GetObjectSize(),
 				"ObjectConstants");
 			resource->AddConstantBuffer(
 				m_D3D12Device.Get(),
@@ -316,7 +325,7 @@ namespace DSM {
 			auto& currFrameResource = m_FrameResources[frameIndex];
 
 			// 创建物体的常量缓冲区视图
-			auto objCount = (UINT)m_Geometrys.size();
+			auto objCount = (UINT)GetObjectSize();
 			auto objCB = currFrameResource->m_ConstantBuffers.find("ObjectConstants")->second->GetResource();
 			for (std::size_t i = 0; i < objCount; ++i) {
 				auto objCbvAdress = objCB->GetGPUVirtualAddress();	// 常量缓冲区的GPU虚拟首地址
@@ -353,53 +362,30 @@ namespace DSM {
 		return true;
 	}
 
-	bool Shapes::CreateBox()
+	bool Shapes::CreateGeometry()
 	{
-		//auto mesh = GeometryGenerator::CreateBox(2, 2, 2, 2);
-		auto mesh = GeometryGenerator::CreateCylinder(1.f, 2.f, 3.0f, 20, 20);
-		//auto mesh = GeometryGenerator::CreatePolygon(2, 10);
-		//auto mesh = GeometryGenerator::CreateGeosphere(2, 3);
+		auto boxMesh = GeometryGenerator::CreateBox(3, 2, 2, 0);
+		auto geosphereMesh = GeometryGenerator::CreateGeosphere(4, 0);
+		auto box = std::make_shared<Object>("Box");
+		box->SetGeometryMesh(std::make_shared<GeometryMesh>(boxMesh));
+		auto geosphere = std::make_shared<Object>("Geosphere");
+		geosphere->SetGeometryMesh(std::make_shared<GeometryMesh>(geosphereMesh));
 
 
-		// 设置顶点
-		auto meshVertexs = mesh.m_Vertices;
-		std::vector<VertexPosColor> vertexs;
-		vertexs.reserve(meshVertexs.size());
-		for (const auto& vertex : meshVertexs) {
-			vertexs.emplace_back(vertex.m_Position, XMFLOAT4(DirectX::Colors::DarkGreen));
-		}
-
-		// 设置索引
-		auto indices = mesh.GetIndices16();
-
-		const UINT vbByteSize = UINT(vertexs.size() * sizeof(VertexPosColor));
-		const UINT ibByteSize = UINT(indices.size() * sizeof(std::uint16_t));
-
-		auto& box = m_Geometrys["Box"] = MeshData{};
-
-		ThrowIfFailed(D3DCreateBlob(vbByteSize, box.m_VertexBufferCPU.GetAddressOf()));
-		memcpy(box.m_VertexBufferCPU->GetBufferPointer(), vertexs.data(), vbByteSize);
-
-		ThrowIfFailed(D3DCreateBlob(ibByteSize, box.m_IndexBufferCPU.GetAddressOf()));
-		memcpy(box.m_IndexBufferCPU->GetBufferPointer(), indices.data(), ibByteSize);
-
-		// 创建顶点和索引缓冲区
-		box.m_VertexBufferGPU = D3DUtil::CreateDefaultBuffer(
-			m_D3D12Device.Get(), m_CommandList.Get(), vertexs.data(), vbByteSize, box.m_VertexBufferUploader);
-		box.m_IndexBufferGPU = D3DUtil::CreateDefaultBuffer(
-			m_D3D12Device.Get(), m_CommandList.Get(), indices.data(), ibByteSize, box.m_IndexBufferUploader);
-
-		box.m_VertexBufferByteSize = vbByteSize;
-		box.m_IndexBufferByteSize = ibByteSize;
-		box.m_VertexByteStride = sizeof(VertexPosColor);
-		box.m_IndexFormat = DXGI_FORMAT_R16_UINT;
-
-		SubmeshData subMesh{};
-		subMesh.m_IndexCount = (UINT)indices.size();
-		subMesh.m_StarIndexLocation = 0;
-		subMesh.m_BaseVertexLocation = 0;
-
-		box.m_DrawArgs["Box"] = subMesh;
+		auto& objManager = ObjectManager::GetInstance();
+		auto vertFunc = [](const Vertex& vert) {
+			VertexPosColor ret{};
+			ret.m_Pos = vert.m_Position;
+			ret.m_Color = XMFLOAT4(Colors::Blue);
+			return ret;
+			};
+		objManager.AddObject(box);
+		objManager.AddObject(geosphere);
+		m_ObjMeshData = objManager.GetAllMeshData<VertexPosColor>(
+			m_D3D12Device.Get(),
+			m_CommandList.Get(),
+			"AllObject",
+			vertFunc);
 
 		return true;
 	}

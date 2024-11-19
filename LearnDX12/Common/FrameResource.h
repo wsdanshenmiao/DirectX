@@ -3,7 +3,6 @@
 #define __FRAMERESOURCE__H__
 
 #include "Pubh.h"
-#include "ConstantData.h"
 #include "UploadBuffer.h"
 
 namespace DSM {
@@ -13,7 +12,7 @@ namespace DSM {
 	{
 		template <class T>
 		using ComPtr = Microsoft::WRL::ComPtr<T>;
-		using PConstantBuffer = std::unique_ptr<UploadBuffer<ConstantData>>;
+		using PConstantBuffer = std::unique_ptr<UploadBuffer<BufferData>>;
 
 		FrameResource(ID3D12Device* device);
 		FrameResource(const FrameResource& other) = delete;
