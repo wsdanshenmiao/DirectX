@@ -114,15 +114,15 @@ namespace DSM {
 		XMStoreFloat4x4(&objectConstants.m_World, XMMatrixTranspose(world));
 		XMStoreFloat4x4(&objectConstants.m_WorldInvTranspos, invWorld);
 		auto& currObjCB = m_CurrFrameResource->m_ConstantBuffers.find("ObjectConstants")->second;
-		for (auto i = 0; i < GetObjectSize(); ++i) {
+		for (auto i = 0; i < GetMeshSize(); ++i) {
 			currObjCB->m_IsDirty = true;
 			currObjCB->CopyData(i, &objectConstants, sizeof(ObjectConstants));
 		}
 	}
 
-	std::size_t Shapes::GetObjectSize() const noexcept
+	std::size_t Shapes::GetMeshSize() const noexcept
 	{
-		return ObjectManager::GetInstance().GetObjectSize();
+		return ObjectManager::GetInstance().GetMeshSize();
 	}
 
 	void Shapes::OnRender(const CpuTimer& timer)
@@ -240,27 +240,28 @@ namespace DSM {
 		passCbvHandle.Offset(passCbvIndex, m_CbvSrvUavDescriptorSize);
 		m_CommandList->SetGraphicsRootDescriptorTable(1, passCbvHandle);
 
+		UINT currMeshIndex = 0;
 		auto& objManager = ObjectManager::GetInstance();
-		for (std::size_t i = 0; i < objManager.GetObjectSize(); ++i) {
+		for (const auto& drawArg : m_ObjMeshData->m_DrawArgs) {
+			auto& submesh = drawArg.second;
 			auto vertexBV = m_ObjMeshData->GetVertexBufferView();
 			auto indexBV = m_ObjMeshData->GetIndexBufferView();
 			m_CommandList->IASetVertexBuffers(0, 1, &vertexBV);
 			m_CommandList->IASetIndexBuffer(&indexBV);
 
-			UINT objCbvIndex = (UINT)(m_CurrFRIndex * GetObjectSize() + i);
+			auto objCbvIndex = m_CurrFRIndex * GetMeshSize() + currMeshIndex++;
 			auto objCbvHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(m_CbvHeap->GetGPUDescriptorHandleForHeapStart());
 			objCbvHandle.Offset(objCbvIndex, m_CbvSrvUavDescriptorSize);
 			m_CommandList->SetGraphicsRootDescriptorTable(0, objCbvHandle);
 
-			auto& submesh = m_ObjMeshData->m_DrawArgs[objManager.GetObjectByIndex(i)->m_Name];
 			m_CommandList->DrawIndexedInstanced(
 				submesh.m_IndexCount,
 				1,
 				submesh.m_StarIndexLocation,
 				submesh.m_BaseVertexLocation,
 				0);
-		}
 
+		}
 		ImGuiManager::GetInstance().RenderImGui(m_CommandList.Get());
 	}
 
@@ -284,8 +285,8 @@ namespace DSM {
 
 	bool Shapes::InitFrameResourceCB()
 	{
-		auto objCount = (UINT)GetObjectSize();
-		m_PassCbvOffset = objCount * FrameCount;	// 帧常量的偏移量
+		auto meshCount = (UINT)GetMeshSize();
+		m_PassCbvOffset = meshCount * FrameCount;	// 帧常量的偏移量
 
 		// 创建常量缓冲区描述符堆
 		D3D12_DESCRIPTOR_HEAP_DESC cbvHeapDesc{};
@@ -303,7 +304,7 @@ namespace DSM {
 			resource->AddConstantBuffer(
 				m_D3D12Device.Get(),
 				sizeof(ObjectConstants),
-				(UINT)GetObjectSize(),
+				(UINT)GetMeshSize(),
 				"ObjectConstants");
 			resource->AddConstantBuffer(
 				m_D3D12Device.Get(),
@@ -325,7 +326,7 @@ namespace DSM {
 			auto& currFrameResource = m_FrameResources[frameIndex];
 
 			// 创建物体的常量缓冲区视图
-			auto objCount = (UINT)GetObjectSize();
+			auto objCount = (UINT)GetMeshSize();
 			auto objCB = currFrameResource->m_ConstantBuffers.find("ObjectConstants")->second->GetResource();
 			for (std::size_t i = 0; i < objCount; ++i) {
 				auto objCbvAdress = objCB->GetGPUVirtualAddress();	// 常量缓冲区的GPU虚拟首地址

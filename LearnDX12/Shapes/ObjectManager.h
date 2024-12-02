@@ -7,12 +7,14 @@
 #include "../Common/Singleton.h"
 
 namespace DSM {
+
 	class ObjectManager : public Singleton<ObjectManager>
 	{
 	public:
 		bool IsChange() const noexcept;
 		void AddObject(std::shared_ptr<Object> obj);
 
+		std::size_t GetMeshSize() const noexcept;
 		std::size_t GetObjectSize() const noexcept;
 		std::shared_ptr<Object> GetObjectByName(const std::string& name);
 		std::shared_ptr<Object> GetObjectByIndex(const std::size_t& index);

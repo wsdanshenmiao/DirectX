@@ -15,6 +15,15 @@ namespace DSM {
 		m_Objects.push_back(obj);
 	}
 
+	std::size_t ObjectManager::GetMeshSize() const noexcept
+	{
+		std::size_t ret = 0;
+		for (const auto& obj : m_Objects) {
+			ret = obj->GetGeometryMesh() ? ret + 1 : ret;
+		}
+		return ret;
+	}
+
 	std::size_t ObjectManager::GetObjectSize() const noexcept
 	{
 		return m_Objects.size();

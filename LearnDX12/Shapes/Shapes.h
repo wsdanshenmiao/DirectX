@@ -34,7 +34,7 @@ namespace DSM {
 		void WaitForGpu();
 		void UpdateFrameResource(const CpuTimer& timer);
 
-		std::size_t GetObjectSize() const noexcept;
+		std::size_t GetMeshSize() const noexcept;
 
 	private:
 		inline static constexpr UINT FrameCount = 3;

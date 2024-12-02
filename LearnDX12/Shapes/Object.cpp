@@ -8,6 +8,10 @@ namespace DSM {
 		:m_Name(name) {
 	}
 
+	Object::Object(const std::string& name, std::shared_ptr<Geometry::GeometryMesh> geometryMesh) noexcept
+		:m_Name(name), m_GeometryMesh(geometryMesh) {
+	}
+
 	Object::~Object()
 	{
 		if (m_Parent) {
@@ -58,6 +62,11 @@ namespace DSM {
 		}
 		m_Parent = parent;
 		parent->m_ChildObject[m_Name] = this;
+	}
+
+	void Object::SetBoundingBox(const DirectX::BoundingBox& boundingBox) noexcept
+	{
+		m_BoundingBox = boundingBox;
 	}
 
 	void Object::SetGeometryMesh(std::shared_ptr<Geometry::GeometryMesh> pMesh) noexcept

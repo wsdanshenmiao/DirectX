@@ -16,6 +16,7 @@ namespace DSM {
 	{
 	public:
 		Object(const std::string& name) noexcept;
+		Object(const std::string& name, std::shared_ptr< Geometry::GeometryMesh> geometryMesh) noexcept;
 		~Object();
 		Transform& GetTransform() noexcept;
 		const Transform& GetTransform() const noexcept;
@@ -23,6 +24,7 @@ namespace DSM {
 		const std::shared_ptr<Geometry::GeometryMesh> GetGeometryMesh() const noexcept;
 
 		void SetParent(Object* parent) noexcept;
+		void SetBoundingBox(const DirectX::BoundingBox& boundingBox) noexcept;;
 		void SetGeometryMesh(std::shared_ptr<Geometry::GeometryMesh> pMesh) noexcept;
 
 		void AddChild(Object* child) noexcept;
