@@ -5,50 +5,50 @@ using namespace DSM::Geometry;
 
 namespace DSM {
 
-	bool ObjectManager::IsChange() const noexcept
+	bool MeshManager::IsChange() const noexcept
 	{
 		return m_IsChange;
 	}
 
-	void ObjectManager::AddObject(std::shared_ptr<Object> obj)
+	void MeshManager::AddMesh(std::shared_ptr<Object> obj)
 	{
 		m_Objects.push_back(obj);
 	}
 
-	std::size_t ObjectManager::GetMeshSize() const noexcept
+	std::size_t MeshManager::GetMeshSize() const noexcept
 	{
 		std::size_t ret = 0;
 		for (const auto& obj : m_Objects) {
-			ret = obj->GetGeometryMesh() ? ret + 1 : ret;
+			ret = obj->GetRenderItem() ? ret + 1 : ret;
 		}
 		return ret;
 	}
 
-	std::size_t ObjectManager::GetObjectSize() const noexcept
+	std::size_t MeshManager::GetObjectSize() const noexcept
 	{
 		return m_Objects.size();
 	}
 
-	std::shared_ptr<Object> ObjectManager::GetObjectByName(const std::string& name)
+	std::shared_ptr<Object> MeshManager::GetMesh(const std::string& name)
 	{
 		return *std::find_if(m_Objects.begin(), m_Objects.end(), [&name](const auto& obj) {
 			return obj->m_Name == name;
 			});
 	}
 
-	std::shared_ptr<Object> ObjectManager::GetObjectByIndex(const std::size_t& index)
+	std::shared_ptr<Object> MeshManager::GetObjectByIndex(const std::size_t& index)
 	{
 		return m_Objects[index];
 	}
 
-	Geometry::GeometryMesh ObjectManager::GetAllObjectMesh() const
+	Geometry::GeometryMesh MeshManager::GetAllObjectMesh() const
 	{
 		GeometryMesh mesh{};
 
 		UINT baseIndex = 0;
 		for (const auto& obj : m_Objects)
 		{
-			auto& objMesh = obj->GetGeometryMesh();
+			auto& objMesh = obj->GetRenderItem();
 			if (!objMesh)continue;
 			auto& objMeshV = objMesh->m_Vertices;
 			auto& objMeshI = objMesh->m_Indices32;

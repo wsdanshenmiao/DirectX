@@ -14,7 +14,7 @@ int App(HINSTANCE hInstance)
 
 	try
 	{
-		Shapes app(hInstance, L"Shapes", 1024, 720);
+		LandAndWave app(hInstance, L"Shapes", 1024, 720);
 		app.OnInit();
 		return app.Run();
 	}

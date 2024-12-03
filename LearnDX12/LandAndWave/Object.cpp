@@ -8,10 +8,6 @@ namespace DSM {
 		:m_Name(name) {
 	}
 
-	Object::Object(const std::string& name, std::shared_ptr<Geometry::GeometryMesh> geometryMesh) noexcept
-		:m_Name(name), m_GeometryMesh(geometryMesh) {
-	}
-
 	Object::~Object()
 	{
 		if (m_Parent) {
@@ -36,9 +32,17 @@ namespace DSM {
 		return m_Transform;
 	}
 
-	const std::shared_ptr<Geometry::GeometryMesh> Object::GetRenderItem() const noexcept
+	const std::shared_ptr<RenderItem> Object::GetRenderItem(const std::string& name) const noexcept
 	{
-		return m_GeometryMesh;
+		return *std::find_if(m_RenderItems.begin(), m_RenderItems.end(),
+			[&name](const std::shared_ptr<RenderItem>& item) {
+				return item->m_Name == name;
+			});
+	}
+
+	const std::vector<std::shared_ptr<RenderItem>> Object::GetAllRenderItems() const noexcept
+	{
+		return m_RenderItems;
 	}
 
 	DirectX::BoundingBox Object::GetBouningBox() const noexcept
@@ -69,9 +73,9 @@ namespace DSM {
 		m_BoundingBox = boundingBox;
 	}
 
-	void Object::SetGeometryMesh(std::shared_ptr<Geometry::GeometryMesh> pMesh) noexcept
+	void Object::AddRenderItem(std::shared_ptr<RenderItem> pMesh) noexcept
 	{
-		m_GeometryMesh = pMesh;
+		m_RenderItems.push_back(std::move(pMesh));
 	}
 
 }

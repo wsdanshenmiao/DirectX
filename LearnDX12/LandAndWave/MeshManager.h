@@ -2,23 +2,26 @@
 #ifndef __OBJECTMANAGER__H__
 #define __OBJECTMANAGER__H__
 
-#include "Object.h"
 #include "../Common/D3DUtil.h"
 #include "../Common/Singleton.h"
+#include "Geometry.h"
+#include "../Common/Mesh.h"
 
 namespace DSM {
 
+	/// <summary>
+	/// 统一管理网格，并生成所有网格的网格数据
+	/// </summary>
 	class MeshManager : public Singleton<MeshManager>
 	{
 	public:
-		bool IsChange() const noexcept;
-		void AddMesh(std::shared_ptr<Object> obj);
+		void AddMesh(
+			const std::string& name,
+			Geometry::GeometryMesh&& mesh,
+			DirectX::BoundingBox box = DirectX::BoundingBox());
 
 		std::size_t GetMeshSize() const noexcept;
-		std::size_t GetObjectSize() const noexcept;
-		std::shared_ptr<Object> GetMesh(const std::string& name);
-		std::shared_ptr<Object> GetObjectByIndex(const std::size_t& index);
-		Geometry::GeometryMesh GetAllObjectMesh() const;
+		std::pair<Geometry::GeometryMesh, DirectX::BoundingBox> GetMesh(const std::string& name);
 		template<typename VertexData, typename VertFunc>
 		std::unique_ptr<Geometry::MeshData> GetAllMeshData(
 			ID3D12Device* device,
@@ -32,10 +35,8 @@ namespace DSM {
 		~MeshManager() = default;
 
 
-
 	private:
-		bool m_IsChange = false;
-		std::vector<std::shared_ptr<Object>> m_Objects;
+		std::unordered_map<std::string, std::pair<Geometry::GeometryMesh, DirectX::BoundingBox>> m_GeometryMesh;
 	};
 
 	template<typename VertexData, typename VertFunc>
@@ -49,44 +50,46 @@ namespace DSM {
 		auto meshData = std::make_unique<MeshData>();
 		meshData->m_Name = meshName;
 
-		GeometryMesh mesh = GetAllObjectMesh();
+		std::vector<Vertex> meshVertices;
+		std::vector<std::uint32_t> meshIndices;
+
 		UINT preIndexCount = 0;
 		UINT preVertexCount = 0;
-		for (std::size_t i = 0; i < m_Objects.size(); ++i) {
-			auto& objectMesh = m_Objects[i]->GetRenderItem();
-			if (!objectMesh) continue;
+		for (const auto& meshMes : m_GeometryMesh) {
 			SubmeshData submesh;
-			submesh.m_Bound = m_Objects[i]->GetBouningBox();
-			auto objIndexCount = (UINT)objectMesh->m_Indices32.size();
+			auto& mesh = meshMes.second.first;
+			submesh.m_Bound = meshMes.second.second;
+			auto objIndexCount = (UINT)mesh.m_Indices32.size();
 			submesh.m_IndexCount = objIndexCount;
 			submesh.m_StarIndexLocation = preIndexCount;
 			submesh.m_BaseVertexLocation = preVertexCount;
 			preIndexCount += objIndexCount;
-			preVertexCount += (UINT)objectMesh->m_Vertices.size();
-			meshData->m_DrawArgs.insert(std::make_pair(m_Objects[i]->m_Name, std::move(submesh)));
+			preVertexCount += (UINT)mesh.m_Vertices.size();
+			meshData->m_DrawArgs.insert(std::make_pair(meshMes.first, std::move(submesh)));
+
+			meshVertices.insert(meshVertices.end(), mesh.m_Vertices.begin(), mesh.m_Vertices.end());
+			meshIndices.insert(meshIndices.end(), mesh.m_Indices32.begin(), mesh.m_Indices32.end());
 		}
 
-		meshData->m_IndexSize = (UINT)mesh.m_Indices32.size();
-		std::vector<std::uint32_t> indices = mesh.m_Indices32;
-		std::vector<VertexData> vertices;
-		vertices.reserve(mesh.m_Vertices.size());
-		for (const auto& vert : mesh.m_Vertices) {
-			vertices.push_back(vertFunc(vert));
+		std::vector<VertexData> verticesData;
+		verticesData.reserve(meshVertices.size());
+		for (const auto& vert : meshVertices) {
+			verticesData.push_back(vertFunc(vert));
 		}
 
-		auto vbByteSize = vertices.size() * sizeof(VertexData);
-		auto ibByteSize = indices.size() * sizeof(std::uint32_t);
+		auto vbByteSize = verticesData.size() * sizeof(VertexData);
+		auto ibByteSize = meshIndices.size() * sizeof(std::uint32_t);
 		ThrowIfFailed(D3DCreateBlob(vbByteSize, &meshData->m_VertexBufferCPU));
-		memcpy(meshData->m_VertexBufferCPU->GetBufferPointer(), vertices.data(), vbByteSize);
+		memcpy(meshData->m_VertexBufferCPU->GetBufferPointer(), verticesData.data(), vbByteSize);
 
 		ThrowIfFailed(D3DCreateBlob(ibByteSize, &meshData->m_IndexBufferCPU));
-		memcpy(meshData->m_IndexBufferCPU->GetBufferPointer(), indices.data(), ibByteSize);
+		memcpy(meshData->m_IndexBufferCPU->GetBufferPointer(), meshIndices.data(), ibByteSize);
 
 		meshData->m_VertexBufferGPU = D3DUtil::CreateDefaultBuffer(device,
-			cmdList, vertices.data(), vbByteSize, meshData->m_VertexBufferUploader);
+			cmdList, verticesData.data(), vbByteSize, meshData->m_VertexBufferUploader);
 
 		meshData->m_IndexBufferGPU = D3DUtil::CreateDefaultBuffer(device,
-			cmdList, indices.data(), ibByteSize, meshData->m_IndexBufferUploader);
+			cmdList, meshIndices.data(), ibByteSize, meshData->m_IndexBufferUploader);
 
 		meshData->m_VertexByteStride = (UINT)sizeof(VertexData);
 		meshData->m_VertexBufferByteSize = (UINT)vbByteSize;
