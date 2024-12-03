@@ -70,6 +70,7 @@ namespace DSM {
 		}
 
 		UpdateFrameResource(timer);
+		UpdateObjResource(timer);
 	}
 
 	void LandAndWave::UpdateFrameResource(const CpuTimer& timer)
@@ -77,28 +78,23 @@ namespace DSM {
 		auto& imgui = ImGuiManager::GetInstance();
 
 		XMMATRIX view = XMMatrixLookAtLH(
-			XMVectorSet(m_EyePos.x, m_EyePos.y, m_EyePos.z, 1.0f),
-			XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f),
+			XMVectorSet(imgui.m_EyePos.x, imgui.m_EyePos.y, imgui.m_EyePos.z, 1.0f),
+			XMVectorZero(),
 			XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f));
-		auto world = XMMatrixScalingFromVector(XMVectorReplicate(imgui.m_Scale)) *
-			XMMatrixRotationX(imgui.m_Phi) * XMMatrixRotationY(imgui.m_Theta) *
-			XMMatrixTranslation(imgui.m_Dx, imgui.m_Dy, 0.0f);
 		auto proj = XMMatrixPerspectiveFovLH(imgui.m_Fov, GetAspectRatio(), 1.0f, 1000.0f);
 
 		auto detView = XMMatrixDeterminant(view);
 		auto detProj = XMMatrixDeterminant(proj);
-		auto detWorld = XMMatrixDeterminant(world);
 		XMMATRIX viewProj = XMMatrixMultiply(view, proj);
 		XMMATRIX invView = XMMatrixInverse(&detView, view);
 		XMMATRIX invProj = XMMatrixInverse(&detProj, proj);
-		XMMATRIX invWorld = XMMatrixInverse(&detWorld, world);
 
 		PassConstants passConstants;
 		XMStoreFloat4x4(&passConstants.m_View, XMMatrixTranspose(view));
 		XMStoreFloat4x4(&passConstants.m_InvView, XMMatrixTranspose(invView));
 		XMStoreFloat4x4(&passConstants.m_Proj, XMMatrixTranspose(proj));
 		XMStoreFloat4x4(&passConstants.m_InvProj, XMMatrixTranspose(invProj));
-		passConstants.m_EyePosW = m_EyePos;
+		passConstants.m_EyePosW = imgui.m_EyePos;
 		passConstants.m_RenderTargetSize = XMFLOAT2((float)m_ClientWidth, (float)m_ClientHeight);
 		passConstants.m_InvRenderTargetSize = XMFLOAT2(1.0f / m_ClientWidth, 1.0f / m_ClientHeight);
 		passConstants.m_NearZ = 1.0f;
@@ -109,15 +105,41 @@ namespace DSM {
 		auto& currPassCB = m_CurrFrameResource->m_ConstantBuffers.find("PassConstants")->second;
 		currPassCB->m_IsDirty = true;
 		currPassCB->CopyData(0, &passConstants, sizeof(PassConstants));
+	}
 
-		ObjectConstants objectConstants;
-		XMStoreFloat4x4(&objectConstants.m_World, XMMatrixTranspose(world));
-		XMStoreFloat4x4(&objectConstants.m_WorldInvTranspos, invWorld);
-		auto& currObjCB = m_CurrFrameResource->m_ConstantBuffers.find("ObjectConstants")->second;
-		for (auto i = 0; i < m_Objects.size(); ++i) {
-			currObjCB->m_IsDirty = true;
-			currObjCB->CopyData(i, &objectConstants, sizeof(ObjectConstants));
+	void LandAndWave::UpdateObjResource(const CpuTimer& timer)
+	{
+		auto& imgui = ImGuiManager::GetInstance();
+
+		for (const auto& obj : m_Objects) {
+			XMMATRIX scale = imgui.m_Transform.GetScaleMatrix() * obj.GetTransform().GetScaleMatrix();
+			XMMATRIX rotate = imgui.m_Transform.GetRotateMatrix() * obj.GetTransform().GetRotateMatrix();
+			XMVECTOR position = XMVectorAdd(imgui.m_Transform.GetTranslation(),
+				obj.GetTransform().GetTranslation());
+			for (const auto& item : obj.GetAllRenderItems()) {
+				scale *= item->m_Transform.GetScaleMatrix();
+				rotate *= item->m_Transform.GetRotateMatrix();
+				XMVectorAdd(position, item->m_Transform.GetTranslation());
+				auto world = scale * rotate * XMMatrixTranslationFromVector(position);
+				auto detWorld = XMMatrixDeterminant(world);
+				XMMATRIX invWorld = XMMatrixInverse(&detWorld, world);
+				ObjectConstants objectConstants;
+				XMStoreFloat4x4(&objectConstants.m_World, XMMatrixTranspose(world));
+				XMStoreFloat4x4(&objectConstants.m_WorldInvTranspos, XMMatrixTranspose(invWorld));
+				auto& currObjCB = m_CurrFrameResource->m_ConstantBuffers.find("ObjectConstants")->second;
+				currObjCB->m_IsDirty = true;
+				currObjCB->CopyData(item->m_RenderCBIndex, &objectConstants, sizeof(ObjectConstants));
+			}
 		}
+	}
+
+	std::size_t LandAndWave::GetAllRenderItemsCount() const noexcept
+	{
+		std::size_t count = 0;
+		for (const auto& obj : m_Objects) {
+			count += obj.GetRenderItemsCount();
+		}
+		return count;
 	}
 
 	void LandAndWave::OnRender(const CpuTimer& timer)
@@ -243,7 +265,7 @@ namespace DSM {
 			m_CommandList->IASetIndexBuffer(&indicesBV);
 
 			for (const auto& item : obj.GetAllRenderItems()) {
-				auto objCbvIndex = m_CurrFRIndex & m_Objects.size() + item->m_RenderCBIndex;
+				auto objCbvIndex = m_CurrFRIndex & GetAllRenderItemsCount() + item->m_RenderCBIndex;
 				auto objCbvHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(m_CbvHeap->GetGPUDescriptorHandleForHeapStart());
 				objCbvHandle.Offset(objCbvIndex, m_CbvSrvUavDescriptorSize);
 				m_CommandList->SetGraphicsRootDescriptorTable(0, objCbvHandle);
@@ -262,7 +284,7 @@ namespace DSM {
 
 	bool LandAndWave::InitResource()
 	{
-		m_EyePos = { 0.0f, 0.0f, -5.0f };
+		ImGuiManager::GetInstance().m_EyePos = { 0.0f, 0.0f, -5.0f };
 
 		auto colorVS = D3DUtil::CompileShader(L"Shader\\Color.hlsl", nullptr, "VS", "vs_5_0");
 		auto colorPS = D3DUtil::CompileShader(L"Shader\\Color.hlsl", nullptr, "PS", "ps_5_0");
@@ -280,7 +302,7 @@ namespace DSM {
 
 	bool LandAndWave::InitFrameResourceCB()
 	{
-		auto meshCount = (UINT)m_Objects.size();
+		auto meshCount = (UINT)GetAllRenderItemsCount();
 		m_PassCbvOffset = meshCount * FrameCount;	// 帧常量的偏移量
 
 		// 创建常量缓冲区描述符堆
@@ -299,7 +321,7 @@ namespace DSM {
 			resource->AddConstantBuffer(
 				m_D3D12Device.Get(),
 				sizeof(ObjectConstants),
-				(UINT)m_Objects.size(),
+				(UINT)meshCount,
 				"ObjectConstants");
 			resource->AddConstantBuffer(
 				m_D3D12Device.Get(),
@@ -321,13 +343,13 @@ namespace DSM {
 			auto& currFrameResource = m_FrameResources[frameIndex];
 
 			// 创建物体的常量缓冲区视图
-			auto objCount = (UINT)m_Objects.size();
+			auto itemCount = (UINT)GetAllRenderItemsCount();
 			auto objCB = currFrameResource->m_ConstantBuffers.find("ObjectConstants")->second->GetResource();
-			for (std::size_t i = 0; i < objCount; ++i) {
+			for (std::size_t i = 0; i < itemCount; ++i) {
 				auto objCbvAdress = objCB->GetGPUVirtualAddress();	// 常量缓冲区的GPU虚拟首地址
 				objCbvAdress += i * objByteSize;	// 对首地址进行偏移
 
-				UINT objHeapIndex = (UINT)(frameIndex * objCount + i);
+				UINT objHeapIndex = (UINT)(frameIndex * itemCount + i);
 				// 获取描述符堆的首地址
 				auto objHandle = CD3DX12_CPU_DESCRIPTOR_HANDLE(m_CbvHeap->GetCPUDescriptorHandleForHeapStart());
 				objHandle.Offset(objHeapIndex, m_CbvSrvUavDescriptorSize);
@@ -364,11 +386,32 @@ namespace DSM {
 		auto& meshManager = MeshManager::GetInstance();
 		meshManager.AddMesh("Box", GeometryGenerator::CreateBox(3, 2, 2, 0));
 		meshManager.AddMesh("Geosphere", GeometryGenerator::CreateGeosphere(4, 0));
+		meshManager.AddMesh("Grid", GeometryGenerator::CreateGrid(100, 100, 50, 50));
 
-		auto vertFunc = [](const Vertex& vert) {
+		auto getHeight = [](float x, float z) {
+			return 0.3f * (z * sinf(0.1f * x) + x * cosf(0.1f * z));
+			};
+
+		auto vertFunc = [&getHeight](const Vertex& vert) {
 			VertexPosColor ret{};
 			ret.m_Pos = vert.m_Position;
-			ret.m_Color = XMFLOAT4(Colors::Blue);
+			ret.m_Pos.y = getHeight(ret.m_Pos.x, ret.m_Pos.z);
+			float y = ret.m_Pos.y;
+			if (y < -10.0f) {
+				ret.m_Color = XMFLOAT4(1.0f, 0.96f, 0.62f, 1.0f);
+			}
+			else if (y < 5.0f) {
+				ret.m_Color = XMFLOAT4(0.48f, 0.77f, 0.46f, 1.0f);
+			}
+			else if (y < 12.0f) {
+				ret.m_Color = XMFLOAT4(0.1f, 0.48f, 0.19f, 1.0f);
+			}
+			else if (y < 20.0f) {
+				ret.m_Color = XMFLOAT4(0.45f, 0.39f, 0.34f, 1.0f);
+			}
+			else {
+				ret.m_Color = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+			}
 			return ret;
 			};
 		m_MeshData = meshManager.GetAllMeshData<VertexPosColor>(
@@ -377,23 +420,29 @@ namespace DSM {
 			"AllObject",
 			vertFunc);
 
-		RenderItem box;
-		box.m_Name = "Box";
-		box.m_NumFramesDirty = FrameCount;
-		box.m_RenderCBIndex = 0;
+		RenderItem grid;
+		grid.m_Name = "Grid";
+		grid.m_NumFramesDirty - FrameCount;
+		grid.m_RenderCBIndex = 0;
+		Object gridObj{ grid.m_Name };
+		gridObj.AddRenderItem(std::make_shared<RenderItem>(std::move(grid)));
+		m_Objects.push_back(std::move(gridObj));
 
-		RenderItem geosphere;
-		geosphere.m_Name = "Geosphere";
-		geosphere.m_NumFramesDirty - FrameCount;
-		geosphere.m_RenderCBIndex = 1;
-
-		Object boxObj{ box.m_Name };
-		boxObj.AddRenderItem(std::make_shared<RenderItem>(std::move(box)));
-		m_Objects.push_back(std::move(boxObj));
-
-		Object geosphereObj{ geosphere.m_Name };
-		geosphereObj.AddRenderItem(std::make_shared<RenderItem>(std::move(geosphere)));
-		m_Objects.push_back(std::move(geosphereObj));
+		//RenderItem box;
+		//box.m_Name = "Box";
+		//box.m_NumFramesDirty = FrameCount;
+		//box.m_RenderCBIndex = 1;
+		//Object boxObj{ box.m_Name };
+		//boxObj.AddRenderItem(std::make_shared<RenderItem>(std::move(box)));
+		//m_Objects.push_back(std::move(boxObj));
+		//
+		//RenderItem geosphere;
+		//geosphere.m_Name = "Geosphere";
+		//geosphere.m_NumFramesDirty - FrameCount;
+		//geosphere.m_RenderCBIndex = 2;
+		//Object geosphereObj{ geosphere.m_Name };
+		//geosphereObj.AddRenderItem(std::make_shared<RenderItem>(std::move(geosphere)));
+		//m_Objects.push_back(std::move(geosphereObj));
 
 		return true;
 	}

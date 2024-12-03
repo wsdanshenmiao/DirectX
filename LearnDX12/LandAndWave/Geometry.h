@@ -79,6 +79,12 @@ namespace DSM {
 				float radius,
 				std::uint32_t subdivision) noexcept;
 
+			static GeometryMesh CreateGrid(
+				float width,
+				float depth,
+				std::uint32_t m,
+				std::uint32_t n) noexcept;
+
 
 			template<typename VertFunc, typename IndexFunc>
 			static GeometryMesh MergeMesh(

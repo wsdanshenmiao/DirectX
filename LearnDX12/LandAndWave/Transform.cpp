@@ -17,14 +17,49 @@ namespace DSM {
 		XMStoreFloat4(&m_Rotation, quat);
 	}
 
+	void Transform::SetRotate(float x, float y, float z) noexcept
+	{
+		SetRotate(XMFLOAT3{ x,y,z });
+	}
+
 	void Transform::SetPosition(const DirectX::XMFLOAT3& position) noexcept
 	{
 		m_Position = position;
 	}
 
+	void Transform::SetPosition(float x, float y, float z) noexcept
+	{
+		SetPosition(XMFLOAT3{ x,y,z });
+	}
+
 	void Transform::SetScale(const DirectX::XMFLOAT3& scale) noexcept
 	{
 		m_Scale = scale;
+	}
+
+	void Transform::SetScale(float x, float y, float z) noexcept
+	{
+		SetScale(XMFLOAT3{ x, y, z });
+	}
+
+	DirectX::XMFLOAT3 Transform::GetPosition() const noexcept
+	{
+		return m_Position;
+	}
+
+	DirectX::XMFLOAT3& Transform::GetPosition() noexcept
+	{
+		return m_Position;
+	}
+
+	DirectX::XMFLOAT3 Transform::GetScale() const noexcept
+	{
+		return m_Scale;
+	}
+
+	DirectX::XMFLOAT3& Transform::GetScale() noexcept
+	{
+		return m_Scale;
 	}
 
 	DirectX::XMMATRIX Transform::GetScaleMatrix() const noexcept

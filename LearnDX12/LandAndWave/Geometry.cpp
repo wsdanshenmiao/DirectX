@@ -355,6 +355,64 @@ namespace DSM {
 			return mesh;
 		}
 
+		GeometryMesh GeometryGenerator::CreateGrid(
+			float width,
+			float depth,
+			std::uint32_t m,
+			std::uint32_t n) noexcept
+		{
+			GeometryMesh mesh{};
+
+			std::uint32_t vertexCout = m * n;
+			std::uint32_t faceCount = (m - 1) * (n - 1) * 2;
+			float halfWidth = width / 2;
+			float halfDepth = depth / 2;
+
+			// 每个小网格的分量
+			float dx = width / (m - 1);
+			float dz = depth / (n - 1);
+			float du = 1 / (m - 1);
+			float dv = 1 / (n - 1);
+
+			// 生成顶点
+			mesh.m_Vertices.resize(vertexCout);
+			for (std::uint32_t i = 0; i < m; ++i) {
+				float z = -halfDepth + i * dz;
+				for (std::uint32_t j = 0; j < n; ++j) {
+					float x = -halfWidth + j * dx;
+					std::uint32_t index = i * n + j;
+					mesh.m_Vertices[index].m_Position = { x, 0 ,z };
+					mesh.m_Vertices[index].m_Normal = { 0,1,0 };
+					mesh.m_Vertices[index].m_Tangent = { 1,0,0,1 };
+					mesh.m_Vertices[index].m_TexCoord = { du * j, dv * i };
+				}
+			}
+
+			/*	j			j+1
+			 i+1-------------
+				|			|
+				|			|
+				|			|
+				|			|
+			 i	-------------
+			*/
+			// 生成索引
+			mesh.m_Indices32.resize(faceCount * 3);
+			for (std::uint32_t i = 0, k = 0; i < m - 1; ++i) {
+				for (std::uint32_t j = 0; j < n - 1; ++j) {
+					std::uint32_t count = i * n + j;
+					mesh.m_Indices32[k++] = count;
+					mesh.m_Indices32[k++] = count + n + 1;
+					mesh.m_Indices32[k++] = count + 1;
+					mesh.m_Indices32[k++] = count;
+					mesh.m_Indices32[k++] = count + n;
+					mesh.m_Indices32[k++] = count + n + 1;
+				}
+			}
+
+			return mesh;
+		}
+
 		template<typename VertFunc, typename IndexFunc>
 		GeometryMesh GeometryGenerator::MergeMesh(
 			const GeometryMesh& m0,

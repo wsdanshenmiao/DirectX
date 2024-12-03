@@ -40,9 +40,14 @@ namespace DSM {
 			});
 	}
 
-	const std::vector<std::shared_ptr<RenderItem>> Object::GetAllRenderItems() const noexcept
+	const std::vector<std::shared_ptr<RenderItem>>& Object::GetAllRenderItems() const noexcept
 	{
 		return m_RenderItems;
+	}
+
+	std::size_t Object::GetRenderItemsCount() const noexcept
+	{
+		return m_RenderItems.size();
 	}
 
 	DirectX::BoundingBox Object::GetBouningBox() const noexcept

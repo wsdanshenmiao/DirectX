@@ -33,6 +33,8 @@ namespace DSM {
 		bool CreatePSO();
 		void WaitForGpu();
 		void UpdateFrameResource(const CpuTimer& timer);
+		void UpdateObjResource(const CpuTimer& timer);
+		std::size_t GetAllRenderItemsCount()const noexcept;
 
 	private:
 		inline static constexpr UINT FrameCount = 3;
@@ -51,8 +53,6 @@ namespace DSM {
 		std::vector<Object> m_Objects;
 		std::unique_ptr<Geometry::MeshData> m_MeshData;
 		UINT m_PassCbvOffset = 0;
-
-		DirectX::XMFLOAT3 m_EyePos{};
 	};
 
 }

@@ -2,6 +2,8 @@
 #define __IMGUIMANAGER__H__
 
 #include "../Common/BaseImGuiManager.h"
+#include "Transform.h"
+#include <DirectXMath.h>
 
 namespace DSM {
 	class ImGuiManager : public BaseImGuiManager<ImGuiManager>
@@ -14,16 +16,12 @@ namespace DSM {
 		void UpdateImGui(const CpuTimer& timer) override;
 
 	public:
-		float m_Theta = 0.f,
-			m_Phi = 0.f,
-			m_Radius = 6.f,
-			m_Scale = 1.f,
-			m_Fov = DirectX::XM_PIDIV2,
-			m_Dx = 0,
-			m_Dy = 0;
+		Transform m_Transform;
+		float m_Radius = 6.f, m_Fov = DirectX::XM_PIDIV2;
 		bool m_Animate = false;
-		bool m_EnableWireFrame = true;
+		bool m_EnableWireFrame = false;
 		int m_Subdivision = 0;
+		DirectX::XMFLOAT3 m_EyePos{};
 	};
 }
 

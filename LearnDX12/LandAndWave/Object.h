@@ -23,7 +23,8 @@ namespace DSM {
 		const Transform& GetTransform() const noexcept;
 		DirectX::BoundingBox GetBouningBox() const noexcept;
 		const std::shared_ptr<RenderItem> GetRenderItem(const std::string& name) const noexcept;
-		const std::vector<std::shared_ptr<RenderItem>> GetAllRenderItems() const noexcept;
+		const std::vector<std::shared_ptr<RenderItem>>& GetAllRenderItems() const noexcept;
+		std::size_t GetRenderItemsCount() const noexcept;
 
 		void SetParent(Object* parent) noexcept;
 		void SetBoundingBox(const DirectX::BoundingBox& boundingBox) noexcept;;
