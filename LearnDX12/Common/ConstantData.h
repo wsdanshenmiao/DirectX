@@ -7,13 +7,13 @@
 #include "UploadBuffer.h"
 
 namespace DSM {
-	struct ObjectConstants : public BufferData
+	struct ObjectConstants
 	{
 		DirectX::XMFLOAT4X4 m_World = MathHelper::Identity();
 		DirectX::XMFLOAT4X4 m_WorldInvTranspos = MathHelper::Identity();
 	};
 
-	struct PassConstants : public BufferData
+	struct PassConstants
 	{
 		DirectX::XMFLOAT4X4 m_View = MathHelper::Identity();
 		DirectX::XMFLOAT4X4 m_InvView = MathHelper::Identity();

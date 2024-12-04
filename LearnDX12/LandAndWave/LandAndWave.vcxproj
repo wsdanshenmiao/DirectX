@@ -157,6 +157,7 @@
     <ClCompile Include="MeshManager.cpp" />
     <ClCompile Include="LandAndWave.cpp" />
     <ClCompile Include="Transform.cpp" />
+    <ClCompile Include="Waves.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Common\BaseImGuiManager.h" />
@@ -180,6 +181,7 @@
     <ClInclude Include="LandAndWave.h" />
     <ClInclude Include="RenderItem.h" />
     <ClInclude Include="Transform.h" />
+    <ClInclude Include="Waves.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

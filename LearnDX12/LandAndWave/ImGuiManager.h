@@ -17,7 +17,7 @@ namespace DSM {
 
 	public:
 		Transform m_Transform;
-		float m_Radius = 6.f, m_Fov = DirectX::XM_PIDIV2;
+		float m_Radius = 50.0f, m_Fov = DirectX::XM_PIDIV2;
 		bool m_Animate = false;
 		bool m_EnableWireFrame = false;
 		int m_Subdivision = 0;

@@ -8,7 +8,7 @@
 
 namespace DSM {
 
-	class MeshManager : public Singleton<MeshManager>
+	class StaticMeshManager : public Singleton<StaticMeshManager>
 	{
 	public:
 		bool IsChange() const noexcept;
@@ -27,9 +27,9 @@ namespace DSM {
 			VertFunc vertFunc) const;
 
 	private:
-		friend Singleton<MeshManager>;
-		MeshManager() = default;
-		~MeshManager() = default;
+		friend Singleton<StaticMeshManager>;
+		StaticMeshManager() = default;
+		~StaticMeshManager() = default;
 
 
 
@@ -39,7 +39,7 @@ namespace DSM {
 	};
 
 	template<typename VertexData, typename VertFunc>
-	std::unique_ptr<Geometry::MeshData> MeshManager::GetAllMeshData(
+	std::unique_ptr<Geometry::MeshData> StaticMeshManager::GetAllMeshData(
 		ID3D12Device* device,
 		ID3D12GraphicsCommandList* cmdList,
 		const std::string& meshName,

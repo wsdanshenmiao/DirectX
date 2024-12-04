@@ -5,8 +5,6 @@
 
 namespace DSM {
 
-	struct BufferData {};
-
 	template<typename T>
 	class UploadBuffer
 	{
@@ -20,6 +18,8 @@ namespace DSM {
 		UploadBuffer& operator=(UploadBuffer&& other) = default;
 		~UploadBuffer();
 
+		void Map();
+		void Unmap();
 		ID3D12Resource* GetResource();
 		void CopyData(int elementIndex, const T* const data, const std::size_t& byteSize);
 
@@ -61,6 +61,18 @@ namespace DSM {
 	}
 
 	template<typename T>
+	inline void UploadBuffer<T>::Map()
+	{
+		ThrowIfFailed(m_UploadBuffer->Map(0, nullptr, reinterpret_cast<void**>(&m_MappedData)));
+	}
+
+	template<typename T>
+	inline void UploadBuffer<T>::Unmap()
+	{
+		m_UploadBuffer->Unmap(0, nullptr);
+	}
+
+	template<typename T>
 	inline ID3D12Resource* UploadBuffer<T>::GetResource()
 	{
 		return m_UploadBuffer.Get();
@@ -70,9 +82,8 @@ namespace DSM {
 	inline void UploadBuffer<T>::CopyData(int elementIndex, const T* const data, const std::size_t& byteSize)
 	{
 		if (m_IsDirty) {
-			ThrowIfFailed(m_UploadBuffer->Map(0, nullptr, reinterpret_cast<void**>(&m_MappedData)));
 			memcpy(&m_MappedData[m_ElementByteSize * elementIndex], data, byteSize);
-			m_UploadBuffer->Unmap(0, nullptr);
+			m_IsDirty = false;
 		}
 	}
 

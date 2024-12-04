@@ -34,7 +34,7 @@ namespace DSM {
 			m_BackBufferFormat))
 			return false;
 
-		MeshManager::Create();
+		StaticMeshManager::Create();
 
 		// 为初始化资源重置命令列表
 		ThrowIfFailed(m_CommandList->Reset(m_DirectCmdListAlloc.Get(), nullptr));
@@ -71,6 +71,7 @@ namespace DSM {
 
 		UpdateFrameResource(timer);
 		UpdateObjResource(timer);
+		UpdateWaves(timer);
 	}
 
 	void LandAndWave::UpdateFrameResource(const CpuTimer& timer)
@@ -104,14 +105,17 @@ namespace DSM {
 
 		auto& currPassCB = m_CurrFrameResource->m_ConstantBuffers.find("PassConstants")->second;
 		currPassCB->m_IsDirty = true;
+		currPassCB->Map();
 		currPassCB->CopyData(0, &passConstants, sizeof(PassConstants));
+		currPassCB->Unmap();
 	}
 
 	void LandAndWave::UpdateObjResource(const CpuTimer& timer)
 	{
 		auto& imgui = ImGuiManager::GetInstance();
 
-		for (const auto& obj : m_Objects) {
+		for (const auto& objPair : m_Objects) {
+			auto& obj = objPair.second;
 			XMMATRIX scale = imgui.m_Transform.GetScaleMatrix() * obj.GetTransform().GetScaleMatrix();
 			XMMATRIX rotate = imgui.m_Transform.GetRotateMatrix() * obj.GetTransform().GetRotateMatrix();
 			XMVECTOR position = XMVectorAdd(imgui.m_Transform.GetTranslation(),
@@ -127,17 +131,60 @@ namespace DSM {
 				XMStoreFloat4x4(&objectConstants.m_World, XMMatrixTranspose(world));
 				XMStoreFloat4x4(&objectConstants.m_WorldInvTranspos, XMMatrixTranspose(invWorld));
 				auto& currObjCB = m_CurrFrameResource->m_ConstantBuffers.find("ObjectConstants")->second;
+				currObjCB->Map();
 				currObjCB->m_IsDirty = true;
 				currObjCB->CopyData(item->m_RenderCBIndex, &objectConstants, sizeof(ObjectConstants));
+				currObjCB->Unmap();
 			}
 		}
+	}
+
+	void LandAndWave::UpdateWaves(const CpuTimer& gt)
+	{
+		// Every quarter second, generate a random wave.
+		static float t_base = 0.0f;
+		if ((gt.TotalTime() - t_base) >= 0.25f)
+		{
+			t_base += 0.25f;
+
+			std::mt19937 gen(std::random_device{}());
+			std::uniform_int_distribution<int> range(4, m_Waves->RowCount() - 5);
+			int i = range(gen);
+			decltype(range)::param_type colRnage{ 4, m_Waves->ColumnCount() - 5 };
+			int j = range(gen);
+
+			std::uniform_real_distribution<float> rangeF{ .2f, .5f };
+			float r = rangeF(gen);
+
+			m_Waves->Disturb(i, j, r);
+		}
+
+		// Update the wave simulation.
+		m_Waves->Update(gt.DeltaTime());
+
+		// Update the wave vertex buffer with the new solution.
+		auto& currWavesVB = m_CurrFrameResource->m_ConstantBuffers.find("WavesVertex")->second;
+		currWavesVB->Map();
+		for (int i = 0; i < m_Waves->VertexCount(); ++i)
+		{
+			VertexPosColor v;
+
+			v.m_Pos = m_Waves->Position(i);
+			v.m_Color = XMFLOAT4(DirectX::Colors::Blue);
+			currWavesVB->m_IsDirty = true;
+			currWavesVB->CopyData(i, &v, sizeof(VertexPosColor));
+		}
+		currWavesVB->Unmap();
+
+		// Set the dynamic VB of the wave renderitem to the current frame VB.
+		m_Objects["Wave"].GetRenderItem("Wave")->m_Mesh->m_VertexBufferGPU = currWavesVB->GetResource();
 	}
 
 	std::size_t LandAndWave::GetAllRenderItemsCount() const noexcept
 	{
 		std::size_t count = 0;
 		for (const auto& obj : m_Objects) {
-			count += obj.GetRenderItemsCount();
+			count += obj.second.GetRenderItemsCount();
 		}
 		return count;
 	}
@@ -259,18 +306,18 @@ namespace DSM {
 
 		UINT currMeshIndex = 0;
 		for (const auto& obj : m_Objects) {
-			auto verticesBV = m_MeshData->GetVertexBufferView();
-			auto indicesBV = m_MeshData->GetIndexBufferView();
-			m_CommandList->IASetVertexBuffers(0, 1, &verticesBV);
-			m_CommandList->IASetIndexBuffer(&indicesBV);
+			for (const auto& item : obj.second.GetAllRenderItems()) {
+				auto verticesBV = item->m_Mesh->GetVertexBufferView();
+				auto indicesBV = item->m_Mesh->GetIndexBufferView();
+				m_CommandList->IASetVertexBuffers(0, 1, &verticesBV);
+				m_CommandList->IASetIndexBuffer(&indicesBV);
 
-			for (const auto& item : obj.GetAllRenderItems()) {
 				auto objCbvIndex = m_CurrFRIndex & GetAllRenderItemsCount() + item->m_RenderCBIndex;
 				auto objCbvHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(m_CbvHeap->GetGPUDescriptorHandleForHeapStart());
 				objCbvHandle.Offset(objCbvIndex, m_CbvSrvUavDescriptorSize);
 				m_CommandList->SetGraphicsRootDescriptorTable(0, objCbvHandle);
 
-				auto& submesh = m_MeshData->m_DrawArgs[item->m_Name];
+				auto& submesh = item->m_Mesh->m_DrawArgs[item->m_Name];
 				m_CommandList->DrawIndexedInstanced(
 					submesh.m_IndexCount,
 					1,
@@ -290,6 +337,7 @@ namespace DSM {
 		auto colorPS = D3DUtil::CompileShader(L"Shader\\Color.hlsl", nullptr, "PS", "ps_5_0");
 		m_VSByteCodes.insert(std::make_pair("Color", colorVS));
 		m_PSByteCodes.insert(std::make_pair("Color", colorPS));
+		m_Waves = std::make_unique<Waves>(128, 128, 1.0f, 0.03f, 4.0f, 0.2f);
 
 		CreateGeometry();
 		InitFrameResourceCB();
@@ -318,6 +366,7 @@ namespace DSM {
 		}
 
 		for (auto& resource : m_FrameResources) {
+			// 创建常量缓冲区
 			resource->AddConstantBuffer(
 				m_D3D12Device.Get(),
 				sizeof(ObjectConstants),
@@ -328,6 +377,12 @@ namespace DSM {
 				sizeof(PassConstants),
 				1,
 				"PassConstants");
+			// 创建动态缓冲区
+			resource->AddDynamicBuffer(
+				m_D3D12Device.Get(),
+				sizeof(VertexPosColor),
+				m_Waves->VertexCount(),
+				"WavesVertex");
 		}
 
 		return true;
@@ -383,7 +438,7 @@ namespace DSM {
 	bool LandAndWave::CreateGeometry()
 	{
 		// 生成网格数据
-		auto& meshManager = MeshManager::GetInstance();
+		auto& meshManager = StaticMeshManager::GetInstance();
 		meshManager.AddMesh("Box", GeometryGenerator::CreateBox(3, 2, 2, 0));
 		meshManager.AddMesh("Geosphere", GeometryGenerator::CreateGeosphere(4, 0));
 		meshManager.AddMesh("Grid", GeometryGenerator::CreateGrid(100, 100, 50, 50));
@@ -414,7 +469,7 @@ namespace DSM {
 			}
 			return ret;
 			};
-		m_MeshData = meshManager.GetAllMeshData<VertexPosColor>(
+		m_MeshData["Grid"] = meshManager.GetAllMeshData<VertexPosColor>(
 			m_D3D12Device.Get(),
 			m_CommandList.Get(),
 			"AllObject",
@@ -422,11 +477,12 @@ namespace DSM {
 
 		RenderItem grid;
 		grid.m_Name = "Grid";
-		grid.m_NumFramesDirty - FrameCount;
+		grid.m_Mesh = m_MeshData["Grid"].get();
+		grid.m_NumFramesDirty = FrameCount;
 		grid.m_RenderCBIndex = 0;
 		Object gridObj{ grid.m_Name };
 		gridObj.AddRenderItem(std::make_shared<RenderItem>(std::move(grid)));
-		m_Objects.push_back(std::move(gridObj));
+		m_Objects.insert(std::make_pair(gridObj.m_Name, std::move(gridObj)));
 
 		//RenderItem box;
 		//box.m_Name = "Box";
@@ -438,11 +494,74 @@ namespace DSM {
 		//
 		//RenderItem geosphere;
 		//geosphere.m_Name = "Geosphere";
-		//geosphere.m_NumFramesDirty - FrameCount;
+		//geosphere.m_NumFramesDirty = FrameCount;
 		//geosphere.m_RenderCBIndex = 2;
 		//Object geosphereObj{ geosphere.m_Name };
 		//geosphereObj.AddRenderItem(std::make_shared<RenderItem>(std::move(geosphere)));
 		//m_Objects.push_back(std::move(geosphereObj));
+
+
+		// 初始化海平面
+		std::vector<std::uint16_t> indices(3 * m_Waves->TriangleCount()); // 3 indices per face
+		assert(m_Waves->VertexCount() < 0x0000ffff);
+
+		// Iterate over each quad.
+		int m = m_Waves->RowCount();
+		int n = m_Waves->ColumnCount();
+		int k = 0;
+		for (int i = 0; i < m - 1; ++i)
+		{
+			for (int j = 0; j < n - 1; ++j)
+			{
+				indices[k] = i * n + j;
+				indices[k + 1] = i * n + j + 1;
+				indices[k + 2] = (i + 1) * n + j;
+
+				indices[k + 3] = (i + 1) * n + j;
+				indices[k + 4] = i * n + j + 1;
+				indices[k + 5] = (i + 1) * n + j + 1;
+
+				k += 6; // next quad
+			}
+		}
+
+		UINT vbByteSize = m_Waves->VertexCount() * sizeof(Vertex);
+		UINT ibByteSize = (UINT)indices.size() * sizeof(std::uint16_t);
+
+		auto mesh = std::make_unique<MeshData>();
+		mesh->m_Name = "Wave";
+		mesh->m_VertexBufferCPU = nullptr;
+		mesh->m_VertexBufferGPU = nullptr;
+		ThrowIfFailed(D3DCreateBlob(ibByteSize, mesh->m_IndexBufferCPU.GetAddressOf()));
+		mesh->m_IndexBufferGPU = D3DUtil::CreateDefaultBuffer(
+			m_D3D12Device.Get(),
+			m_CommandList.Get(),
+			indices.data(),
+			ibByteSize,
+			mesh->m_IndexBufferUploader);
+		mesh->m_VertexBufferByteSize = vbByteSize;
+		mesh->m_VertexByteStride = sizeof(VertexPosColor);
+		mesh->m_IndexBufferByteSize = ibByteSize;
+		mesh->m_IndexSize = indices.size();
+		mesh->m_IndexFormat = DXGI_FORMAT_R16_UINT;
+
+		SubmeshData submesh{};
+		submesh.m_BaseVertexLocation = 0;
+		submesh.m_StarIndexLocation = 0;
+		submesh.m_IndexCount = (UINT)indices.size();
+
+		mesh->m_DrawArgs["Wave"] = submesh;
+
+		m_MeshData["Wave"] = std::move(mesh);
+
+		RenderItem wave;
+		wave.m_Name = "Wave";
+		wave.m_Mesh = m_MeshData["Wave"].get();
+		wave.m_NumFramesDirty = FrameCount;
+		wave.m_RenderCBIndex = 1;
+		Object waves("Wave");
+		waves.AddRenderItem(std::make_shared<RenderItem>(std::move(wave)));
+		m_Objects.insert(std::make_pair(waves.m_Name, std::move(waves)));
 
 		return true;
 	}

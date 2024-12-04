@@ -4,7 +4,7 @@ using namespace DirectX;
 
 void DSM::ImGuiManager::UpdateImGui(const CpuTimer& timer)
 {
-	static float theta = 0, phi = 0, scale = 1;
+	static float theta = 1.5f * XM_PI, phi = XM_PIDIV2 - 0.1f, scale = 1;
 	float dt = timer.DeltaTime();
 	auto io = ImGui::GetIO();
 	auto& position = m_Transform.GetPosition();

@@ -6,6 +6,8 @@
 #include "../Common/Mesh.h"
 #include "../Common/FrameResource.h"
 #include "Object.h"
+#include "Waves.h"
+#include <random>
 
 namespace DSM {
 
@@ -34,6 +36,7 @@ namespace DSM {
 		void WaitForGpu();
 		void UpdateFrameResource(const CpuTimer& timer);
 		void UpdateObjResource(const CpuTimer& timer);
+		void UpdateWaves(const CpuTimer& gt);
 		std::size_t GetAllRenderItemsCount()const noexcept;
 
 	private:
@@ -44,14 +47,15 @@ namespace DSM {
 		std::unordered_map<std::string, ComPtr<ID3D12PipelineState>> m_PSOs;
 		std::unordered_map<std::string, ComPtr<ID3DBlob>> m_VSByteCodes;
 		std::unordered_map<std::string, ComPtr<ID3DBlob>> m_PSByteCodes;
+		std::unordered_map<std::string, std::unique_ptr<Geometry::MeshData>> m_MeshData;
 		ComPtr<ID3D12DescriptorHeap> m_CbvHeap = nullptr;
 
 		std::array<std::unique_ptr<FrameResource>, FrameCount> m_FrameResources;	// 帧资源循环数组
 		FrameResource* m_CurrFrameResource = nullptr;
 		UINT m_CurrFRIndex = 0;
 
-		std::vector<Object> m_Objects;
-		std::unique_ptr<Geometry::MeshData> m_MeshData;
+		std::unique_ptr<Waves> m_Waves;
+		std::unordered_map<std::string, Object> m_Objects;
 		UINT m_PassCbvOffset = 0;
 	};
 

@@ -12,7 +12,7 @@ namespace DSM {
 	{
 		template <class T>
 		using ComPtr = Microsoft::WRL::ComPtr<T>;
-		using PConstantBuffer = std::unique_ptr<UploadBuffer<BufferData>>;
+		using PConstantBuffer = std::unique_ptr<UploadBuffer<void>>;
 
 		FrameResource(ID3D12Device* device);
 		FrameResource(const FrameResource& other) = delete;
@@ -21,6 +21,11 @@ namespace DSM {
 
 		// 添加常量缓冲区
 		void AddConstantBuffer(
+			ID3D12Device* device,
+			UINT byteSize,
+			UINT elementSize,
+			const std::string& bufferName);
+		void AddDynamicBuffer(
 			ID3D12Device* device,
 			UINT byteSize,
 			UINT elementSize,

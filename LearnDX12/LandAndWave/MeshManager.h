@@ -1,6 +1,6 @@
 #pragma once
-#ifndef __OBJECTMANAGER__H__
-#define __OBJECTMANAGER__H__
+#ifndef __STATICMESHMANAGER__H__
+#define __STATICMESHMANAGER__H__
 
 #include "../Common/D3DUtil.h"
 #include "../Common/Singleton.h"
@@ -10,9 +10,9 @@
 namespace DSM {
 
 	/// <summary>
-	/// 统一管理网格，并生成所有网格的网格数据
+	/// 统一管理静态网格，并生成所有网格的网格数据
 	/// </summary>
-	class MeshManager : public Singleton<MeshManager>
+	class StaticMeshManager : public Singleton<StaticMeshManager>
 	{
 	public:
 		void AddMesh(
@@ -30,9 +30,9 @@ namespace DSM {
 			VertFunc vertFunc) const;
 
 	private:
-		friend Singleton<MeshManager>;
-		MeshManager() = default;
-		~MeshManager() = default;
+		friend Singleton<StaticMeshManager>;
+		StaticMeshManager() = default;
+		~StaticMeshManager() = default;
 
 
 	private:
@@ -40,7 +40,7 @@ namespace DSM {
 	};
 
 	template<typename VertexData, typename VertFunc>
-	std::unique_ptr<Geometry::MeshData> MeshManager::GetAllMeshData(
+	std::unique_ptr<Geometry::MeshData> StaticMeshManager::GetAllMeshData(
 		ID3D12Device* device,
 		ID3D12GraphicsCommandList* cmdList,
 		const std::string& meshName,
@@ -102,4 +102,4 @@ namespace DSM {
 
 }
 
-#endif // !__OBJECTMANAGER__H__
+#endif // !__STATICMESHMANAGER__H__

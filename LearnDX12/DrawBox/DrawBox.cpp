@@ -60,7 +60,9 @@ namespace DSM {
 			XMMatrixTranslation(imgui.m_Dx, imgui.m_Dy, 0.0f);
 		auto proj = XMMatrixPerspectiveFovLH(imgui.m_Fov, GetAspectRatio(), 1.0f, 1000.0f);
 		XMStoreFloat4x4(&objConstants.gWorldViewProj, XMMatrixTranspose(world * view * proj));
+		m_ObjCB->Map();
 		m_ObjCB->CopyData(0, &objConstants, sizeof(ObjConstants));
+		m_ObjCB->Unmap();
 	}
 
 	void DrawBox::OnRender(const CpuTimer& timer)

@@ -17,6 +17,7 @@ namespace DSM {
 	class Object
 	{
 	public:
+		Object() = default;
 		Object(const std::string& name) noexcept;
 		~Object();
 		Transform& GetTransform() noexcept;

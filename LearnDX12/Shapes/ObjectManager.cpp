@@ -5,17 +5,17 @@ using namespace DSM::Geometry;
 
 namespace DSM {
 
-	bool MeshManager::IsChange() const noexcept
+	bool StaticMeshManager::IsChange() const noexcept
 	{
 		return m_IsChange;
 	}
 
-	void MeshManager::AddMesh(std::shared_ptr<Object> obj)
+	void StaticMeshManager::AddMesh(std::shared_ptr<Object> obj)
 	{
 		m_Objects.push_back(obj);
 	}
 
-	std::size_t MeshManager::GetMeshSize() const noexcept
+	std::size_t StaticMeshManager::GetMeshSize() const noexcept
 	{
 		std::size_t ret = 0;
 		for (const auto& obj : m_Objects) {
@@ -24,24 +24,24 @@ namespace DSM {
 		return ret;
 	}
 
-	std::size_t MeshManager::GetObjectSize() const noexcept
+	std::size_t StaticMeshManager::GetObjectSize() const noexcept
 	{
 		return m_Objects.size();
 	}
 
-	std::shared_ptr<Object> MeshManager::GetMesh(const std::string& name)
+	std::shared_ptr<Object> StaticMeshManager::GetMesh(const std::string& name)
 	{
 		return *std::find_if(m_Objects.begin(), m_Objects.end(), [&name](const auto& obj) {
 			return obj->m_Name == name;
 			});
 	}
 
-	std::shared_ptr<Object> MeshManager::GetObjectByIndex(const std::size_t& index)
+	std::shared_ptr<Object> StaticMeshManager::GetObjectByIndex(const std::size_t& index)
 	{
 		return m_Objects[index];
 	}
 
-	Geometry::GeometryMesh MeshManager::GetAllObjectMesh() const
+	Geometry::GeometryMesh StaticMeshManager::GetAllObjectMesh() const
 	{
 		GeometryMesh mesh{};
 

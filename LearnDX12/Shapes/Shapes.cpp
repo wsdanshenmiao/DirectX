@@ -34,7 +34,7 @@ namespace DSM {
 			m_BackBufferFormat))
 			return false;
 
-		MeshManager::Create();
+		StaticMeshManager::Create();
 
 		// 为初始化资源重置命令列表
 		ThrowIfFailed(m_CommandList->Reset(m_DirectCmdListAlloc.Get(), nullptr));
@@ -107,22 +107,26 @@ namespace DSM {
 		passConstants.m_DeltaTime = timer.DeltaTime();
 
 		auto& currPassCB = m_CurrFrameResource->m_ConstantBuffers.find("PassConstants")->second;
+		currPassCB->Map();
 		currPassCB->m_IsDirty = true;
 		currPassCB->CopyData(0, &passConstants, sizeof(PassConstants));
+		currPassCB->Unmap();
 
 		ObjectConstants objectConstants;
 		XMStoreFloat4x4(&objectConstants.m_World, XMMatrixTranspose(world));
 		XMStoreFloat4x4(&objectConstants.m_WorldInvTranspos, invWorld);
 		auto& currObjCB = m_CurrFrameResource->m_ConstantBuffers.find("ObjectConstants")->second;
+		currObjCB->Map();
 		for (auto i = 0; i < GetMeshSize(); ++i) {
 			currObjCB->m_IsDirty = true;
 			currObjCB->CopyData(i, &objectConstants, sizeof(ObjectConstants));
 		}
+		currObjCB->Unmap();
 	}
 
 	std::size_t LandAndWave::GetMeshSize() const noexcept
 	{
-		return MeshManager::GetInstance().GetMeshSize();
+		return StaticMeshManager::GetInstance().GetMeshSize();
 	}
 
 	void LandAndWave::OnRender(const CpuTimer& timer)
@@ -241,7 +245,7 @@ namespace DSM {
 		m_CommandList->SetGraphicsRootDescriptorTable(1, passCbvHandle);
 
 		UINT currMeshIndex = 0;
-		auto& objManager = MeshManager::GetInstance();
+		auto& objManager = StaticMeshManager::GetInstance();
 		for (const auto& drawArg : m_MeshData->m_DrawArgs) {
 			auto& submesh = drawArg.second;
 			auto vertexBV = m_MeshData->GetVertexBufferView();
@@ -373,7 +377,7 @@ namespace DSM {
 		geosphere->SetGeometryMesh(std::make_shared<GeometryMesh>(geosphereMesh));
 
 
-		auto& objManager = MeshManager::GetInstance();
+		auto& objManager = StaticMeshManager::GetInstance();
 		auto vertFunc = [](const Vertex& vert) {
 			VertexPosColor ret{};
 			ret.m_Pos = vert.m_Position;

@@ -16,6 +16,7 @@ namespace DSM {
 	{
 		Transform m_Transform = {};
 		std::string m_Name;							// 根据名字在总网格资源中找到对应网格
+		Geometry::MeshData* m_Mesh;							// 所使用的网格数据
 		std::shared_ptr<Material> m_Material = {};	// 使用的材质
 		UINT m_RenderCBIndex = -1;					// 对应常量缓冲区索引
 		int m_NumFramesDirty;						// 每个帧资源内的数据是否改变
