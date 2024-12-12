@@ -16,9 +16,6 @@ namespace DSM {
 
 	LandAndWave::~LandAndWave()
 	{
-		if (m_D3D12Fence) {
-			FlushCommandQueue();
-		}
 		ImGuiManager::ShutDown();
 	}
 
@@ -167,12 +164,12 @@ namespace DSM {
 		currWavesVB->Map();
 		for (int i = 0; i < m_Waves->VertexCount(); ++i)
 		{
-			VertexPosColor v;
+			VertexPosLColor v;
 
 			v.m_Pos = m_Waves->Position(i);
 			v.m_Color = XMFLOAT4(DirectX::Colors::Blue);
 			currWavesVB->m_IsDirty = true;
-			currWavesVB->CopyData(i, &v, sizeof(VertexPosColor));
+			currWavesVB->CopyData(i, &v, sizeof(VertexPosLColor));
 		}
 		currWavesVB->Unmap();
 
@@ -295,10 +292,10 @@ namespace DSM {
 	void LandAndWave::OnRenderScene(const CpuTimer& timer)
 	{
 		// 设置根签名
-		ID3D12DescriptorHeap* descriptorHeaps[] = { m_CbvHeap.Get() };
-		m_CommandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 		m_CommandList->SetGraphicsRootSignature(m_RootSignature.Get());
 		// 设置当前帧资源的根描述符表
+		ID3D12DescriptorHeap* descriptorHeaps[] = { m_CbvHeap.Get() };
+		m_CommandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 		int passCbvIndex = m_PassCbvOffset + m_CurrFRIndex;
 		auto passCbvHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(m_CbvHeap->GetGPUDescriptorHandleForHeapStart());
 		passCbvHandle.Offset(passCbvIndex, m_CbvSrvUavDescriptorSize);
@@ -312,7 +309,7 @@ namespace DSM {
 				m_CommandList->IASetVertexBuffers(0, 1, &verticesBV);
 				m_CommandList->IASetIndexBuffer(&indicesBV);
 
-				auto objCbvIndex = m_CurrFRIndex & GetAllRenderItemsCount() + item->m_RenderCBIndex;
+				auto objCbvIndex = m_CurrFRIndex * GetAllRenderItemsCount() + item->m_RenderCBIndex;
 				auto objCbvHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(m_CbvHeap->GetGPUDescriptorHandleForHeapStart());
 				objCbvHandle.Offset(objCbvIndex, m_CbvSrvUavDescriptorSize);
 				m_CommandList->SetGraphicsRootDescriptorTable(0, objCbvHandle);
@@ -380,7 +377,7 @@ namespace DSM {
 			// 创建动态缓冲区
 			resource->AddDynamicBuffer(
 				m_D3D12Device.Get(),
-				sizeof(VertexPosColor),
+				sizeof(VertexPosLColor),
 				m_Waves->VertexCount(),
 				"WavesVertex");
 		}
@@ -448,7 +445,7 @@ namespace DSM {
 			};
 
 		auto vertFunc = [&getHeight](const Vertex& vert) {
-			VertexPosColor ret{};
+			VertexPosLColor ret{};
 			ret.m_Pos = vert.m_Position;
 			ret.m_Pos.y = getHeight(ret.m_Pos.x, ret.m_Pos.z);
 			float y = ret.m_Pos.y;
@@ -469,7 +466,7 @@ namespace DSM {
 			}
 			return ret;
 			};
-		m_MeshData["Grid"] = meshManager.GetAllMeshData<VertexPosColor>(
+		m_MeshData["Grid"] = meshManager.GetAllMeshData<VertexPosLColor>(
 			m_D3D12Device.Get(),
 			m_CommandList.Get(),
 			"AllObject",
@@ -540,7 +537,7 @@ namespace DSM {
 			ibByteSize,
 			mesh->m_IndexBufferUploader);
 		mesh->m_VertexBufferByteSize = vbByteSize;
-		mesh->m_VertexByteStride = sizeof(VertexPosColor);
+		mesh->m_VertexByteStride = sizeof(VertexPosLColor);
 		mesh->m_IndexBufferByteSize = ibByteSize;
 		mesh->m_IndexSize = indices.size();
 		mesh->m_IndexFormat = DXGI_FORMAT_R16_UINT;
@@ -630,8 +627,8 @@ namespace DSM {
 		psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
 		psoDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
 		psoDesc.InputLayout = {
-			VertexPosColor::GetInputLayOut().data(),
-			(UINT)VertexPosColor::GetInputLayOut().size()
+			VertexPosLColor::GetInputLayout().data(),
+			(UINT)VertexPosLColor::GetInputLayout().size()
 		};
 		psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 		psoDesc.NumRenderTargets = 1;

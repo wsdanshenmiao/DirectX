@@ -11,6 +11,13 @@ struct VertexPosHColor
     float4 Color : COLOR;
 };
 
+struct VertexPosLNormalColor
+{
+    float3 PosL : POSITIONT;
+    float3 NormalV : NORMAL;
+    float4 Color : COLOR;
+};
+
 // 常量缓冲区的大小必须为 256 b 的整数倍，隐式填充为 256 byte
 cbuffer CBPerObject : register(b0)
 {

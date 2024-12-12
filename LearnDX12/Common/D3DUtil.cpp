@@ -41,11 +41,10 @@ namespace DSM {
 		subResourceData.RowPitch = byteSize;// 子资源数据的行间距
 		subResourceData.SlicePitch = subResourceData.RowPitch;
 
-		// Schedule to copy the data to the default bufferresource.
-		// At a high level, the helper function UpdateSubresources
-		// will copy the CPU memory into the intermediateupload heap.
-		// Then, using ID3D12CommandList::CopyBufferRegion or CopyTextureRegion,
-		// the intermediate upload heap data will be copiedto mBuffer.
+		// 将数据复制到默认缓冲区的步骤
+		// 辅助函数UpdateSubresources会将CPU内存复制到intermediateupload堆中。
+		// 然后，使用ID3D12CommandList::CopyBufferRegion或CopyTextureRegion，
+		// 辅助函数的三种实现中有一种将中间上传的堆数据复制到mBuffe。
 		auto commonToCopyDest = CD3DX12_RESOURCE_BARRIER::Transition(
 			defaultBuffer.Get(),
 			D3D12_RESOURCE_STATE_COMMON,

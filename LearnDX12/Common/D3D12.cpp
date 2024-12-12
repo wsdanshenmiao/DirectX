@@ -31,7 +31,7 @@ namespace DSM {
 
 	D3D12App::~D3D12App()
 	{
-		if (m_D3D12Device != nullptr)
+		if (m_D3D12Device != nullptr && m_D3D12Fence != nullptr)
 			FlushCommandQueue();
 	}
 
@@ -422,7 +422,7 @@ namespace DSM {
 			0,
 			D3D12_COMMAND_LIST_TYPE_DIRECT,
 			m_DirectCmdListAlloc.Get(),
-			nullptr,										// 不适用流水线状态对象
+			nullptr,										// 不使用流水线状态对象
 			IID_PPV_ARGS(m_CommandList.GetAddressOf())));
 
 		// 第一次引用需要重置命令列表，重置前需要关闭列表

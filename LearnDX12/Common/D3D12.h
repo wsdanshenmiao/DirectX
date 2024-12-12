@@ -1,6 +1,6 @@
 ﻿#pragma once
-#ifndef __D3D12__H__
-#define __D3D12__H__
+#ifndef __D3D12APP__H__
+#define __D3D12APP__H__
 
 #pragma comment(lib,"d3dcompiler.lib")
 #pragma comment(lib, "d3d12.lib")
@@ -119,4 +119,4 @@ namespace DSM {
 
 }
 
-#endif // !__D3D12__H__
+#endif // !__D3D12APP__H__

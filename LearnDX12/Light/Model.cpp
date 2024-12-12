@@ -1,0 +1,103 @@
+#include "Model.h"
+#include "../Common/Mesh.h"
+
+using namespace Assimp;
+using namespace DSM::Geometry;
+using namespace DirectX;
+
+namespace DSM {
+	Model::Model(const std::string& filename)
+	{
+		LoadModelFromFile(filename);
+	}
+
+	bool Model::LoadModelFromFile(const std::string& filename)
+	{
+		Importer importer;
+		const aiScene* pScene = importer.ReadFile(
+			filename,
+			aiProcess_ConvertToLeftHanded |     // 转为左手系
+			aiProcess_GenBoundingBoxes |        // 获取碰撞盒
+			aiProcess_Triangulate |             // 将多边形拆分
+			aiProcess_ImproveCacheLocality |    // 改善缓存局部性
+			aiProcess_SortByPType);             // 按图元顶点数排序用于移除非三角形图元
+
+		if (nullptr == pScene || !pScene->HasMeshes()) {
+			std::string warning = "[Warning]: Failed to load \"";
+			warning += filename;
+			warning += "\"\n";
+			OutputDebugStringA(warning.c_str());
+			return;
+		}
+
+
+		return true;
+
+	}
+
+	void Model::ProcessNode(aiNode* node, const aiScene* scene)
+	{
+		// 导入当前节点的网格
+		for (UINT i = 0; i < scene->mNumMeshes; ++i) {
+			auto mesh = scene->mMeshes[node->mMeshes[i]];
+			m_Meshs.push_back(ProcessMesh(mesh, scene));
+		}
+
+		// 导入子节点的网格
+		for (UINT i = 0; i < node->mNumChildren; ++i) {
+			ProcessNode(node->mChildren[i], scene);
+		}
+	}
+
+	ModelMsh Model::ProcessMesh(aiMesh* mesh, const aiScene* scene)
+	{
+		ModelMsh modelMesh{};
+		auto& geoMesh = modelMesh.m_MeshData;
+		auto& vertices = geoMesh.m_Vertices;
+		auto& indices = geoMesh.m_Indices32;
+
+		// 获取顶点数据
+		vertices.reserve(mesh->mNumVertices);
+		for (UINT i = 0; i < mesh->mNumVertices; ++i) {
+			Vertex vertex{};
+			if (mesh->HasPositions()) {
+				const auto& pos = mesh->mVertices[i];
+				vertex.m_Position = XMFLOAT3(pos.x, pos.y, pos.z);
+			}
+			if (mesh->HasNormals()) {
+				const auto& normal = mesh->mNormals[i];
+				vertex.m_Normal = XMFLOAT3(normal.x, normal.y, normal.z);
+			}
+			if (mesh->HasTangentsAndBitangents()) {
+				const auto& tangent = mesh->mTangents[i];
+				const auto& biTangent = mesh->mBitangents[i];
+				vertex.m_Tangent = XMFLOAT4{ tangent.x,tangent.y,tangent.z,1 };
+				vertex.m_BiTangent = XMFLOAT3{ biTangent.x,biTangent.y,biTangent.z };
+			}
+			// 目前只获取主纹理坐标
+			if (mesh->HasTextureCoords(0)) {
+				const auto& texCoord = mesh->mTextureCoords[0][i];
+				vertex.m_TexCoord = XMFLOAT2{ texCoord.x,texCoord.y };
+			}
+			vertices.push_back(std::move(vertex));
+		}
+
+		// 获取索引
+		indices.reserve(mesh->mNumFaces * 3);
+		for (UINT i = 0; i < mesh->mNumFaces; ++i) {
+			memcpy(indices.data(), mesh->mFaces, sizeof(std::uint32_t) * mesh->mNumFaces * 3);
+		}
+
+		const auto& AABB = mesh->mAABB;
+		BoundingBox::CreateFromPoints(
+			modelMesh.m_BoundingBox,
+			XMVECTOR{ AABB.mMin.x, AABB.mMin.y, AABB.mMin.z, 1 },
+			XMVECTOR{ AABB.mMax.x, AABB.mMax.y, AABB.mMax.z, 1 });
+
+		modelMesh.m_MaterialIndex = mesh->mMaterialIndex;
+
+		return modelMesh;
+	}
+
+
+}

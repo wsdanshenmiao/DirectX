@@ -9,7 +9,7 @@
 
 namespace DSM {
 
-	struct VertexPosColor
+	struct VertexPosLColor
 	{
 		DirectX::XMFLOAT3 m_Pos;
 		DirectX::XMFLOAT4 m_Color;

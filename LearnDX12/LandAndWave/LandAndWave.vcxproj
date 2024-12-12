@@ -183,6 +183,14 @@
     <ClInclude Include="Transform.h" />
     <ClInclude Include="Waves.h" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="Shader\Color.hlsl">
+      <FileType>Document</FileType>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Shader\Color.hlsli" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

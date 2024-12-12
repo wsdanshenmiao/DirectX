@@ -379,14 +379,14 @@ namespace DSM {
 
 		auto& objManager = StaticMeshManager::GetInstance();
 		auto vertFunc = [](const Vertex& vert) {
-			VertexPosColor ret{};
+			VertexPosLColor ret{};
 			ret.m_Pos = vert.m_Position;
 			ret.m_Color = XMFLOAT4(Colors::Blue);
 			return ret;
 			};
 		objManager.AddMesh(box);
 		objManager.AddMesh(geosphere);
-		m_MeshData = objManager.GetAllMeshData<VertexPosColor>(
+		m_MeshData = objManager.GetAllMeshData<VertexPosLColor>(
 			m_D3D12Device.Get(),
 			m_CommandList.Get(),
 			"AllObject",
@@ -459,8 +459,8 @@ namespace DSM {
 		psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
 		psoDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
 		psoDesc.InputLayout = {
-			VertexPosColor::GetInputLayOut().data(),
-			(UINT)VertexPosColor::GetInputLayOut().size()
+			VertexPosLColor::GetInputLayout().data(),
+			(UINT)VertexPosLColor::GetInputLayout().size()
 		};
 		psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 		psoDesc.NumRenderTargets = 1;
