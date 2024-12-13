@@ -27,9 +27,36 @@ namespace DSM {
 			warning += filename;
 			warning += "\"\n";
 			OutputDebugStringA(warning.c_str());
-			return;
+			return false;
 		}
 
+		ProcessNode(pScene->mRootNode, pScene);
+
+		m_Materials.resize(pScene->mNumMaterials);
+		for (UINT i = 0; i < pScene->mNumMaterials; ++i) {
+			auto& material = pScene->mMaterials[i];
+
+			XMFLOAT4 vector{};
+			float value{};
+			uint32_t num = 3;
+
+			if (aiReturn_SUCCESS == material->Get(AI_MATKEY_COLOR_AMBIENT, (float*)&vector, &num))
+				m_Materials[i].Set("AmbientColor", vector);
+			if (aiReturn_SUCCESS == material->Get(AI_MATKEY_COLOR_DIFFUSE, (float*)&vector, &num))
+				m_Materials[i].Set("DiffuseColor", vector);
+			if (aiReturn_SUCCESS == material->Get(AI_MATKEY_COLOR_SPECULAR, (float*)&vector, &num))
+				m_Materials[i].Set("SpecularColor", vector);
+			if (aiReturn_SUCCESS == material->Get(AI_MATKEY_SPECULAR_FACTOR, value))
+				m_Materials[i].Set("SpecularFactor", value);
+			if (aiReturn_SUCCESS == material->Get(AI_MATKEY_COLOR_EMISSIVE, (float*)&vector, &num))
+				m_Materials[i].Set("EmissiveColor", vector);
+			if (aiReturn_SUCCESS == material->Get(AI_MATKEY_OPACITY, value))
+				m_Materials[i].Set("Opacity", value);
+			if (aiReturn_SUCCESS == material->Get(AI_MATKEY_COLOR_TRANSPARENT, (float*)&vector, &num))
+				m_Materials[i].Set("TransparentColor", vector);
+			if (aiReturn_SUCCESS == material->Get(AI_MATKEY_COLOR_REFLECTIVE, (float*)&vector, &num))
+				m_Materials[i].Set("ReflectiveColor", vector);
+		}
 
 		return true;
 
@@ -38,7 +65,7 @@ namespace DSM {
 	void Model::ProcessNode(aiNode* node, const aiScene* scene)
 	{
 		// 导入当前节点的网格
-		for (UINT i = 0; i < scene->mNumMeshes; ++i) {
+		for (UINT i = 0; i < node->mNumMeshes; ++i) {
 			auto mesh = scene->mMeshes[node->mMeshes[i]];
 			m_Meshs.push_back(ProcessMesh(mesh, scene));
 		}

@@ -1,6 +1,7 @@
 #include "Light.h"
 #include "ImguiManager.h"
 #include "../Common/Vertex.h"
+#include "Model.h"
 
 using namespace DirectX;
 
@@ -207,6 +208,8 @@ namespace DSM {
 
 	bool Light::ImportModel()
 	{
+		Model model("D:\\Code\\Computer Graphics\\DirectX\\LearnDX12\\Model\\Elena.obj");
+		return true;
 	}
 
 	bool Light::InitResource()

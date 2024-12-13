@@ -21,6 +21,7 @@
 #include <iostream>
 #include <algorithm>
 #include <comdef.h>
+#include <variant>
 
 
 #endif // !__PUBH__H__
