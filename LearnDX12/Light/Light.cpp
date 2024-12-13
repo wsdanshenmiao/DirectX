@@ -2,8 +2,10 @@
 #include "ImguiManager.h"
 #include "../Common/Vertex.h"
 #include "Model.h"
+#include "MeshManager.h"
 
 using namespace DirectX;
+using namespace DSM::Geometry;
 
 namespace DSM {
 	Light::Light(HINSTANCE hAppInst, const std::wstring& mainWndCaption, int clientWidth, int clientHeight)
@@ -17,6 +19,7 @@ namespace DSM {
 		}
 
 		ImguiManager::Create();
+		StaticMeshManager::Create();
 		if (!ImguiManager::GetInstance().InitImGui(
 			m_D3D12Device.Get(),
 			m_hMainWnd,
@@ -52,7 +55,73 @@ namespace DSM {
 			WaitForGPU();
 		}
 
+		UpdateFrameResource(timer);
+		UpdateObjResource(timer);
+	}
 
+	void Light::UpdateFrameResource(const CpuTimer& timer)
+	{
+		auto& imgui = ImguiManager::GetInstance();
+
+		XMMATRIX view = XMMatrixLookAtLH(
+			XMVectorSet(imgui.m_EyePos.x, imgui.m_EyePos.y, imgui.m_EyePos.z, 1.0f),
+			XMVectorZero(),
+			XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f));
+		auto proj = XMMatrixPerspectiveFovLH(imgui.m_Fov, GetAspectRatio(), 1.0f, 1000.0f);
+
+		auto detView = XMMatrixDeterminant(view);
+		auto detProj = XMMatrixDeterminant(proj);
+		XMMATRIX viewProj = XMMatrixMultiply(view, proj);
+		XMMATRIX invView = XMMatrixInverse(&detView, view);
+		XMMATRIX invProj = XMMatrixInverse(&detProj, proj);
+
+		PassConstants passConstants;
+		XMStoreFloat4x4(&passConstants.m_View, XMMatrixTranspose(view));
+		XMStoreFloat4x4(&passConstants.m_InvView, XMMatrixTranspose(invView));
+		XMStoreFloat4x4(&passConstants.m_Proj, XMMatrixTranspose(proj));
+		XMStoreFloat4x4(&passConstants.m_InvProj, XMMatrixTranspose(invProj));
+		passConstants.m_EyePosW = imgui.m_EyePos;
+		passConstants.m_RenderTargetSize = XMFLOAT2((float)m_ClientWidth, (float)m_ClientHeight);
+		passConstants.m_InvRenderTargetSize = XMFLOAT2(1.0f / m_ClientWidth, 1.0f / m_ClientHeight);
+		passConstants.m_NearZ = 1.0f;
+		passConstants.m_FarZ = 1000.0f;
+		passConstants.m_TotalTime = timer.TotalTime();
+		passConstants.m_DeltaTime = timer.DeltaTime();
+
+		auto& currPassCB = m_CurrFrameResource->m_ConstantBuffers.find("PassConstants")->second;
+		currPassCB->m_IsDirty = true;
+		currPassCB->Map();
+		currPassCB->CopyData(0, &passConstants, sizeof(PassConstants));
+		currPassCB->Unmap();
+	}
+
+	void Light::UpdateObjResource(const CpuTimer& timer)
+	{
+		auto& imgui = ImguiManager::GetInstance();
+
+		for (const auto& objPair : m_Objects) {
+			auto& obj = objPair.second;
+			XMMATRIX scale = imgui.m_Transform.GetScaleMatrix() * obj.GetTransform().GetScaleMatrix();
+			XMMATRIX rotate = imgui.m_Transform.GetRotateMatrix() * obj.GetTransform().GetRotateMatrix();
+			XMVECTOR position = XMVectorAdd(imgui.m_Transform.GetTranslation(),
+				obj.GetTransform().GetTranslation());
+			for (const auto& item : obj.GetAllRenderItems()) {
+				scale *= item->m_Transform.GetScaleMatrix();
+				rotate *= item->m_Transform.GetRotateMatrix();
+				XMVectorAdd(position, item->m_Transform.GetTranslation());
+				auto world = scale * rotate * XMMatrixTranslationFromVector(position);
+				auto detWorld = XMMatrixDeterminant(world);
+				XMMATRIX invWorld = XMMatrixInverse(&detWorld, world);
+				ObjectConstants objectConstants;
+				XMStoreFloat4x4(&objectConstants.m_World, XMMatrixTranspose(world));
+				XMStoreFloat4x4(&objectConstants.m_WorldInvTranspos, XMMatrixTranspose(invWorld));
+				auto& currObjCB = m_CurrFrameResource->m_ConstantBuffers.find("ObjectConstants")->second;
+				currObjCB->Map();
+				currObjCB->m_IsDirty = true;
+				currObjCB->CopyData(item->m_RenderCBIndex, &objectConstants, sizeof(ObjectConstants));
+				currObjCB->Unmap();
+			}
+		}
 	}
 
 	void Light::OnRender(const CpuTimer& timer)
@@ -208,7 +277,39 @@ namespace DSM {
 
 	bool Light::ImportModel()
 	{
-		Model model("D:\\Code\\Computer Graphics\\DirectX\\LearnDX12\\Model\\Elena.obj");
+		Model model("House", "..\\Model\\Elena.obj");
+		auto& meshManager = StaticMeshManager::GetInstance();
+		auto& mesh = model.GetAllMesh();
+		auto vertFunc = [](const Vertex& vert) {
+			VertexPosLColor ret{};
+			float scale = 1;
+			ret.m_Pos = XMFLOAT3(
+				vert.m_Position.x * scale,
+				vert.m_Position.y * scale,
+				vert.m_Position.z * scale);
+			ret.m_Color = XMFLOAT4(1, 1, 1, 1);
+			return ret;
+			};
+		for (int i = 0; i < mesh.size(); ++i) {
+			auto meshdata = mesh[i].m_MeshData;
+			meshManager.AddMesh("House" + i, std::move(meshdata));
+			m_MeshData["House" + i] = meshManager.GetAllMeshData<VertexPosLColor>(
+				m_D3D12Device.Get(),
+				m_CommandList.Get(),
+				"House" + i,
+				vertFunc);
+			RenderItem grid;
+			grid.m_Name = "House" + i;
+			grid.m_Mesh = m_MeshData["House" + i].get();
+			grid.m_NumFramesDirty = FrameCount;
+			grid.m_RenderCBIndex = 0;
+			Object gridObj{ grid.m_Name };
+			gridObj.AddRenderItem(std::make_shared<RenderItem>(std::move(grid)));
+			m_Objects.insert(std::make_pair(gridObj.m_Name, std::move(gridObj)));
+		}
+
+
+
 		return true;
 	}
 

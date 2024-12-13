@@ -31,6 +31,8 @@ namespace DSM {
 		void CreateCBV();
 		void CreateRootSignature();
 		void CreatePSO();
+		void UpdateFrameResource(const CpuTimer& timer);
+		void UpdateObjResource(const CpuTimer& timer);
 
 
 	private:
@@ -43,6 +45,7 @@ namespace DSM {
 		std::map<std::string, ComPtr< ID3D12PipelineState>> m_PSOs;
 		std::unordered_map<std::string, ComPtr<ID3DBlob>> m_VSByteCodes;
 		std::unordered_map<std::string, ComPtr<ID3D10Blob>> m_PSByteCodes;
+		std::unordered_map<std::string, std::unique_ptr<Geometry::MeshData>> m_MeshData;
 
 		std::array<std::unique_ptr<FrameResource>, FrameCount> m_FrameResources;
 		FrameResource* m_CurrFrameResource;

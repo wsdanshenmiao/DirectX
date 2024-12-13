@@ -6,9 +6,34 @@ using namespace DSM::Geometry;
 using namespace DirectX;
 
 namespace DSM {
-	Model::Model(const std::string& filename)
-	{
+	Model::Model(const std::string& name, const std::string& filename)
+		:m_Name(name) {
 		LoadModelFromFile(filename);
+	}
+
+	std::string& Model::GetName()
+	{
+		return m_Name;
+	}
+
+	const std::string& Model::GetName() const
+	{
+		return m_Name;
+	}
+
+	const ModelMesh& Model::GetMesh(std::size_t index) const
+	{
+		return m_Meshs[index];
+	}
+
+	const std::vector<ModelMesh>& Model::GetAllMesh() const
+	{
+		return m_Meshs;
+	}
+
+	const Material& Model::GetMaterial(std::size_t index) const
+	{
+		return m_Materials[index];
 	}
 
 	bool Model::LoadModelFromFile(const std::string& filename)
@@ -76,9 +101,9 @@ namespace DSM {
 		}
 	}
 
-	ModelMsh Model::ProcessMesh(aiMesh* mesh, const aiScene* scene)
+	ModelMesh Model::ProcessMesh(aiMesh* mesh, const aiScene* scene)
 	{
-		ModelMsh modelMesh{};
+		ModelMesh modelMesh{};
 		auto& geoMesh = modelMesh.m_MeshData;
 		auto& vertices = geoMesh.m_Vertices;
 		auto& indices = geoMesh.m_Indices32;
@@ -110,9 +135,10 @@ namespace DSM {
 		}
 
 		// 获取索引
-		indices.reserve(mesh->mNumFaces * 3);
-		for (UINT i = 0; i < mesh->mNumFaces; ++i) {
-			memcpy(indices.data(), mesh->mFaces, sizeof(std::uint32_t) * mesh->mNumFaces * 3);
+		auto numIndex = mesh->mFaces->mNumIndices;
+		indices.resize(mesh->mNumFaces * numIndex);
+		for (size_t i = 0; i < mesh->mNumFaces; ++i) {
+			memcpy(indices.data() + i * numIndex, mesh->mFaces[i].mIndices, sizeof(uint32_t) * numIndex);
 		}
 
 		const auto& AABB = mesh->mAABB;

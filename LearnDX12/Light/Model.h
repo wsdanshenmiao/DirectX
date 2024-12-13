@@ -11,7 +11,7 @@
 
 namespace DSM {
 
-	struct ModelMsh
+	struct ModelMesh
 	{
 		Geometry::GeometryMesh m_MeshData;
 		DirectX::BoundingBox m_BoundingBox;
@@ -21,16 +21,22 @@ namespace DSM {
 	class Model
 	{
 	public:
-		Model(const std::string& filename);
+		Model(const std::string& name, const std::string& filename);
+
+		std::string& GetName();
+		const std::string& GetName() const;
+		const ModelMesh& GetMesh(std::size_t index) const;
+		const std::vector<ModelMesh>& GetAllMesh() const;
+		const Material& GetMaterial(std::size_t index) const;
 
 	private:
 		bool LoadModelFromFile(const std::string& filename);
 		void ProcessNode(aiNode* node, const aiScene* scene);
-		ModelMsh ProcessMesh(aiMesh* mesh, const aiScene* scene);
+		ModelMesh ProcessMesh(aiMesh* mesh, const aiScene* scene);
 
 	private:
 		std::string m_Name;
-		std::vector<ModelMsh> m_Meshs;
+		std::vector<ModelMesh> m_Meshs;
 		std::vector<Material> m_Materials;
 	};
 
