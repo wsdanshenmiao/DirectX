@@ -21,7 +21,7 @@
     <ClCompile Include="main.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="Light.cpp">
+    <ClCompile Include="LightApp.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="..\Common\CpuTimer.cpp">
@@ -62,7 +62,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Light.h">
+    <ClInclude Include="LightApp.h">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="..\Common\BaseImGuiManager.h">
@@ -128,5 +128,14 @@
     <ClInclude Include="MeshManager.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="Light.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Shader\Color.hlsl" />
+    <None Include="Shader\DSMCG.hlsli" />
+    <None Include="Shader\Light.hlsl" />
+    <None Include="Shader\DSMLighting.hlsli" />
   </ItemGroup>
 </Project>

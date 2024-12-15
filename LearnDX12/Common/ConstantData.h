@@ -28,6 +28,16 @@ namespace DSM {
 		float m_TotalTime = 0.0f;
 		float m_DeltaTime = 0.0f;
 	};
+
+	struct BaseMaterialConstants
+	{
+		DirectX::XMFLOAT3 m_Diffuse = { 0,0,0 };
+		float m_Alpha = 1;
+		DirectX::XMFLOAT3 m_Specular = { 0,0,0 };
+		float m_Gloss = 30;
+		DirectX::XMFLOAT3 m_Ambient = { 0,0,0 };
+		float m_Pad1;
+	};
 }
 
 #endif // !__CONSTANTDATA__H__

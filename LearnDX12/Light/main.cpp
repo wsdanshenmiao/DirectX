@@ -1,4 +1,4 @@
-﻿#include "Light.h"
+﻿#include "LightApp.h"
 
 using namespace DSM;
 using namespace DirectX;
@@ -16,7 +16,7 @@ int WinMain(
 
 	try
 	{
-		Light app(hInstance, L"Light", 1024, 720);
+		ILight app(hInstance, L"Light", 1024, 720);
 		app.OnInit();
 		return app.Run();
 	}

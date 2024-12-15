@@ -1,4 +1,4 @@
-#include "Light.h"
+#include "LightApp.h"
 #include "ImguiManager.h"
 #include "../Common/Vertex.h"
 #include "Model.h"
@@ -8,11 +8,11 @@ using namespace DirectX;
 using namespace DSM::Geometry;
 
 namespace DSM {
-	Light::Light(HINSTANCE hAppInst, const std::wstring& mainWndCaption, int clientWidth, int clientHeight)
+	ILight::ILight(HINSTANCE hAppInst, const std::wstring& mainWndCaption, int clientWidth, int clientHeight)
 		:D3D12App(hAppInst, mainWndCaption, clientWidth, clientHeight) {
 	}
 
-	bool Light::OnInit()
+	bool ILight::OnInit()
 	{
 		if (!D3D12App::OnInit()) {
 			return false;
@@ -42,7 +42,7 @@ namespace DSM {
 		return true;
 	}
 
-	void Light::OnUpdate(const CpuTimer& timer)
+	void ILight::OnUpdate(const CpuTimer& timer)
 	{
 		ImguiManager::GetInstance().Update(timer);
 
@@ -59,7 +59,7 @@ namespace DSM {
 		UpdateObjResource(timer);
 	}
 
-	void Light::UpdateFrameResource(const CpuTimer& timer)
+	void ILight::UpdateFrameResource(const CpuTimer& timer)
 	{
 		auto& imgui = ImguiManager::GetInstance();
 
@@ -95,7 +95,7 @@ namespace DSM {
 		currPassCB->Unmap();
 	}
 
-	void Light::UpdateObjResource(const CpuTimer& timer)
+	void ILight::UpdateObjResource(const CpuTimer& timer)
 	{
 		auto& imgui = ImguiManager::GetInstance();
 
@@ -124,7 +124,7 @@ namespace DSM {
 		}
 	}
 
-	void Light::OnRender(const CpuTimer& timer)
+	void ILight::OnRender(const CpuTimer& timer)
 	{
 		auto& cmdListAlloc = m_CurrFrameResource->m_CmdListAlloc;
 		ThrowIfFailed(cmdListAlloc->Reset());
@@ -227,7 +227,7 @@ namespace DSM {
 		m_CommandQueue->Signal(m_D3D12Fence.Get(), m_CurrentFence);
 	}
 
-	void Light::OnRenderScene()
+	void ILight::OnRenderScene()
 	{
 		// 设置根签名
 		m_CommandList->SetGraphicsRootSignature(m_RootSignature.Get());
@@ -265,7 +265,7 @@ namespace DSM {
 		ImguiManager::GetInstance().RenderImGui(m_CommandList.Get());
 	}
 
-	void Light::WaitForGPU()
+	void ILight::WaitForGPU()
 	{
 		HANDLE eventHandle = CreateEvent(nullptr, false, false, nullptr);
 		ThrowIfFailed(m_D3D12Fence->SetEventOnCompletion(m_CurrFrameResource->m_Fence, eventHandle));
@@ -275,47 +275,49 @@ namespace DSM {
 		}
 	}
 
-	bool Light::ImportModel()
+	bool ILight::ImportModel()
 	{
+		// 加载模型
 		Model model("House", "..\\Model\\Elena.obj");
 		auto& meshManager = StaticMeshManager::GetInstance();
 		auto& mesh = model.GetAllMesh();
 		auto vertFunc = [](const Vertex& vert) {
-			VertexPosLColor ret{};
-			float scale = 1;
-			ret.m_Pos = XMFLOAT3(
-				vert.m_Position.x * scale,
-				vert.m_Position.y * scale,
-				vert.m_Position.z * scale);
-			ret.m_Color = XMFLOAT4(1, 1, 1, 1);
+			VertexPosLNormal ret{};
+			ret.m_Pos = vert.m_Position;
+			ret.m_Normal = vert.m_Normal;
+			//ret.m_Color = { 1,1,1,1 };
 			return ret;
 			};
-		for (int i = 0; i < mesh.size(); ++i) {
-			auto meshdata = mesh[i].m_MeshData;
-			meshManager.AddMesh("House" + i, std::move(meshdata));
-			m_MeshData["House" + i] = meshManager.GetAllMeshData<VertexPosLColor>(
-				m_D3D12Device.Get(),
-				m_CommandList.Get(),
-				"House" + i,
-				vertFunc);
-			RenderItem grid;
-			grid.m_Name = "House" + i;
-			grid.m_Mesh = m_MeshData["House" + i].get();
-			grid.m_NumFramesDirty = FrameCount;
-			grid.m_RenderCBIndex = 0;
-			Object gridObj{ grid.m_Name };
-			gridObj.AddRenderItem(std::make_shared<RenderItem>(std::move(grid)));
-			m_Objects.insert(std::make_pair(gridObj.m_Name, std::move(gridObj)));
+		// 加入网格
+		for (auto& m : mesh) {
+			auto newMesh = m.m_MeshData;
+			meshManager.AddMesh(m.m_Name, std::move(newMesh));
 		}
+		m_MeshData[model.GetName()] = meshManager.GetAllMeshData<VertexPosLNormal>(
+			m_D3D12Device.Get(),
+			m_CommandList.Get(),
+			model.GetName(),
+			vertFunc);
 
-
+		// 添加绘制对象
+		Object gridObj{ model.GetName() };
+		for (UINT i = 0; i < mesh.size(); ++i) {
+			RenderItem item;
+			item.m_Name = mesh[i].m_Name;
+			item.m_Mesh = m_MeshData[model.GetName()].get();
+			item.m_NumFramesDirty = FrameCount;
+			item.m_RenderCBIndex = i;
+			item.m_Transform.SetScale(1, 1, 1);
+			gridObj.AddRenderItem(std::make_shared<RenderItem>(std::move(item)));
+		}
+		m_Objects.insert(std::make_pair(gridObj.m_Name, std::move(gridObj)));
 
 		return true;
 	}
 
-	bool Light::InitResource()
+	bool ILight::InitResource()
 	{
-		ImportModel();
+		//ImportModel();
 		CreateShaderBlob();
 		CreateFrameResource();
 		CreateCBV();
@@ -325,19 +327,27 @@ namespace DSM {
 		return true;
 	}
 
-	void Light::CreateShaderBlob()
+	void ILight::CreateShaderBlob()
 	{
-		auto colorVS = D3DUtil::CompileShader(L"Shader\\Color.hlsl", nullptr, "VS", "vs_5_0");
-		auto colorPS = D3DUtil::CompileShader(L"Shader\\Color.hlsl", nullptr, "PS", "ps_5_0");
+		D3D_SHADER_MACRO shaderMacro[] = {
+			//{"DIRLIGHTCOUNT", "1"},
+			{nullptr, nullptr}
+		};
+		auto colorVS = D3DUtil::CompileShader(L"Shader\\Color.hlsl", nullptr, "VS", "vs_5_1");
+		auto colorPS = D3DUtil::CompileShader(L"Shader\\Color.hlsl", nullptr, "PS", "ps_5_1");
 		m_VSByteCodes.insert(std::make_pair("Color", colorVS));
 		m_PSByteCodes.insert(std::make_pair("Color", colorPS));
 
+		auto lightVS = D3DUtil::CompileShader(L"Shader\\Light.hlsl", shaderMacro, "VS", "vs_5_1");
+		auto lightPS = D3DUtil::CompileShader(L"Shader\\Light.hlsl", shaderMacro, "PS", "ps_5_1");
+		m_VSByteCodes.insert(std::make_pair("Light", lightVS));
+		m_PSByteCodes.insert(std::make_pair("Light", lightPS));
 	}
 
 	/// <summary>
 	/// 创建帧资源
 	/// </summary>
-	void Light::CreateFrameResource()
+	void ILight::CreateFrameResource()
 	{
 		UINT renderItemSize = 0;
 		for (const auto& [name, obj] : m_Objects) {
@@ -356,12 +366,17 @@ namespace DSM {
 			frameResource->AddConstantBuffer(
 				m_D3D12Device.Get(),
 				sizeof(PassConstants),
-				FrameCount,
+				1,
 				"PassConstants");
+			frameResource->AddConstantBuffer(
+				m_D3D12Device.Get(),
+				sizeof(MaterialConstants),
+				m_RenderObjCount,
+				"MaterialConstants");
 		}
 	}
 
-	void Light::CreateCBV()
+	void ILight::CreateCBV()
 	{
 		// 创建常量描述符堆
 		D3D12_DESCRIPTOR_HEAP_DESC heapDesc{};
@@ -369,18 +384,22 @@ namespace DSM {
 		heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 		heapDesc.NumDescriptors = m_RenderObjCount * FrameCount;
 		heapDesc.NodeMask = 0;
-		ThrowIfFailed(m_D3D12Device->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(m_ObjCbv.GetAddressOf())));
+		ThrowIfFailed(m_D3D12Device->CreateDescriptorHeap(
+			&heapDesc, IID_PPV_ARGS(m_ObjCbv.GetAddressOf())));
+		ThrowIfFailed(m_D3D12Device->CreateDescriptorHeap(
+			&heapDesc, IID_PPV_ARGS(m_MaterialCbv.GetAddressOf())));
 		heapDesc.NumDescriptors = FrameCount;
-		ThrowIfFailed(m_D3D12Device->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(m_PassCbv.GetAddressOf())));
+		ThrowIfFailed(m_D3D12Device->CreateDescriptorHeap(
+			&heapDesc, IID_PPV_ARGS(m_PassCbv.GetAddressOf())));
 
 		// 计算常量缓冲区的大小
 		auto objCbvByteSize = D3DUtil::CalcConstantBufferByteSize(sizeof(ObjectConstants));
 		auto passCbvByteSize = D3DUtil::CalcConstantBufferByteSize(sizeof(PassConstants));
+		auto matCbvByteSize = D3DUtil::CalcConstantBufferByteSize(sizeof(MaterialConstants));
 
-		// 创建对应视图 
+		// 创建对应视图
 		for (UINT frameIndex = 0; frameIndex < FrameCount; ++frameIndex) {
 			auto& constBuffer = m_FrameResources[frameIndex]->m_ConstantBuffers;
-			auto passCB = constBuffer.find("PassConstants")->second->GetResource();
 			for (UINT i = 0; i < m_RenderObjCount; ++i) {
 				auto objCB = constBuffer.find("ObjectConstants")->second->GetResource();
 				// 常量缓冲区虚拟地址
@@ -396,10 +415,26 @@ namespace DSM {
 				objHandle.ptr += handleOffset * m_CbvSrvUavDescriptorSize;
 
 				m_D3D12Device->CreateConstantBufferView(&objCbvDesc, objHandle);
+
+
+				// 创建材质的资源视图
+				auto matCB = constBuffer.find("MaterialConstants")->second->GetResource();
+				auto matCbvAdress = matCB->GetGPUVirtualAddress();
+				matCbvAdress += i * matCbvByteSize;
+
+				D3D12_CONSTANT_BUFFER_VIEW_DESC matCbvDesc{};
+				matCbvDesc.BufferLocation = matCbvAdress;
+				objCbvDesc.SizeInBytes = matCbvByteSize;
+
+				auto matHandle = m_MaterialCbv->GetCPUDescriptorHandleForHeapStart();
+				matHandle.ptr += handleOffset * m_CbvSrvUavDescriptorSize;
+
+				m_D3D12Device->CreateConstantBufferView(&matCbvDesc, matHandle);
 			}
 
+			// 创建帧常量缓冲区
+			auto passCB = constBuffer.find("PassConstants")->second->GetResource();
 			auto passCbvAdress = passCB->GetGPUVirtualAddress();
-			passCbvAdress += frameIndex * passCbvByteSize;
 
 			D3D12_CONSTANT_BUFFER_VIEW_DESC passCbvDesc{};
 			passCbvDesc.BufferLocation = passCbvAdress;
@@ -412,7 +447,7 @@ namespace DSM {
 		}
 	}
 
-	void Light::CreateRootSignature()
+	void ILight::CreateRootSignature()
 	{
 		auto constBufferSize = m_FrameResources[0]->m_ConstantBuffers.size();
 		std::vector<CD3DX12_DESCRIPTOR_RANGE> cbvTables(constBufferSize);
@@ -452,26 +487,26 @@ namespace DSM {
 			IID_PPV_ARGS(m_RootSignature.GetAddressOf())));
 	}
 
-	void Light::CreatePSO()
+	void ILight::CreatePSO()
 	{
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc{};
 		ZeroMemory(&psoDesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
 		psoDesc.pRootSignature = m_RootSignature.Get();
 		psoDesc.VS = {
-			m_VSByteCodes["Color"]->GetBufferPointer(),
-			m_VSByteCodes["Color"]->GetBufferSize()
+			m_VSByteCodes["Light"]->GetBufferPointer(),
+			m_VSByteCodes["Light"]->GetBufferSize()
 		};
 		psoDesc.PS = {
-			m_PSByteCodes["Color"]->GetBufferPointer(),
-			m_PSByteCodes["Color"]->GetBufferSize()
+			m_PSByteCodes["Light"]->GetBufferPointer(),
+			m_PSByteCodes["Light"]->GetBufferSize()
 		};
-		psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
 		psoDesc.SampleMask = UINT_MAX;
+		psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
 		psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
 		psoDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
 		psoDesc.InputLayout = {
-			VertexPosLColor::GetInputLayout().data(),
-			(UINT)VertexPosLColor::GetInputLayout().size()
+			VertexPosLNormal::GetInputLayout().data(),
+			(UINT)VertexPosLNormal::GetInputLayout().size()
 		};
 		psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 		psoDesc.NumRenderTargets = 1;

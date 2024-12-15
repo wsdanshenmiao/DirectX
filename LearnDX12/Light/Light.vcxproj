@@ -156,7 +156,7 @@
     <ClCompile Include="..\Common\Mesh.cpp" />
     <ClCompile Include="Geometry.cpp" />
     <ClCompile Include="ImguiManager.cpp" />
-    <ClCompile Include="Light.cpp" />
+    <ClCompile Include="LightApp.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="MeshManager.cpp" />
     <ClCompile Include="Model.cpp" />
@@ -180,12 +180,29 @@
     <ClInclude Include="Geometry.h" />
     <ClInclude Include="ImguiManager.h" />
     <ClInclude Include="Light.h" />
+    <ClInclude Include="LightApp.h" />
     <ClInclude Include="Material.h" />
     <ClInclude Include="MeshManager.h" />
     <ClInclude Include="Model.h" />
     <ClInclude Include="Object.h" />
     <ClInclude Include="RenderItem.h" />
     <ClInclude Include="Transform.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Shader\Color.hlsl">
+      <FileType>Document</FileType>
+    </None>
+    <None Include="Shader\DSMCG.hlsli" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Shader\DSMLighting.hlsli" />
+    <None Include="Shader\Light.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
+      <FileType>Document</FileType>
+    </None>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -8,7 +8,7 @@ namespace DSM {
 	struct Material
 	{
 		using MaterialProperty =
-			std::variant<int, float, DirectX::XMFLOAT2, DirectX::XMFLOAT3, DirectX::XMFLOAT4>;
+			std::variant<int, float, DirectX::XMFLOAT2, DirectX::XMFLOAT3, DirectX::XMFLOAT4, std::string>;
 
 		std::size_t PropertySize()const;
 

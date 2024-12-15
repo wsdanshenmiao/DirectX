@@ -64,7 +64,10 @@ namespace DSM {
 			XMFLOAT4 vector{};
 			float value{};
 			uint32_t num = 3;
+			aiString name;
 
+			if (aiReturn_SUCCESS == material->Get(AI_MATKEY_NAME, name))
+				m_Materials[i].Set("Name", std::string{ name.C_Str() });
 			if (aiReturn_SUCCESS == material->Get(AI_MATKEY_COLOR_AMBIENT, (float*)&vector, &num))
 				m_Materials[i].Set("AmbientColor", vector);
 			if (aiReturn_SUCCESS == material->Get(AI_MATKEY_COLOR_DIFFUSE, (float*)&vector, &num))
@@ -107,6 +110,7 @@ namespace DSM {
 		auto& geoMesh = modelMesh.m_MeshData;
 		auto& vertices = geoMesh.m_Vertices;
 		auto& indices = geoMesh.m_Indices32;
+		modelMesh.m_Name = mesh->mName.C_Str();
 
 		// 获取顶点数据
 		vertices.reserve(mesh->mNumVertices);
