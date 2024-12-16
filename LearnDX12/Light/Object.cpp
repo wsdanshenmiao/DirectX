@@ -50,6 +50,11 @@ namespace DSM {
 		return m_RenderItems.size();
 	}
 
+	const Model* Object::GetModel() const noexcept
+	{
+		return m_Model;
+	}
+
 	DirectX::BoundingBox Object::GetBouningBox() const noexcept
 	{
 		return m_BoundingBox;
@@ -62,6 +67,11 @@ namespace DSM {
 		}
 		child->m_Parent = this;
 		m_ChildObject.try_emplace(child->m_Name, child);
+	}
+
+	void Object::SetModel(const Model* model) noexcept
+	{
+		m_Model = model;
 	}
 
 	void Object::SetParent(Object* parent) noexcept

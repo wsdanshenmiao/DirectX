@@ -102,19 +102,20 @@ namespace DSM {
 	{
 		auto& imgui = ImguiManager::GetInstance();
 
-		for (const auto& objPair : m_Objects) {
-			auto& obj = objPair.second;
-			XMMATRIX scale = imgui.m_Transform.GetScaleMatrix() * obj.GetTransform().GetScaleMatrix();
-			XMMATRIX rotate = imgui.m_Transform.GetRotateMatrix() * obj.GetTransform().GetRotateMatrix();
-			XMVECTOR position = XMVectorAdd(imgui.m_Transform.GetTranslation(),
-				obj.GetTransform().GetTranslation());
+		for (const auto& [name, obj] : m_Objects) {
+			auto& transform = obj.GetTransform();
+			XMMATRIX scale = imgui.m_Transform.GetScaleMatrix() * transform.GetScaleMatrix();
+			XMMATRIX rotate = imgui.m_Transform.GetRotateMatrix() * transform.GetRotateMatrix();
+			XMVECTOR position = XMVectorAdd(imgui.m_Transform.GetTranslation(), transform.GetTranslation());
 			for (const auto& item : obj.GetAllRenderItems()) {
 				scale *= item->m_Transform.GetScaleMatrix();
 				rotate *= item->m_Transform.GetRotateMatrix();
 				XMVectorAdd(position, item->m_Transform.GetTranslation());
 				auto world = scale * rotate * XMMatrixTranslationFromVector(position);
 				auto detWorld = XMMatrixDeterminant(world);
-				XMMATRIX invWorld = XMMatrixInverse(&detWorld, world);
+				auto W = world;
+				W.r[3] = g_XMIdentityR3;
+				XMMATRIX invWorld = XMMatrixInverse(&detWorld, W);
 				ObjectConstants objectConstants;
 				XMStoreFloat4x4(&objectConstants.m_World, XMMatrixTranspose(world));
 				XMStoreFloat4x4(&objectConstants.m_WorldInvTranspos, XMMatrixTranspose(invWorld));
@@ -244,10 +245,16 @@ namespace DSM {
 
 		auto lightCbv = LightManager::GetInstance().GetLightCbv();
 		ID3D12DescriptorHeap* lightDescriptorHeaps[] = { lightCbv };
-		m_CommandList->SetDescriptorHeaps(_countof(passDescriptorHeaps), passDescriptorHeaps);
+		m_CommandList->SetDescriptorHeaps(_countof(lightDescriptorHeaps), lightDescriptorHeaps);
 		auto lightCbvHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(lightCbv->GetGPUDescriptorHandleForHeapStart());
 		lightCbvHandle.Offset(m_CurrFRIndex, m_CbvSrvUavDescriptorSize);
 		m_CommandList->SetGraphicsRootDescriptorTable(2, lightCbvHandle);
+
+		ID3D12DescriptorHeap* matDescriptorHeaps[] = { m_MaterialCbv.Get() };
+		m_CommandList->SetDescriptorHeaps(_countof(matDescriptorHeaps), matDescriptorHeaps);
+		auto matCbvHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(m_MaterialCbv->GetGPUDescriptorHandleForHeapStart());
+		matCbvHandle.Offset(m_CurrFRIndex, m_CbvSrvUavDescriptorSize);
+		m_CommandList->SetGraphicsRootDescriptorTable(3, matCbvHandle);
 
 		UINT currMeshIndex = 0;
 		for (const auto& [name, obj] : m_Objects) {
@@ -264,7 +271,7 @@ namespace DSM {
 				objCbvHandle.Offset(objCbvIndex, m_CbvSrvUavDescriptorSize);
 				m_CommandList->SetGraphicsRootDescriptorTable(0, objCbvHandle);
 
-				auto& submesh = item->m_Mesh->m_DrawArgs[item->m_Name];
+				auto& submesh = item->m_Mesh->m_DrawArgs.find(item->m_Name)->second;
 				m_CommandList->DrawIndexedInstanced(
 					submesh.m_IndexCount,
 					1,
@@ -289,9 +296,9 @@ namespace DSM {
 	bool LightApp::ImportModel()
 	{
 		// 加载模型
-		Model model("House", "..\\Model\\Elena.obj");
+		Model* elenaModel = new Model{ "Elena", "..\\Model\\Elena.obj" };
 		auto& meshManager = StaticMeshManager::GetInstance();
-		auto& mesh = model.GetAllMesh();
+		auto& mesh = elenaModel->GetAllMesh();
 		auto vertFunc = [](const Vertex& vert) {
 			VertexPosLNormal ret{};
 			ret.m_Pos = vert.m_Position;
@@ -304,30 +311,49 @@ namespace DSM {
 			auto newMesh = m.m_MeshData;
 			meshManager.AddMesh(m.m_Name, std::move(newMesh));
 		}
-		m_MeshData[model.GetName()] = meshManager.GetAllMeshData<VertexPosLNormal>(
+		m_MeshData[elenaModel->GetName()] = meshManager.GetAllMeshData<VertexPosLNormal>(
 			m_D3D12Device.Get(),
 			m_CommandList.Get(),
-			model.GetName(),
+			elenaModel->GetName(),
 			vertFunc);
 
 		// 添加绘制对象
-		Object itemObj{ model.GetName() };
+		Object itemObj{ elenaModel->GetName() };
 		for (UINT i = 0; i < mesh.size(); ++i) {
 			RenderItem item;
 			item.m_Name = mesh[i].m_Name;
-			item.m_Mesh = m_MeshData[model.GetName()].get();
+			item.m_Mesh = m_MeshData[elenaModel->GetName()].get();
 			item.m_NumFramesDirty = FrameCount;
 			item.m_RenderCBIndex = i;
 			item.m_Transform.SetScale(1, 1, 1);
+			item.m_Material = &elenaModel->GetMaterial(mesh[i].m_MaterialIndex);
 			itemObj.AddRenderItem(std::make_shared<RenderItem>(std::move(item)));
 		}
-		itemObj.GetTransform().SetScale(2, 2, 2);
+		auto& transform = itemObj.GetTransform();
+		transform.SetScale(4, 4, 4);
+		auto prePos = transform.GetPosition();
+		transform.SetPosition(prePos.x, -40, prePos.z);
+		itemObj.SetModel(elenaModel);
 		m_Objects.insert(std::make_pair(itemObj.m_Name, std::move(itemObj)));
 
 		return true;
 	}
 
 	bool LightApp::InitResource()
+	{
+		CreateLight();
+		ImportModel();
+		CreateShaderBlob();
+		CreateFrameResource();
+		CreateCBV();
+		InitMaterials();
+		CreateRootSignature();
+		CreatePSO();
+
+		return true;
+	}
+
+	void LightApp::CreateLight()
 	{
 		auto& lightManager = LightManager::GetInstance();
 		DirectionalLight dirLight0{};
@@ -345,17 +371,9 @@ namespace DSM {
 		spotLight0.m_StartAtten = 20;
 		spotLight0.m_EndAtten = 30;
 		spotLight0.m_SpotPower = 0.5;
-		//lightManager.SetDirLight(0, std::move(dirLight0));
+		lightManager.SetDirLight(0, std::move(dirLight0));
 		//lightManager.SetPointLight(0, std::move(pointLight0));
 		lightManager.SetSpotLight(0, std::move(spotLight0));
-		ImportModel();
-		CreateShaderBlob();
-		CreateFrameResource();
-		CreateCBV();
-		CreateRootSignature();
-		CreatePSO();
-
-		return true;
 	}
 
 	void LightApp::CreateShaderBlob()
@@ -488,6 +506,43 @@ namespace DSM {
 			m_D3D12Device.Get(),
 			m_FrameResources.data(),
 			m_CbvSrvUavDescriptorSize);
+	}
+
+	void LightApp::InitMaterials()
+	{
+		for (int i = 0; i < FrameCount; ++i) {
+			auto& matCB = m_FrameResources[i]->m_ConstantBuffers.find("MaterialConstants")->second;
+			std::size_t j = 0;
+			for (const auto& [name, obj] : m_Objects) {
+				for (const auto& item : obj.GetAllRenderItems()) {
+					auto& material = item->m_Material;
+					matCB->m_IsDirty = true;
+					matCB->Map();
+					MaterialConstants mat{};
+					if (auto diffuse = material->Get<XMFLOAT3>("DiffuseColor"); diffuse != nullptr) {
+						mat.m_Diffuse = *diffuse;
+					}
+					if (auto specular = material->Get<XMFLOAT3>("SpecularColor"); specular != nullptr) {
+						mat.m_Specular = *specular;
+					}
+					if (auto ambient = material->Get<XMFLOAT3>("AmbientColor"); ambient != nullptr) {
+						mat.m_Ambient = *ambient;
+						float ambientScale = 0.01f;
+						mat.m_Ambient = XMFLOAT3{
+							mat.m_Ambient.x * 0.01f,mat.m_Ambient.y * 0.01f,mat.m_Ambient.z * 0.01f };
+					}
+					if (auto gloss = material->Get<float>("SpecularFactor"); gloss != nullptr) {
+						mat.m_Gloss = *gloss;
+					}
+					if (auto alpha = material->Get<float>("Opacity"); alpha != nullptr) {
+						mat.m_Alpha = *alpha;
+					}
+					matCB->CopyData(i * m_RenderObjCount + j, &mat, sizeof(MaterialConstants));
+					matCB->Unmap();
+					++j;
+				}
+			}
+		}
 	}
 
 	void LightApp::CreateRootSignature()

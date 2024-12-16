@@ -61,7 +61,7 @@ namespace DSM {
 		for (UINT i = 0; i < pScene->mNumMaterials; ++i) {
 			auto& material = pScene->mMaterials[i];
 
-			XMFLOAT4 vector{};
+			XMFLOAT3 vector{};
 			float value{};
 			uint32_t num = 3;
 			aiString name;

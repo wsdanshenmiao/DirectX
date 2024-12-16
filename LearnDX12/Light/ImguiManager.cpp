@@ -50,8 +50,8 @@ namespace DSM {
 			// 鼠标左键拖动平移
 			if (ImGui::IsMouseDragging(ImGuiMouseButton_Left))
 			{
-				position.x += io.MouseDelta.x * 0.01f;
-				position.y -= io.MouseDelta.y * 0.01f;
+				position.x += io.MouseDelta.x * 0.1f;
+				position.y -= io.MouseDelta.y * 0.1f;
 			}
 			// 鼠标右键拖动旋转
 			else if (ImGui::IsMouseDragging(ImGuiMouseButton_Right))

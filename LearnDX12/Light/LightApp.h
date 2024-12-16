@@ -26,9 +26,11 @@ namespace DSM {
 		bool ImportModel();
 
 		bool InitResource();
+		void CreateLight();
 		void CreateShaderBlob();
 		void CreateFrameResource();
 		void CreateCBV();
+		void InitMaterials();
 		void CreateRootSignature();
 		void CreatePSO();
 		void UpdateFrameResource(const CpuTimer& timer);
