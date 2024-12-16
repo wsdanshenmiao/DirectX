@@ -142,8 +142,6 @@
     <None Include="Shader\Color.hlsl" />
     <None Include="Shader\DSMCG.hlsli" />
     <None Include="Shader\DSMLighting.hlsli" />
-  </ItemGroup>
-  <ItemGroup>
-    <FxCompile Include="Shader\Light.hlsl" />
+    <None Include="Shader\Light.hlsl" />
   </ItemGroup>
 </Project>

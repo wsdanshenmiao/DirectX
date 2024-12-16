@@ -311,7 +311,7 @@ namespace DSM {
 			vertFunc);
 
 		// 添加绘制对象
-		Object gridObj{ model.GetName() };
+		Object itemObj{ model.GetName() };
 		for (UINT i = 0; i < mesh.size(); ++i) {
 			RenderItem item;
 			item.m_Name = mesh[i].m_Name;
@@ -319,9 +319,10 @@ namespace DSM {
 			item.m_NumFramesDirty = FrameCount;
 			item.m_RenderCBIndex = i;
 			item.m_Transform.SetScale(1, 1, 1);
-			gridObj.AddRenderItem(std::make_shared<RenderItem>(std::move(item)));
+			itemObj.AddRenderItem(std::make_shared<RenderItem>(std::move(item)));
 		}
-		m_Objects.insert(std::make_pair(gridObj.m_Name, std::move(gridObj)));
+		itemObj.GetTransform().SetScale(2, 2, 2);
+		m_Objects.insert(std::make_pair(itemObj.m_Name, std::move(itemObj)));
 
 		return true;
 	}
@@ -331,8 +332,22 @@ namespace DSM {
 		auto& lightManager = LightManager::GetInstance();
 		DirectionalLight dirLight0{};
 		dirLight0.m_Color = { 1,1,1 };
-		dirLight0.m_Dir = { 0,-1,0 };
-		lightManager.SetDirLight(0, std::move(dirLight0));
+		dirLight0.m_Dir = { 0,-0.7,0.2 };
+		PointLight pointLight0{};
+		pointLight0.m_Color = { 1,1,1 };
+		pointLight0.m_Pos = { 0,0,0 };
+		pointLight0.m_StartAtten = 10;
+		pointLight0.m_EndAtten = 20;
+		SpotLight spotLight0{};
+		spotLight0.m_Pos = { 0,50,0 };
+		spotLight0.m_Dir = { 0,-1,0 };
+		spotLight0.m_Color = { 1,1,1 };
+		spotLight0.m_StartAtten = 20;
+		spotLight0.m_EndAtten = 30;
+		spotLight0.m_SpotPower = 0.5;
+		//lightManager.SetDirLight(0, std::move(dirLight0));
+		//lightManager.SetPointLight(0, std::move(pointLight0));
+		lightManager.SetSpotLight(0, std::move(spotLight0));
 		ImportModel();
 		CreateShaderBlob();
 		CreateFrameResource();

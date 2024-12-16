@@ -198,7 +198,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Shader\DSMLighting.hlsli" />
-    <FxCompile Include="Shader\Light.hlsl">
+    <None Include="Shader\Light.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Pixel</ShaderType>
@@ -216,7 +216,7 @@
       <AssemblerOutputFile Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">D:\Code\Computer Graphics\DirectX\LearnDX12\Light\Shader</AssemblerOutputFile>
       <AssemblerOutputFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">D:\Code\Computer Graphics\DirectX\LearnDX12\Light\Shader</AssemblerOutputFile>
       <AssemblerOutputFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">D:\Code\Computer Graphics\DirectX\LearnDX12\Light\Shader</AssemblerOutputFile>
-    </FxCompile>
+    </None>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

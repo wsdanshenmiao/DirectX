@@ -61,7 +61,7 @@ struct Lights
 
 float CalcuAttenuation(float distance, float startAtten, float endAtten)
 {
-    return (saturate(endAtten - distance) / (endAtten - startAtten));
+    return saturate((endAtten - distance) / (endAtten - startAtten));
 }
 
 float3 BlinnPhong(MaterialConstants mat, float3 lightColor, float3 lightDir, float3 viewDir, float3 normal)
@@ -78,6 +78,7 @@ float3 BlinnPhong(MaterialConstants mat, float3 lightColor, float3 lightDir, flo
 float3 ComputeDirectionalLight(DirectionalLight light, MaterialConstants mat, float3 viewDir, float3 normal)
 {
     float3 lightDir = -light.Dir;
+    normalize(lightDir);
     return BlinnPhong(mat, light.Color, lightDir, viewDir, normal);
 }
 
@@ -110,6 +111,7 @@ float3 ComputeSpotLight(SpotLight light, MaterialConstants mat, float3 viewDir, 
     return BlinnPhong(mat, lightColor, lightDir, viewDir, normal);
 }
 
+// 需要传入归一化后的viewDir和normal
 float3 ComputeLighting(
     Lights lights,
     MaterialConstants mat,

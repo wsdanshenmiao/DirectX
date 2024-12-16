@@ -29,8 +29,6 @@ float4 PS(VertexPosWHNormalW i) : SV_Target
     {
         shadowFactor[index] = 1;
     }
-    //Lights lights = gLightCB;
-    //MaterialConstants mat = gMatCB;
     MaterialConstants mat;
     mat.Diffuse = float3(1, 1, 1);
     mat.Specular = float3(0.5, 0.5, 0.5);
