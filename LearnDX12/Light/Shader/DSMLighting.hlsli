@@ -2,17 +2,17 @@
 #define __DSMLIGHTING__HLSLI__
 
 
-// 需要使用全局宏定义光源的数量
-#if (DIRLIGHTCOUNT < 1)
-#define DIRLIGHTCOUNT 1
+// 需要使用全局宏定义最大光源的数量
+#ifndef MAXDIRLIGHTCOUNT
+#define MAXDIRLIGHTCOUNT 5
 #endif
 
-#ifndef POINTLIGHTCOUNT
-#define POINTLIGHTCOUNT 0
+#ifndef MAXPOINTLIGHTCOUNT
+#define MAXPOINTLIGHTCOUNT 5
 #endif
 
-#ifndef SPOTLIGHTCOUNT
-#define SPOTLIGHTCOUNT 0
+#ifndef MAXSPOTLIGHTCOUNT
+#define MAXSPOTLIGHTCOUNT 5
 #endif
 
 struct DirectionalLight
@@ -54,13 +54,9 @@ struct MaterialConstants
 // 各种光源的集合，需要按顺序传递光源
 struct Lights
 {
-    DirectionalLight DirectionalLights[DIRLIGHTCOUNT];
-#if (POINTLIGHTCOUNT > 0)
-    PointLight PointLights[POINTLIGHTCOUNT];
-#endif
-#if (SPOTLIGHTCOUNT > 0)
-    SpotLight SpotLights[SPOTLIGHTCOUNT];
-#endif
+    DirectionalLight DirectionalLights[MAXDIRLIGHTCOUNT];
+    PointLight PointLights[MAXPOINTLIGHTCOUNT];
+    SpotLight SpotLights[MAXSPOTLIGHTCOUNT];
 };
 
 float CalcuAttenuation(float distance, float startAtten, float endAtten)
@@ -120,30 +116,26 @@ float3 ComputeLighting(
     float3 viewDir,
     float3 normal,
     float3 posW,
-    float shadowFactor[DIRLIGHTCOUNT])
+    float shadowFactor[MAXDIRLIGHTCOUNT])
 {
     float3 col = 0;
     
     [unroll]
-    for (uint i = 0; i < DIRLIGHTCOUNT; ++i)
+    for (uint i = 0; i < MAXDIRLIGHTCOUNT; ++i)
     {
         // 仅直接光接收阴影
         col += ComputeDirectionalLight(lights.DirectionalLights[i], mat, viewDir, normal) * shadowFactor[i];
     }
-#if (POINTLIGHTCOUNT > 0)
     [unroll]
-    for (uint i = 0; i < POINTLIGHTCOUNT; ++i)
+    for (uint i = 0; i < MAXPOINTLIGHTCOUNT; ++i)
     {
         col += ComputePointLight(lights.PointLights[i], mat, viewDir, normal, posW);
     }
-#endif
-#if (SPOTLIGHTCOUNT > 0)
     [unroll]
-    for (uint i = 0; i < SPOTLIGHTCOUNT; ++i)
+    for (uint i = 0; i < MAXSPOTLIGHTCOUNT; ++i)
     {
         col += ComputeSpotLight(lights.SpotLights[i], mat, viewDir, normal, posW);
     }
-#endif
 
     return col;
 }

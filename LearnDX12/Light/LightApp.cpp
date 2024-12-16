@@ -3,23 +3,25 @@
 #include "../Common/Vertex.h"
 #include "Model.h"
 #include "MeshManager.h"
+#include "LightManager.h"
 
 using namespace DirectX;
 using namespace DSM::Geometry;
 
 namespace DSM {
-	ILight::ILight(HINSTANCE hAppInst, const std::wstring& mainWndCaption, int clientWidth, int clientHeight)
+	LightApp::LightApp(HINSTANCE hAppInst, const std::wstring& mainWndCaption, int clientWidth, int clientHeight)
 		:D3D12App(hAppInst, mainWndCaption, clientWidth, clientHeight) {
 	}
 
-	bool ILight::OnInit()
+	bool LightApp::OnInit()
 	{
 		if (!D3D12App::OnInit()) {
 			return false;
 		}
 
-		ImguiManager::Create();
+		LightManager::Create();
 		StaticMeshManager::Create();
+		ImguiManager::Create();
 		if (!ImguiManager::GetInstance().InitImGui(
 			m_D3D12Device.Get(),
 			m_hMainWnd,
@@ -42,7 +44,7 @@ namespace DSM {
 		return true;
 	}
 
-	void ILight::OnUpdate(const CpuTimer& timer)
+	void LightApp::OnUpdate(const CpuTimer& timer)
 	{
 		ImguiManager::GetInstance().Update(timer);
 
@@ -57,9 +59,10 @@ namespace DSM {
 
 		UpdateFrameResource(timer);
 		UpdateObjResource(timer);
+		LightManager::GetInstance().UpdateLight(m_CurrFrameResource);
 	}
 
-	void ILight::UpdateFrameResource(const CpuTimer& timer)
+	void LightApp::UpdateFrameResource(const CpuTimer& timer)
 	{
 		auto& imgui = ImguiManager::GetInstance();
 
@@ -95,7 +98,7 @@ namespace DSM {
 		currPassCB->Unmap();
 	}
 
-	void ILight::UpdateObjResource(const CpuTimer& timer)
+	void LightApp::UpdateObjResource(const CpuTimer& timer)
 	{
 		auto& imgui = ImguiManager::GetInstance();
 
@@ -124,7 +127,7 @@ namespace DSM {
 		}
 	}
 
-	void ILight::OnRender(const CpuTimer& timer)
+	void LightApp::OnRender(const CpuTimer& timer)
 	{
 		auto& cmdListAlloc = m_CurrFrameResource->m_CmdListAlloc;
 		ThrowIfFailed(cmdListAlloc->Reset());
@@ -227,16 +230,24 @@ namespace DSM {
 		m_CommandQueue->Signal(m_D3D12Fence.Get(), m_CurrentFence);
 	}
 
-	void ILight::OnRenderScene()
+	void LightApp::OnRenderScene()
 	{
 		// 设置根签名
 		m_CommandList->SetGraphicsRootSignature(m_RootSignature.Get());
+
 		// 设置当前帧资源的根描述符表
-		ID3D12DescriptorHeap* descriptorHeaps[] = { m_PassCbv.Get() };
-		m_CommandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
+		ID3D12DescriptorHeap* passDescriptorHeaps[] = { m_PassCbv.Get() };
+		m_CommandList->SetDescriptorHeaps(_countof(passDescriptorHeaps), passDescriptorHeaps);
 		auto passCbvHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(m_PassCbv->GetGPUDescriptorHandleForHeapStart());
 		passCbvHandle.Offset(m_CurrFRIndex, m_CbvSrvUavDescriptorSize);
 		m_CommandList->SetGraphicsRootDescriptorTable(1, passCbvHandle);
+
+		auto lightCbv = LightManager::GetInstance().GetLightCbv();
+		ID3D12DescriptorHeap* lightDescriptorHeaps[] = { lightCbv };
+		m_CommandList->SetDescriptorHeaps(_countof(passDescriptorHeaps), passDescriptorHeaps);
+		auto lightCbvHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(lightCbv->GetGPUDescriptorHandleForHeapStart());
+		lightCbvHandle.Offset(m_CurrFRIndex, m_CbvSrvUavDescriptorSize);
+		m_CommandList->SetGraphicsRootDescriptorTable(2, lightCbvHandle);
 
 		UINT currMeshIndex = 0;
 		for (const auto& [name, obj] : m_Objects) {
@@ -265,7 +276,7 @@ namespace DSM {
 		ImguiManager::GetInstance().RenderImGui(m_CommandList.Get());
 	}
 
-	void ILight::WaitForGPU()
+	void LightApp::WaitForGPU()
 	{
 		HANDLE eventHandle = CreateEvent(nullptr, false, false, nullptr);
 		ThrowIfFailed(m_D3D12Fence->SetEventOnCompletion(m_CurrFrameResource->m_Fence, eventHandle));
@@ -275,7 +286,7 @@ namespace DSM {
 		}
 	}
 
-	bool ILight::ImportModel()
+	bool LightApp::ImportModel()
 	{
 		// 加载模型
 		Model model("House", "..\\Model\\Elena.obj");
@@ -315,9 +326,14 @@ namespace DSM {
 		return true;
 	}
 
-	bool ILight::InitResource()
+	bool LightApp::InitResource()
 	{
-		//ImportModel();
+		auto& lightManager = LightManager::GetInstance();
+		DirectionalLight dirLight0{};
+		dirLight0.m_Color = { 1,1,1 };
+		dirLight0.m_Dir = { 0,-1,0 };
+		lightManager.SetDirLight(0, std::move(dirLight0));
+		ImportModel();
 		CreateShaderBlob();
 		CreateFrameResource();
 		CreateCBV();
@@ -327,10 +343,16 @@ namespace DSM {
 		return true;
 	}
 
-	void ILight::CreateShaderBlob()
+	void LightApp::CreateShaderBlob()
 	{
+		auto& lightManager = LightManager::GetInstance();
+		auto dirLightCount = std::to_string(lightManager.GetDirLightCount());
+		auto pointLightCount = std::to_string(lightManager.GetPointLightCount());
+		auto spotLightCount = std::to_string(lightManager.GetSpotLightCount());
 		D3D_SHADER_MACRO shaderMacro[] = {
-			//{"DIRLIGHTCOUNT", "1"},
+			{"MAXDIRLIGHTCOUNT", dirLightCount.c_str()},
+			{"MAXPOINTLIGHTCOUNT", pointLightCount.c_str()},
+			{"MAXSPOTLIGHTCOUNT", spotLightCount.c_str()},
 			{nullptr, nullptr}
 		};
 		auto colorVS = D3DUtil::CompileShader(L"Shader\\Color.hlsl", nullptr, "VS", "vs_5_1");
@@ -347,7 +369,7 @@ namespace DSM {
 	/// <summary>
 	/// 创建帧资源
 	/// </summary>
-	void ILight::CreateFrameResource()
+	void LightApp::CreateFrameResource()
 	{
 		UINT renderItemSize = 0;
 		for (const auto& [name, obj] : m_Objects) {
@@ -373,10 +395,12 @@ namespace DSM {
 				sizeof(MaterialConstants),
 				m_RenderObjCount,
 				"MaterialConstants");
+			frameResource->AddConstantBuffer(
+				LightManager::GetInstance().CreateLightBuffer(m_D3D12Device.Get()));
 		}
 	}
 
-	void ILight::CreateCBV()
+	void LightApp::CreateCBV()
 	{
 		// 创建常量描述符堆
 		D3D12_DESCRIPTOR_HEAP_DESC heapDesc{};
@@ -424,7 +448,7 @@ namespace DSM {
 
 				D3D12_CONSTANT_BUFFER_VIEW_DESC matCbvDesc{};
 				matCbvDesc.BufferLocation = matCbvAdress;
-				objCbvDesc.SizeInBytes = matCbvByteSize;
+				matCbvDesc.SizeInBytes = matCbvByteSize;
 
 				auto matHandle = m_MaterialCbv->GetCPUDescriptorHandleForHeapStart();
 				matHandle.ptr += handleOffset * m_CbvSrvUavDescriptorSize;
@@ -445,9 +469,13 @@ namespace DSM {
 
 			m_D3D12Device->CreateConstantBufferView(&passCbvDesc, passHandle);
 		}
+		LightManager::GetInstance().CreateLightCbv(
+			m_D3D12Device.Get(),
+			m_FrameResources.data(),
+			m_CbvSrvUavDescriptorSize);
 	}
 
-	void ILight::CreateRootSignature()
+	void LightApp::CreateRootSignature()
 	{
 		auto constBufferSize = m_FrameResources[0]->m_ConstantBuffers.size();
 		std::vector<CD3DX12_DESCRIPTOR_RANGE> cbvTables(constBufferSize);
@@ -487,7 +515,7 @@ namespace DSM {
 			IID_PPV_ARGS(m_RootSignature.GetAddressOf())));
 	}
 
-	void ILight::CreatePSO()
+	void LightApp::CreatePSO()
 	{
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc{};
 		ZeroMemory(&psoDesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));

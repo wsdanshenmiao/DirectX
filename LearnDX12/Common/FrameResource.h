@@ -25,6 +25,7 @@ namespace DSM {
 			UINT byteSize,
 			UINT elementSize,
 			const std::string& bufferName);
+		void AddConstantBuffer(std::pair<std::string, PConstantBuffer>&& buffer);
 		void AddDynamicBuffer(
 			ID3D12Device* device,
 			UINT byteSize,

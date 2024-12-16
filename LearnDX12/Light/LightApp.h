@@ -1,6 +1,6 @@
 #pragma once
-#ifndef __LIGHT__H__
-#define __LIGHT__H__
+#ifndef __LIGHTAPP__H__
+#define __LIGHTAPP__H__
 
 #include "../Common/D3D12.h"
 #include "../Common/FrameResource.h"
@@ -9,10 +9,10 @@
 
 
 namespace DSM {
-	class Light : public D3D12App
+	class LightApp : public D3D12App
 	{
 	public:
-		Light(HINSTANCE hAppInst, const std::wstring& mainWndCaption, int clientWidth = 512, int clientHeight = 512);
+		LightApp(HINSTANCE hAppInst, const std::wstring& mainWndCaption, int clientWidth = 512, int clientHeight = 512);
 
 		bool OnInit() override;
 
@@ -35,7 +35,7 @@ namespace DSM {
 		void UpdateObjResource(const CpuTimer& timer);
 
 
-	private:
+	public:
 		inline static constexpr UINT FrameCount = 3;
 
 	private:
@@ -59,4 +59,4 @@ namespace DSM {
 
 }
 
-#endif // !__LIGHT__H__
+#endif // !__LIGHTAPP__H__

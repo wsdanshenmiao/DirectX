@@ -16,7 +16,6 @@ namespace DSM {
 		UploadBuffer(UploadBuffer&& other) = default;
 		UploadBuffer& operator=(const UploadBuffer& other) = delete;
 		UploadBuffer& operator=(UploadBuffer&& other) = default;
-		~UploadBuffer();
 
 		void Map();
 		void Unmap();
@@ -52,12 +51,6 @@ namespace DSM {
 			D3D12_RESOURCE_STATE_GENERIC_READ,
 			nullptr,
 			IID_PPV_ARGS(m_UploadBuffer.GetAddressOf())));
-	}
-
-	template<typename T>
-	inline UploadBuffer<T>::~UploadBuffer()
-	{
-		m_MappedData = nullptr;
 	}
 
 	template<typename T>

@@ -29,7 +29,7 @@ namespace DSM {
 		float m_DeltaTime = 0.0f;
 	};
 
-	struct BaseMaterialConstants
+	struct MaterialConstants
 	{
 		DirectX::XMFLOAT3 m_Diffuse = { 0,0,0 };
 		float m_Alpha = 1;

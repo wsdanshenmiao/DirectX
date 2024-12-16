@@ -60,6 +60,9 @@
     <ClCompile Include="MeshManager.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="LightManager.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="LightApp.h">
@@ -131,11 +134,16 @@
     <ClInclude Include="Light.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="LightManager.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Shader\Color.hlsl" />
     <None Include="Shader\DSMCG.hlsli" />
-    <None Include="Shader\Light.hlsl" />
     <None Include="Shader\DSMLighting.hlsli" />
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="Shader\Light.hlsl" />
   </ItemGroup>
 </Project>

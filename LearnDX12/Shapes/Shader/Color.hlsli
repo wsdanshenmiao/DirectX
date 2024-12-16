@@ -1,7 +1,7 @@
 
 struct VertexPosLColor
 {
-    float3 PosL : POSITION;
+    float3 PosL : POSITIONT;
     float4 Color : COLOR;
 };
 

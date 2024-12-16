@@ -16,7 +16,7 @@ int WinMain(
 
 	try
 	{
-		ILight app(hInstance, L"Light", 1024, 720);
+		LightApp app(hInstance, L"Light", 1024, 720);
 		app.OnInit();
 		return app.Run();
 	}

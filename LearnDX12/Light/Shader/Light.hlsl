@@ -23,15 +23,21 @@ float4 PS(VertexPosWHNormalW i) : SV_Target
     float3 viewDir = normalize(i.PosW - gPassCB.EyePosW);
     float3 normal = normalize(i.NormalW);
     
-    float shadowFactor[DIRLIGHTCOUNT];
+    float shadowFactor[MAXDIRLIGHTCOUNT];
     [unloop]
-    for (int index = 0; index < DIRLIGHTCOUNT; ++index)
+    for (int index = 0; index < MAXDIRLIGHTCOUNT; ++index)
     {
         shadowFactor[index] = 1;
     }
     //Lights lights = gLightCB;
     //MaterialConstants mat = gMatCB;
-    float3 col = ComputeLighting(gLightCB, gMatCB, viewDir, normal, i.PosW, shadowFactor);
+    MaterialConstants mat;
+    mat.Diffuse = float3(1, 1, 1);
+    mat.Specular = float3(0.5, 0.5, 0.5);
+    mat.Ambient = float3(0.05, 0.05, 0.05);
+    mat.Alpha = 1;
+    mat.Gloss = 0.25;
+    float3 col = ComputeLighting(gLightCB, mat, viewDir, normal, i.PosW, shadowFactor);
     col += gMatCB.Ambient;
 
     return float4(col, gMatCB.Alpha);

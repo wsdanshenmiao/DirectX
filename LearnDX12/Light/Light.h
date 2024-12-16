@@ -37,7 +37,6 @@ namespace DSM {
 		float m_SpotPower;
 	};
 
-
 }
 
 #endif // !__LIGHT__H__

@@ -18,6 +18,11 @@ namespace DSM {
 		m_ConstantBuffers[bufferName] = std::move(pCB);
 	}
 
+	void FrameResource::AddConstantBuffer(std::pair<std::string, PConstantBuffer>&& buffer)
+	{
+		m_ConstantBuffers.insert(std::move(buffer));
+	}
+
 	void FrameResource::AddDynamicBuffer(
 		ID3D12Device* device,
 		UINT byteSize,
